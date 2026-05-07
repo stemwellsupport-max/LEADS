@@ -159,6 +159,11 @@ let leadsData = [];
 let leadSeleccionado = null;
 let filtroActual = "all";
 
+const HEADERS = {
+    "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "1"
+};
+
 // ============ LOGIN ============
 async function login() {
     const email = document.getElementById("login-email").value;
@@ -167,7 +172,7 @@ async function login() {
     try {
         const res = await fetch(API + "/login", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: HEADERS,
             body: JSON.stringify({ email, password })
         });
         
@@ -201,7 +206,8 @@ async function cargarLeads() {
             ? `${API}/leads/asesor/${asesorActual.id}`
             : `${API}/leads/asesor/${asesorActual.id}?estado=${encodeURIComponent(filtroActual)}`;
         
-        const data = await (await fetch(url)).json();
+        const res = await fetch(url, { headers: HEADERS });
+        const data = await res.json();
         leadsData = data.leads || [];
         renderLeads();
         renderStats();
@@ -268,13 +274,12 @@ function cerrarModal() {
 
 async function cambiarEstado() {
     if (!leadSeleccionado) return;
-    
     const estado = document.getElementById("modal-estado").value;
     
     try {
         const res = await fetch(API + "/leads/estado", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: HEADERS,
             body: JSON.stringify({ lead_id: leadSeleccionado.id, estado, asesor_id: asesorActual.id })
         });
         
@@ -293,14 +298,13 @@ async function cambiarEstado() {
 
 async function agregarComentario() {
     if (!leadSeleccionado) return;
-    
     const comentario = document.getElementById("modal-nuevo-comentario").value.trim();
     if (!comentario) return;
     
     try {
         await fetch(API + "/leads/comentario", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: HEADERS,
             body: JSON.stringify({ lead_id: leadSeleccionado.id, comentario, asesor_id: asesorActual.id })
         });
         
@@ -312,7 +316,6 @@ async function agregarComentario() {
     }
 }
 
-// ============ UTILS ============
 function toast(msg, err) {
     const t = document.createElement("div");
     t.className = "toast " + (err ? "toast-err" : "toast-ok");
