@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Stemwell v3.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+        
+        .login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-box { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 3rem; width: 400px; text-align: center; }
+        .login-box h1 { color: #58a6ff; font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .login-box p { color: #8b949e; margin-bottom: 2rem; font-size: 0.9rem; }
+        .login-box input { width: 100%; padding: 0.8rem; margin-bottom: 1rem; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 0.95rem; }
+        .login-box button { width: 100%; padding: 0.8rem; background: #238636; border: none; border-radius: 8px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .login-box button:hover { background: #2ea043; }
+        .login-error { color: #f85149; margin-top: 1rem; font-size: 0.85rem; display: none; }
+        
+        .app { display: none; }
+        .header { background: #161b22; border-bottom: 1px solid #30363d; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { color: #58a6ff; font-size: 1.3rem; }
+        .header-right { display: flex; align-items: center; gap: 1rem; }
+        .header-right span { color: #8b949e; font-size: 0.85rem; }
+        .btn-logout { padding: 0.4rem 1rem; background: #da3633; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.8rem; }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; }
+        .stat-card:hover { border-color: #58a6ff; }
+        .stat-num { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+        .stat-label { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; margin-top: 0.3rem; }
+        
+        .leads-table { background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+        .leads-table h2 { padding: 1rem 1.5rem; color: #58a6ff; font-size: 1.1rem; border-bottom: 1px solid #30363d; }
+        .filters { display: flex; gap: 0.5rem; padding: 0.8rem 1.5rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.3rem 0.8rem; border: 1px solid #30363d; border-radius: 20px; background: transparent; color: #8b949e; cursor: pointer; font-size: 0.75rem; }
+        .filter-btn.active { background: #1f6feb; color: white; border-color: #1f6feb; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.7rem 1.5rem; background: #0d1117; color: #8b949e; font-size: 0.75rem; text-transform: uppercase; }
+        td { padding: 0.6rem 1.5rem; border-bottom: 1px solid #21262d; font-size: 0.85rem; cursor: pointer; }
+        tr:hover { background: #1c2128; }
+        
+        .badge { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.7rem; }
+        .badge-new { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
+        .badge-won { background: #23863622; color: #3fb950; border: 1px solid #23863644; }
+        .badge-scheduled { background: #9e6a0322; color: #d29922; border: 1px solid #9e6a0344; }
+        .badge-lost { background: #da363322; color: #f85149; border: 1px solid #da363344; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 2rem; width: 700px; max-height: 85vh; overflow-y: auto; }
+        .modal-content h3 { color: #58a6ff; margin-bottom: 0.5rem; }
+        .modal-content label { display: block; color: #8b949e; font-size: 0.8rem; margin: 0.8rem 0 0.3rem; text-transform: uppercase; }
+        .modal-content select, .modal-content textarea { width: 100%; padding: 0.6rem; margin-bottom: 0.5rem; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; }
+        .modal-content button { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 0.5rem; }
+        .btn-save { background: #238636; color: white; }
+        .btn-close { background: #30363d; color: #c9d1d9; }
+        
+        .comentarios-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin: 0.5rem 0; max-height: 120px; overflow-y: auto; font-size: 0.85rem; color: #8b949e; white-space: pre-wrap; }
+        .historial-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin: 0.5rem 0; max-height: 150px; overflow-y: auto; font-size: 0.8rem; color: #8b949e; }
+        .historial-item { padding: 0.3rem 0; border-bottom: 1px solid #21262d; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 8px; color: white; font-weight: 600; z-index: 999; animation: slideIn 0.3s; }
+        .toast-ok { background: #238636; }
+        .toast-err { background: #da3633; }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+    <div class="login-box">
+        <h1>🏥 CRM Stemwell v3.0</h1>
+        <p>Panel de Asesores y Doctores</p>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Contraseña">
+        <button onclick="login()">Ingresar</button>
+        <div class="login-error" id="login-error">Credenciales inválidas</div>
+    </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+    <div class="header">
+        <h1>🏥 CRM Stemwell</h1>
+        <div class="header-right">
+            <span id="user-info"></span>
+            <button class="btn-logout" onclick="logout()">Salir</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card" onclick="filtrar('all')"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
+            <div class="stat-card" onclick="filtrar('New')"><div class="stat-num" id="s-nuevos">0</div><div class="stat-label">Nuevos</div></div>
+            <div class="stat-card" onclick="filtrar('Scheduled Appointment')"><div class="stat-num" id="s-agendados">0</div><div class="stat-label">Agendados</div></div>
+            <div class="stat-card" onclick="filtrar('Won')"><div class="stat-num" id="s-ganados">0</div><div class="stat-label">Ganados</div></div>
+        </div>
+        
+        <!-- Panel de cancelados (solo asesores) -->
+        <div class="leads-table" id="panel-cancelados" style="display:none;">
+            <h2>❌ Citas Canceladas</h2>
+            <div style="padding:1rem;" id="cancelados-body">Cargando...</div>
+        </div>
+        
+        <div class="leads-table">
+            <h2>📋 Leads</h2>
+            <div class="filters">
+                <button class="filter-btn active" onclick="filtrar('all')">Todos</button>
+                <button class="filter-btn" onclick="filtrar('New')">Nuevos</button>
+                <button class="filter-btn" onclick="filtrar('First contact')">Primer Contacto</button>
+                <button class="filter-btn" onclick="filtrar('Scheduled Appointment')">Agendados</button>
+                <button class="filter-btn" onclick="filtrar('Canceled appointment')">Cancelados</button>
+                <button class="filter-btn" onclick="filtrar('Won')">Ganados</button>
+            </div>
+            <table>
+                <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Estado</th><th>Doctor</th><th>Fecha</th></tr></thead>
+                <tbody id="leads-body"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#8b949e;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <h3 id="modal-nombre"></h3>
+        <p style="color:#8b949e;" id="modal-info"></p>
+        
+        <label>Cambiar Estado</label>
+        <select id="modal-estado">
+            <option value="At reception">At reception</option>
+            <option value="Booked Calls">Booked Calls</option>
+            <option value="Rescheduled">Rescheduled</option>
+            <option value="Cancelled Call">Cancelled Call</option>
+            <option value="Does not answer">Does not answer</option>
+            <option value="First contact">First contact</option>
+            <option value="Scheduled Appointment">Scheduled Appointment</option>
+            <option value="International line">International line</option>
+            <option value="Treatment proposal">Treatment proposal</option>
+            <option value="Highly interested (Treatment Confirmed)">Highly interested</option>
+            <option value="Won">Won</option>
+            <option value="Doctors">Doctors</option>
+            <option value="Sales">Sales</option>
+            <option value="Lost / Not interested">Lost / Not interested</option>
+            <option value="Canceled appointment">Canceled appointment</option>
+        </select>
+        
+        <!-- Asignar doctor (solo para asesores) -->
+        <div id="doctor-select-container" style="display:none;">
+            <label>Asignar Doctor</label>
+            <select id="modal-doctor"></select>
+        </div>
+        
+        <label>Comentario</label>
+        <textarea id="modal-comentario" rows="2" placeholder="Añade un comentario..."></textarea>
+        <button class="btn-save" onclick="guardarCambios()">Guardar Estado y Comentario</button>
+        
+        <label>Comentarios anteriores</label>
+        <div class="comentarios-box" id="modal-comentarios">Sin comentarios</div>
+        
+        <label>Historial de cambios</label>
+        <div class="historial-box" id="modal-historial">Cargando...</div>
+        
+        <button class="btn-close" onclick="cerrarModal()" style="margin-top:1rem;">Cerrar</button>
+    </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+let usuarioActual = null;
+let leadsData = [];
+let leadSeleccionado = null;
+let filtroActual = "all";
+
+// Persistencia de sesión
+const savedUser = localStorage.getItem("crm_user");
+if (savedUser) {
+    try {
+        usuarioActual = JSON.parse(savedUser);
+        mostrarApp();
+    } catch(e) {
+        localStorage.removeItem("crm_user");
+    }
+}
+
+// ============ LOGIN ============
+async function login() {
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+    
+    try {
+        const res = await fetch(API + "/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+        
+        if (!res.ok) {
+            document.getElementById("login-error").style.display = "block";
+            return;
+        }
+        
+        usuarioActual = await res.json();
+        localStorage.setItem("crm_user", JSON.stringify(usuarioActual));
+        mostrarApp();
+    } catch(e) {
+        document.getElementById("login-error").style.display = "block";
+    }
+}
+
+function logout() {
+    localStorage.removeItem("crm_user");
+    location.reload();
+}
+
+function mostrarApp() {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("user-info").textContent = `👤 ${usuarioActual.nombre} (${usuarioActual.rol})`;
+    
+    if (usuarioActual.rol === "asesor") {
+        document.getElementById("panel-cancelados").style.display = "block";
+        cargarCancelados();
+    }
+    
+    cargarLeads();
+    cargarDoctores();
+}
+
+// ============ LEADS ============
+async function cargarLeads() {
+    if (!usuarioActual) return;
+    
+    try {
+        const url = `${API}/leads/usuario/${usuarioActual.id}${filtroActual !== "all" ? `?estado=${encodeURIComponent(filtroActual)}` : ""}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        leadsData = data.leads || [];
+        renderLeads();
+        renderStats();
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function renderLeads() {
+    const tbody = document.getElementById("leads-body");
+    
+    if (leadsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#8b949e;">No hay leads</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = leadsData.map(l => {
+        let badgeClass = "badge-new";
+        if (l.estado === "Won") badgeClass = "badge-won";
+        else if (l.estado === "Scheduled Appointment") badgeClass = "badge-scheduled";
+        else if (l.estado.includes("Lost") || l.estado.includes("Canceled")) badgeClass = "badge-lost";
+        
+        return `<tr onclick="abrirModal(${l.id})">
+            <td><strong>${l.nombre}</strong></td>
+            <td>${l.telefono || "-"}</td>
+            <td>${l.email || "-"}</td>
+            <td><span class="badge ${badgeClass}">${l.estado}</span></td>
+            <td>${l.doctor_nombre || "—"}</td>
+            <td>${(l.fecha_creacion || "").slice(0,10)}</td>
+        </tr>`;
+    }).join("");
+}
+
+function renderStats() {
+    document.getElementById("s-total").textContent = leadsData.length;
+    document.getElementById("s-nuevos").textContent = leadsData.filter(l => l.estado === "New").length;
+    document.getElementById("s-agendados").textContent = leadsData.filter(l => l.estado === "Scheduled Appointment").length;
+    document.getElementById("s-ganados").textContent = leadsData.filter(l => l.estado === "Won").length;
+}
+
+async function cargarCancelados() {
+    if (!usuarioActual || usuarioActual.rol !== "asesor") return;
+    try {
+        const res = await fetch(`${API}/leads/cancelados/${usuarioActual.id}`);
+        const data = await res.json();
+        const leads = data.leads || [];
+        document.getElementById("cancelados-body").innerHTML = leads.length === 0 
+            ? '<p style="color:#8b949e;">No hay citas canceladas</p>'
+            : leads.map(l => `<p>• ${l.nombre} - ${l.telefono} - Cancelado: ${(l.fecha_cancelacion||"").slice(0,10)}</p>`).join("");
+    } catch(e) {}
+}
+
+async function cargarDoctores() {
+    try {
+        const res = await fetch(`${API}/doctores`);
+        const data = await res.json();
+        const select = document.getElementById("modal-doctor");
+        select.innerHTML = '<option value="">Seleccionar doctor...</option>';
+        (data.usuarios || []).forEach(d => {
+            select.innerHTML += `<option value="${d.id}">${d.nombre}</option>`;
+        });
+    } catch(e) {}
+}
+
+function filtrar(estado) {
+    filtroActual = estado;
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    event?.target?.classList.add("active");
+    cargarLeads();
+}
+
+// ============ MODAL ============
+async function abrirModal(id) {
+    leadSeleccionado = leadsData.find(l => l.id === id);
+    if (!leadSeleccionado) return;
+    
+    document.getElementById("modal-nombre").textContent = leadSeleccionado.nombre;
+    document.getElementById("modal-info").textContent = `${leadSeleccionado.telefono || ""} | ${leadSeleccionado.email || ""} | ${leadSeleccionado.canal || ""}`;
+    document.getElementById("modal-estado").value = leadSeleccionado.estado;
+    document.getElementById("modal-comentarios").textContent = leadSeleccionado.comentarios || "Sin comentarios";
+    document.getElementById("modal-comentario").value = "";
+    document.getElementById("modal").style.display = "flex";
+    
+    // Mostrar selector de doctor para asesores en estado agendado
+    const doctorContainer = document.getElementById("doctor-select-container");
+    if (usuarioActual.rol === "asesor" && leadSeleccionado.estado === "Scheduled Appointment") {
+        doctorContainer.style.display = "block";
+    } else {
+        doctorContainer.style.display = "none";
+    }
+    
+    // Cargar historial
+    cargarHistorial(id);
+}
+
+function cerrarModal() {
+    document.getElementById("modal").style.display = "none";
+    leadSeleccionado = null;
+}
+
+async function cargarHistorial(leadId) {
+    try {
+        const res = await fetch(`${API}/leads/${leadId}/historial`);
+        const data = await res.json();
+        const historial = data.historial || [];
+        document.getElementById("modal-historial").innerHTML = historial.length === 0
+            ? '<p>Sin cambios registrados</p>'
+            : historial.map(h => `
+                <div class="historial-item">
+                    <strong>${h.nombre || "Sistema"}</strong>: 
+                    ${h.estado_anterior} → ${h.estado_nuevo} 
+                    <small>(${new Date(h.fecha).toLocaleString()})</small>
+                    ${h.comentario ? `<br><em>${h.comentario}</em>` : ""}
+                </div>`).join("");
+    } catch(e) {
+        document.getElementById("modal-historial").textContent = "Error al cargar historial";
+    }
+}
+
+async function guardarCambios() {
+    if (!leadSeleccionado) return;
+    
+    const estado = document.getElementById("modal-estado").value;
+    const comentario = document.getElementById("modal-comentario").value.trim();
+    const doctorId = document.getElementById("modal-doctor").value || null;
+    
+    const body = {
+        lead_id: leadSeleccionado.id,
+        estado: estado,
+        usuario_id: usuarioActual.id,
+        comentario: comentario
+    };
+    
+    if (doctorId) body.doctor_id = parseInt(doctorId);
+    
+    try {
+        const res = await fetch(API + "/leads/estado", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        
+        if (res.ok) {
+            toast("✅ Estado actualizado y comentario guardado");
+            cerrarModal();
+            cargarLeads();
+            if (usuarioActual.rol === "asesor") cargarCancelados();
+        } else {
+            const err = await res.json();
+            toast("❌ Error: " + err.detail, true);
+        }
+    } catch(e) {
+        toast("❌ Error de conexión", true);
+    }
+}
+
+function toast(msg, err = false) {
+    const t = document.createElement("div");
+    t.className = "toast " + (err ? "toast-err" : "toast-ok");
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+}
+
+document.getElementById("modal").addEventListener("click", function(e) {
+    if (e.target === this) cerrarModal();
+});
+</script>
+</body>
+</html>
