@@ -175,6 +175,11 @@ let leadsData = [];
 let leadSeleccionado = null;
 let filtroActual = "all";
 
+const HEADERS = {
+    "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "1"
+};
+
 // Persistencia de sesión
 const savedUser = localStorage.getItem("crm_user");
 if (savedUser) {
