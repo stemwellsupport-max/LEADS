@@ -647,3 +647,4 @@ def health():
         conn = get_db(); conn.close(); return {"status": "ok"}
     except:
         return {"status": "error"}
+    
