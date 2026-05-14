@@ -3,841 +3,1547 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Stemwell v4.0</title>
+    <title>CRM Stemwell v6.0</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg: #080c12;
+            --bg2: #0e1520;
+            --bg3: #141d2b;
+            --border: #1e2d42;
+            --border2: #263447;
+            --text: #d4dde8;
+            --text2: #7a90a8;
+            --text3: #4a6070;
+            --accent: #3b82f6;
+            --accent2: #1d4ed8;
+            --green: #22c55e;
+            --green2: #166534;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --purple: #a855f7;
+            --teal: #14b8a6;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
-        
-        .login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .login-box { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 3rem; width: 400px; text-align: center; }
-        .login-box h1 { color: #58a6ff; font-size: 1.8rem; margin-bottom: 0.5rem; }
-        .login-box p { color: #8b949e; margin-bottom: 2rem; font-size: 0.9rem; }
-        .login-box input { width: 100%; padding: 0.8rem; margin-bottom: 1rem; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 0.95rem; }
-        .login-box button { width: 100%; padding: 0.8rem; background: #238636; border: none; border-radius: 8px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; }
-        .login-box button:hover { background: #2ea043; }
-        .login-error { color: #f85149; margin-top: 1rem; font-size: 0.85rem; display: none; }
-        
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+        /* ── LOGIN ── */
+        .login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: radial-gradient(ellipse at 30% 20%, #0d2040 0%, var(--bg) 60%); }
+        .login-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 3rem; width: 420px; }
+        .login-logo { font-size: 1.6rem; font-weight: 700; color: var(--accent); margin-bottom: 0.3rem; letter-spacing: -0.5px; }
+        .login-sub { color: var(--text2); font-size: 0.85rem; margin-bottom: 2.5rem; }
+        .login-box input { width: 100%; padding: 0.75rem 1rem; margin-bottom: 0.8rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: inherit; font-size: 0.9rem; transition: border-color 0.2s; }
+        .login-box input:focus { outline: none; border-color: var(--accent); }
+        .login-box .btn-primary { width: 100%; padding: 0.8rem; background: var(--accent); border: none; border-radius: 10px; color: white; font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .login-box .btn-primary:hover { background: var(--accent2); }
+        .login-error { color: var(--red); font-size: 0.82rem; margin-top: 0.8rem; display: none; }
+
+        /* ── APP ── */
         .app { display: none; }
-        .header { background: #161b22; border-bottom: 1px solid #30363d; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { color: #58a6ff; font-size: 1.3rem; }
+        .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0.9rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
+        .header-logo { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
         .header-right { display: flex; align-items: center; gap: 1rem; }
-        .header-right span { color: #8b949e; font-size: 0.85rem; }
-        .btn-logout { padding: 0.4rem 1rem; background: #da3633; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.8rem; }
-        .btn-logout:hover { background: #f85149; }
-        
-        .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+        .role-badge { padding: 0.25rem 0.7rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; font-size: 0.75rem; color: var(--text2); font-family: 'DM Mono', monospace; }
+        .btn-logout { padding: 0.35rem 0.9rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text2); cursor: pointer; font-family: inherit; font-size: 0.78rem; transition: all 0.2s; }
+        .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+        .container { max-width: 1500px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+        /* ── STATS ── */
         .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-        .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
-        .stat-card:hover { border-color: #58a6ff; transform: translateY(-2px); }
-        .stat-num { font-size: 2rem; font-weight: 700; color: #58a6ff; }
-        .stat-label { color: #8b949e; font-size: 0.75rem; text-transform: uppercase; margin-top: 0.3rem; letter-spacing: 0.5px; }
-        
-        .leads-table { background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
-        .leads-table h2 { padding: 1rem 1.5rem; color: #58a6ff; font-size: 1.1rem; border-bottom: 1px solid #30363d; }
-        .filters { display: flex; gap: 0.5rem; padding: 0.8rem 1.5rem; flex-wrap: wrap; border-bottom: 1px solid #21262d; }
-        .filter-btn { padding: 0.35rem 0.9rem; border: 1px solid #30363d; border-radius: 20px; background: transparent; color: #8b949e; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; }
-        .filter-btn:hover { border-color: #58a6ff; color: #c9d1d9; }
-        .filter-btn.active { background: #1f6feb; color: white; border-color: #1f6feb; }
-        
+        .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 1.4rem 1.5rem; cursor: pointer; transition: all 0.2s; }
+        .stat-card:hover { border-color: var(--accent); background: var(--bg3); }
+        .stat-card.active { border-color: var(--accent); }
+        .stat-num { font-size: 2.2rem; font-weight: 700; color: var(--accent); font-family: 'DM Mono', monospace; line-height: 1; }
+        .stat-label { color: var(--text2); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.4rem; }
+
+        /* ── TOOLBAR ── */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap; }
+        .filters { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.3rem 0.8rem; border: 1px solid var(--border); border-radius: 20px; background: transparent; color: var(--text2); cursor: pointer; font-family: inherit; font-size: 0.75rem; transition: all 0.2s; }
+        .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-new { padding: 0.45rem 1.1rem; background: var(--accent); border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit; font-size: 0.82rem; font-weight: 600; transition: background 0.2s; white-space: nowrap; }
+        .btn-new:hover { background: var(--accent2); }
+
+        /* ── TABLE ── */
+        .table-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .table-card h2 { padding: 1rem 1.5rem; color: var(--text); font-size: 0.95rem; font-weight: 600; border-bottom: 1px solid var(--border); background: var(--bg3); }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 0.7rem 1rem; background: #0d1117; color: #8b949e; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { padding: 0.65rem 1rem; border-bottom: 1px solid #21262d; font-size: 0.85rem; cursor: pointer; }
-        tr:hover { background: #1c2128; }
-        
-        .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.7rem; font-weight: 500; }
-        .badge-new { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
-        .badge-won { background: #23863622; color: #3fb950; border: 1px solid #23863644; }
-        .badge-scheduled { background: #9e6a0322; color: #d29922; border: 1px solid #9e6a0344; }
-        .badge-lost { background: #da363322; color: #f85149; border: 1px solid #da363344; }
-        .badge-medical { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
-        .badge-info { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 100; justify-content: center; align-items: center; }
-        .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 2rem; width: 700px; max-height: 85vh; overflow-y: auto; }
-        .modal-content h3 { color: #58a6ff; margin-bottom: 0.3rem; }
-        .modal-subtitle { color: #8b949e; font-size: 0.85rem; margin-bottom: 1rem; }
-        .modal-content label { display: block; color: #8b949e; font-size: 0.75rem; margin: 1rem 0 0.3rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .modal-content select, .modal-content textarea, .modal-content input { width: 100%; padding: 0.6rem; margin-bottom: 0.5rem; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 0.9rem; }
-        .modal-content select:focus, .modal-content textarea:focus, .modal-content input:focus { outline: none; border-color: #58a6ff; }
-        .modal-content button { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; margin-right: 0.5rem; transition: all 0.2s; }
-        .btn-save { background: #238636; color: white; }
-        .btn-save:hover { background: #2ea043; }
-        .btn-close { background: #30363d; color: #c9d1d9; }
-        .btn-close:hover { background: #484f58; }
-        
-        .comentarios-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin: 0.5rem 0; max-height: 120px; overflow-y: auto; font-size: 0.85rem; color: #8b949e; white-space: pre-wrap; }
-        .historial-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin: 0.5rem 0; max-height: 180px; overflow-y: auto; font-size: 0.8rem; color: #8b949e; }
-        .historial-item { padding: 0.35rem 0; border-bottom: 1px solid #21262d; }
-        .historial-item:last-child { border-bottom: none; }
-        
-        .toast { position: fixed; bottom: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 8px; color: white; font-weight: 600; z-index: 999; animation: slideIn 0.3s; }
-        .toast-ok { background: #238636; }
-        .toast-err { background: #da3633; }
-        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
+        th { text-align: left; padding: 0.6rem 1rem; background: var(--bg); color: var(--text3); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.83rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg3); cursor: pointer; }
+        .td-name { font-weight: 600; color: var(--text); }
+        .td-muted { color: var(--text2); font-size: 0.78rem; font-family: 'DM Mono', monospace; }
+
+        /* ── BADGES ── */
+        .badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 500; white-space: nowrap; }
+        .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+        .b-new { background: #1e3a5f; color: #60a5fa; border: 1px solid #1e40af44; }
+        .b-won { background: #14532d; color: #4ade80; border: 1px solid #16a34a44; }
+        .b-sched { background: #713f12; color: #fbbf24; border: 1px solid #d9770044; }
+        .b-lost { background: #450a0a; color: #f87171; border: 1px solid #ef444444; }
+        .b-med { background: #4c1d95; color: #c084fc; border: 1px solid #7c3aed44; }
+        .b-treat { background: #0f3d3d; color: #2dd4bf; border: 1px solid #0d948444; }
+        .b-follow { background: #1c1f2e; color: #a5b4fc; border: 1px solid #6366f144; }
+        .b-cancel { background: #2d1515; color: #fc8181; border: 1px solid #c0392b44; }
+        .b-gray { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+        /* ── MODAL ── */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: flex-start; padding: 2rem 1rem; overflow-y: auto; }
+        .modal.open { display: flex; }
+        .modal-content { background: var(--bg2); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; width: 700px; max-width: 100%; margin: auto; }
+        .modal-content h3 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+        .modal-meta { color: var(--text2); font-size: 0.8rem; margin-bottom: 1.2rem; font-family: 'DM Mono', monospace; }
+
+        .current-states { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; padding: 1rem; background: var(--bg3); border-radius: 10px; border: 1px solid var(--border); }
+        .cs-item { display: flex; flex-direction: column; gap: 0.2rem; }
+        .cs-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); }
+        .cs-val { font-size: 0.8rem; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+
+        .form-section { margin-bottom: 1rem; }
+        .form-section label, label.lbl { display: block; color: var(--text2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.4rem; margin-top: 0.8rem; }
+        .modal-content select, .modal-content textarea, .modal-content input[type="text"], .modal-content input[type="email"], .modal-content input[type="datetime-local"] {
+            width: 100%; padding: 0.65rem 0.9rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.88rem; transition: border-color 0.2s;
+        }
+        .modal-content select:focus, .modal-content textarea:focus, .modal-content input:focus { outline: none; border-color: var(--accent); }
+        .modal-content textarea { resize: vertical; min-height: 70px; }
+
+        .modal-actions { display: flex; gap: 0.6rem; margin-top: 1.2rem; flex-wrap: wrap; }
+        .btn-save { padding: 0.6rem 1.3rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 600; transition: background 0.2s; }
+        .btn-save:hover { background: var(--accent2); }
+        .btn-close { padding: 0.6rem 1.3rem; background: transparent; color: var(--text2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.85rem; transition: all 0.2s; }
+        .btn-close:hover { border-color: var(--text2); color: var(--text); }
+
+        .section-divider { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+
+        .comments-history { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; max-height: 150px; overflow-y: auto; font-size: 0.8rem; color: var(--text2); white-space: pre-wrap; line-height: 1.6; }
+        .history-item { padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.78rem; color: var(--text2); }
+        .history-item:last-child { border-bottom: none; }
+        .history-who { color: var(--accent); font-weight: 600; }
+        .history-arrow { color: var(--text3); margin: 0 0.3rem; }
+        .history-date { color: var(--text3); font-family: 'DM Mono', monospace; font-size: 0.7rem; }
+
+        .info-box { padding: 0.7rem 1rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 0.8rem; }
+        .info-box.warning { background: #2d1f0a; border: 1px solid #d9770044; color: #fbbf24; }
+        .info-box.info { background: #0f1f3d; border: 1px solid #1e40af44; color: #60a5fa; }
+        .info-box.success { background: #0a2d1a; border: 1px solid #16a34a44; color: #4ade80; }
+
         .hidden { display: none !important; }
-        .flex { display: flex; gap: 1rem; }
-        .flex > div { flex: 1; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* ── TOAST ── */
+        .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: 0.8rem 1.4rem; border-radius: 10px; color: white; font-weight: 600; font-size: 0.85rem; z-index: 999; animation: slideIn 0.3s; max-width: 350px; }
+        .toast-ok { background: #166534; border: 1px solid var(--green); }
+        .toast-err { background: #450a0a; border: 1px solid var(--red); }
+        @keyframes slideIn { from { transform: translateX(120px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* empty state */
+        .empty-row td { text-align: center; padding: 3rem; color: var(--text3); font-size: 0.85rem; }
+
+        /* Section header for panel */
+        .section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); padding: 0.5rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border); }
+
+        /* Flow diagram chip */
+        .flow-info { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; font-size: 0.72rem; color: var(--text3); }
+        .flow-info .arrow { color: var(--text3); }
+        .flow-info .step { padding: 0.15rem 0.5rem; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+
+        /* ── SOPORTE EXTRAS ── */
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+        .nl-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); padding: 0.5rem 0; border-bottom: 1px solid var(--border); margin-bottom: 0.8rem; font-weight: 600; }
         
-        .estado-actual { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-        .estado-pill { padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.75rem; background: #21262d; border: 1px solid #30363d; }
-        .estado-pill span { color: #8b949e; margin-right: 0.3rem; }
-        .estado-pill strong { color: #c9d1d9; }
-        
-        .warning-text { color: #d29922; font-size: 0.8rem; margin-top: 0.3rem; }
+        /* Header soporte botones */
+        .header-actions { display: flex; gap: 0.5rem; }
+        .btn-header { padding: 0.35rem 0.9rem; background: transparent; border: 1px solid var(--border2); border-radius: 8px; color: var(--text2); cursor: pointer; font-family: inherit; font-size: 0.78rem; transition: all 0.2s; }
+        .btn-header:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-header.primary { background: var(--accent); border-color: var(--accent); color: white; }
+        .btn-header.primary:hover { background: var(--accent2); }
+
+        /* Tabs gestión usuarios */
+        .gu-tab { padding: 0.4rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; font-family: inherit; font-size: 0.82rem; transition: all 0.2s; }
+        .gu-tab.active { background: var(--accent); border-color: var(--accent); color: white; }
+        .gu-tab:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+        /* Lista de usuarios */
+        .user-card { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+        .user-card:last-child { border-bottom: none; }
+        .user-card:hover { background: var(--bg3); }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; }
+        .ua-asesor { background: #1e3a5f; color: #60a5fa; }
+        .ua-doctor { background: #14532d; color: #4ade80; }
+        .ua-soporte { background: #4c1d95; color: #c084fc; }
+        .user-info { flex: 1; }
+        .user-name { font-weight: 600; font-size: 0.88rem; color: var(--text); }
+        .user-email { font-size: 0.75rem; color: var(--text2); font-family: 'DM Mono', monospace; }
+        .user-rol-badge { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.68rem; font-weight: 600; }
+        .ur-asesor { background: #1e3a5f; color: #60a5fa; }
+        .ur-doctor { background: #14532d; color: #4ade80; }
+        .ur-soporte { background: #4c1d95; color: #c084fc; }
+
+        /* Barra de búsqueda */
+        .search-bar { width: 100%; padding: 0.6rem 1rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.88rem; margin-bottom: 1rem; }
+        .search-bar:focus { outline: none; border-color: var(--accent); }
+        .search-bar::placeholder { color: var(--text3); }
+
+        /* Panel soporte info banner */
+        .soporte-banner { background: linear-gradient(135deg, #0f1f3d, #0e1520); border: 1px solid #1e40af44; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; }
+        .sb-icon { font-size: 1.8rem; }
+        .sb-text h4 { color: #60a5fa; font-size: 0.9rem; margin-bottom: 0.2rem; }
+        .sb-text p { color: var(--text2); font-size: 0.78rem; }
+        .sb-actions { margin-left: auto; display: flex; gap: 0.5rem; }
     </style>
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- LOGIN -->
-<!-- ============================================ -->
+<!-- ══════════ LOGIN ══════════ -->
 <div class="login-screen" id="login-screen">
     <div class="login-box">
-        <h1>🏥 CRM Stemwell v4.0</h1>
-        <p>Panel de Asesores y Doctores</p>
-        <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+        <div class="login-logo">⬡ Stemwell CRM</div>
+        <div class="login-sub">Panel de Asesores · Doctores · Soporte</div>
+        <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="email">
         <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
-        <button onclick="login()">Ingresar</button>
-        <div class="login-error" id="login-error">Credenciales inválidas</div>
+        <button class="btn-primary" onclick="login()">Ingresar al sistema</button>
+        <div class="login-error" id="login-error">Credenciales inválidas. Verifica tu email y contraseña.</div>
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- APP PRINCIPAL -->
-<!-- ============================================ -->
+<!-- ══════════ APP ══════════ -->
 <div class="app" id="app">
     <div class="header">
-        <h1>🏥 CRM Stemwell</h1>
+        <div class="header-logo">⬡ Stemwell CRM</div>
         <div class="header-right">
-            <span id="user-info"></span>
+            <!-- Botones solo visibles para soporte -->
+            <div class="header-actions" id="soporte-header-actions" style="display:none;">
+                <button class="btn-header primary" onclick="abrirNuevoLead()">+ Nuevo Lead</button>
+                <button class="btn-header" onclick="abrirGestionUsuarios()">👥 Usuarios</button>
+            </div>
+            <span class="role-badge" id="user-info">—</span>
             <button class="btn-logout" onclick="logout()">Salir</button>
         </div>
     </div>
-    
+
     <div class="container">
-        <!-- TARJETAS DE ESTADÍSTICAS -->
+        <!-- Banner soporte (solo visible para soporte) -->
+        <div class="soporte-banner hidden" id="soporte-banner">
+            <div class="sb-icon">🛡️</div>
+            <div class="sb-text">
+                <h4>Panel de Soporte / Administración</h4>
+                <p>Tienes acceso total a todos los leads, estados y configuración del sistema.</p>
+            </div>
+            <div class="sb-actions">
+                <button class="btn-header primary" onclick="abrirNuevoLead()">+ Nuevo Lead</button>
+                <button class="btn-header" onclick="abrirGestionUsuarios()">👥 Gestionar Usuarios</button>
+            </div>
+        </div>
+        <!-- Stats -->
         <div class="stats" id="stats-container">
             <div class="stat-card" onclick="filtrar('all')">
                 <div class="stat-num" id="s-total">0</div>
-                <div class="stat-label">Total</div>
+                <div class="stat-label">Total Leads</div>
             </div>
-            <div class="stat-card" id="stat-card-1" onclick="filtrar('new')">
+            <div class="stat-card" id="stat1" onclick="filtrar_stat(1)">
                 <div class="stat-num" id="s-stat1">0</div>
                 <div class="stat-label" id="s-label1">Nuevos</div>
             </div>
-            <div class="stat-card" id="stat-card-2" onclick="filtrar('scheduled')">
+            <div class="stat-card" id="stat2" onclick="filtrar_stat(2)">
                 <div class="stat-num" id="s-stat2">0</div>
                 <div class="stat-label" id="s-label2">Agendados</div>
             </div>
-            <div class="stat-card" id="stat-card-3" onclick="filtrar('won')">
+            <div class="stat-card" id="stat3" onclick="filtrar_stat(3)">
                 <div class="stat-num" id="s-stat3">0</div>
                 <div class="stat-label" id="s-label3">Ganados</div>
             </div>
         </div>
-        
-        <!-- PANEL DE CANCELADOS (SOLO ASESORES) -->
-        <div class="leads-table" id="panel-cancelados" style="display:none;">
-            <h2>❌ Citas Canceladas / Perdidas</h2>
-            <div style="padding:1rem;" id="cancelados-body">Cargando...</div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="filters" id="filters-container"></div>
         </div>
-        
-        <!-- TABLA DE LEADS -->
-        <div class="leads-table">
-            <h2>📋 Leads</h2>
-            <div class="filters" id="filters-container">
-                <button class="filter-btn active" onclick="filtrar('all')">Todos</button>
-            </div>
+
+        <!-- Barra de búsqueda (soporte) -->
+        <div id="search-container" class="hidden" style="margin-bottom:1rem;">
+            <input class="search-bar" id="search-input" placeholder="🔍 Buscar por nombre, teléfono o email..." oninput="buscarLeads(this.value)">
+        </div>
+
+        <!-- Table -->
+        <div class="table-card">
+            <h2 id="table-title">📋 Leads</h2>
             <table>
-                <thead>
-                    <tr id="table-headers">
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Email</th>
-                        <th>Estado</th>
-                        <th>Cita</th>
-                        <th>Doctor</th>
-                        <th>Fecha</th>
-                    </tr>
-                </thead>
-                <tbody id="leads-body">
-                    <tr><td colspan="7" style="text-align:center;padding:2rem;color:#8b949e;">Cargando...</td></tr>
-                </tbody>
+                <thead><tr id="table-headers"></tr></thead>
+                <tbody id="leads-body"><tr class="empty-row"><td colspan="8">Cargando...</td></tr></tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- MODAL DETALLE -->
-<!-- ============================================ -->
+<!-- ══════════ MODAL DETALLE ══════════ -->
 <div class="modal" id="modal">
     <div class="modal-content">
-        <h3 id="modal-nombre"></h3>
-        <p class="modal-subtitle" id="modal-info"></p>
-        
+        <h3 id="m-nombre">—</h3>
+        <div class="modal-meta" id="m-meta">—</div>
+
         <!-- Estados actuales -->
-        <div class="estado-actual" id="estado-actual"></div>
-        
-        <!-- Contenedor dinámico para selectores de estado -->
-        <div id="estado-select-container"></div>
-        
-        <!-- Selector de doctor (para asesor cuando agenda) -->
-        <div id="doctor-select-container" class="hidden">
-            <label>Asignar Doctor</label>
-            <select id="modal-doctor">
-                <option value="">Seleccionar doctor...</option>
-            </select>
+        <div class="current-states" id="m-states"></div>
+
+        <!-- Contenido dinámico según rol -->
+        <div id="m-body"></div>
+
+        <!-- Comentario -->
+        <label class="lbl">Añadir Comentario</label>
+        <textarea id="m-comentario" placeholder="Escribe un comentario..."></textarea>
+
+        <div class="modal-actions">
+            <button class="btn-save" onclick="guardarCambios()">💾 Guardar Cambios</button>
+            <button class="btn-close" onclick="cerrarModal()">Cerrar</button>
         </div>
-        
-        <!-- Fecha de tratamiento (para asesor cuando agenda tratamiento) -->
-        <div id="treatment-date-container" class="hidden">
-            <label>Fecha de Tratamiento</label>
-            <input type="datetime-local" id="modal-treatment-date">
-        </div>
-        
-        <!-- Razón de rechazo (para doctor cuando rechaza candidato) -->
-        <div id="rejection-reason-container" class="hidden">
-            <label>Razón de Rechazo</label>
-            <select id="modal-rejection-reason">
-                <option value="">Seleccionar razón...</option>
-                <option value="No interés">No interés</option>
-                <option value="Dinero">Dinero</option>
-                <option value="Cáncer o malignidad activa">Cáncer o malignidad activa</option>
-                <option value="Infecciones sistémicas no controladas">Infecciones sistémicas no controladas</option>
-                <option value="Falla orgánica descompensada">Falla orgánica descompensada</option>
-                <option value="Trastornos hematológicos severos">Trastornos hematológicos severos</option>
-                <option value="Daño estructural avanzado o pérdida irreversible de tejido">Daño estructural avanzado o pérdida irreversible de tejido</option>
-                <option value="Expectativas fuera del alcance clínico">Expectativas fuera del alcance clínico</option>
-                <option value="Evaluación de historial clínico e imágenes">Evaluación de historial clínico e imágenes</option>
-            </select>
-        </div>
-        
-        <label>Comentario</label>
-        <textarea id="modal-comentario" rows="2" placeholder="Añade un comentario..."></textarea>
-        <button class="btn-save" onclick="guardarCambios()">💾 Guardar Cambios</button>
-        
-        <label>Comentarios anteriores</label>
-        <div class="comentarios-box" id="modal-comentarios">Sin comentarios</div>
-        
-        <label>Historial de cambios</label>
-        <div class="historial-box" id="modal-historial">Cargando...</div>
-        
-        <button class="btn-close" onclick="cerrarModal()" style="margin-top:1rem;">Cerrar</button>
+
+        <hr class="section-divider">
+        <label class="lbl">Comentarios anteriores</label>
+        <div class="comments-history" id="m-comentarios">Sin comentarios</div>
+
+        <label class="lbl" style="margin-top:1rem;">Historial de cambios</label>
+        <div class="comments-history" id="m-historial">Cargando...</div>
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- SCRIPTS -->
-<!-- ============================================ -->
+<!-- ══════════ MODAL NUEVO LEAD (Soporte) ══════════ -->
+<div class="modal" id="modal-nuevo">
+    <div class="modal-content" style="width:760px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">
+            <div>
+                <h3 style="margin-bottom:0.2rem;">➕ Ingresar Nuevo Lead</h3>
+                <div class="modal-meta">Completa los datos del paciente. Los campos marcados con * son obligatorios.</div>
+            </div>
+            <button class="btn-close" onclick="document.getElementById('modal-nuevo').classList.remove('open')" style="margin:0;">✕</button>
+        </div>
+
+        <!-- Sección: Datos Personales -->
+        <div class="nl-section-title">👤 Datos Personales</div>
+        <div class="three-col">
+            <div>
+                <label class="lbl">Nombre Completo *</label>
+                <input type="text" id="nl-nombre" placeholder="Ej: María García López">
+            </div>
+            <div>
+                <label class="lbl">Teléfono *</label>
+                <input type="text" id="nl-telefono" placeholder="Ej: 3001234567">
+            </div>
+            <div>
+                <label class="lbl">Género</label>
+                <select id="nl-genero">
+                    <option value="">Sin especificar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+        </div>
+        <div class="two-col">
+            <div>
+                <label class="lbl">Email</label>
+                <input type="email" id="nl-email" placeholder="correo@ejemplo.com">
+            </div>
+            <div>
+                <label class="lbl">Ciudad / País</label>
+                <input type="text" id="nl-ciudad" placeholder="Ej: Bogotá, Colombia">
+            </div>
+        </div>
+
+        <!-- Sección: Origen del Lead -->
+        <div class="nl-section-title" style="margin-top:1.2rem;">📡 Origen del Lead</div>
+        <div class="three-col">
+            <div>
+                <label class="lbl">Canal de Captación *</label>
+                <select id="nl-canal">
+                    <option value="Manual">Manual (ingresado por soporte)</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Referido">Referido</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Página Web">Página Web</option>
+                    <option value="Google Ads">Google Ads</option>
+                    <option value="Llamada">Llamada entrante</option>
+                    <option value="Evento">Evento / Feria</option>
+                    <option value="Email">Email Marketing</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <div>
+                <label class="lbl">Categoría / Condición</label>
+                <select id="nl-categoria">
+                    <option value="">Sin especificar</option>
+                    <option value="Knee">Rodilla (Knee)</option>
+                    <option value="Hip">Cadera (Hip)</option>
+                    <option value="Spine">Columna (Spine)</option>
+                    <option value="Shoulder">Hombro (Shoulder)</option>
+                    <option value="Elbow">Codo (Elbow)</option>
+                    <option value="Ankle">Tobillo (Ankle)</option>
+                    <option value="Anti-aging">Anti-aging</option>
+                    <option value="Neurológico">Neurológico</option>
+                    <option value="Walk-in">Walk-in (sin especificar)</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <div>
+                <label class="lbl">Categoría Personalizada</label>
+                <input type="text" id="nl-categoria-custom" placeholder="Si eligió 'Otro'...">
+            </div>
+        </div>
+
+        <!-- Sección: Asignación -->
+        <div class="nl-section-title" style="margin-top:1.2rem;">🗂️ Asignación</div>
+        <div class="three-col">
+            <div>
+                <label class="lbl">Asesor Comercial</label>
+                <select id="nl-asesor">
+                    <option value="">🔄 Asignar automáticamente</option>
+                </select>
+            </div>
+            <div>
+                <label class="lbl">Doctor (opcional)</label>
+                <select id="nl-doctor">
+                    <option value="">Sin asignar</option>
+                </select>
+            </div>
+            <div>
+                <label class="lbl">Estado Inicial</label>
+                <select id="nl-estado-inicial">
+                    <option value="New Lead">New Lead</option>
+                    <option value="First Contact">First Contact</option>
+                    <option value="Interested">Interested</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sección: Notas -->
+        <div class="nl-section-title" style="margin-top:1.2rem;">📝 Notas Iniciales</div>
+        <textarea id="nl-notas" rows="3" placeholder="Escribe cualquier información relevante sobre este lead: diagnóstico previo, expectativas, urgencia, referidor, etc."></textarea>
+
+        <div class="modal-actions" style="margin-top:1.5rem;">
+            <button class="btn-save" onclick="crearLead()" style="padding:0.7rem 2rem;font-size:0.9rem;">✅ Crear Lead</button>
+            <button class="btn-close" onclick="document.getElementById('modal-nuevo').classList.remove('open')">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ MODAL GESTIÓN USUARIOS (Soporte) ══════════ -->
+<div class="modal" id="modal-usuarios">
+    <div class="modal-content" style="width:800px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">
+            <div>
+                <h3 style="margin-bottom:0.2rem;">👥 Gestión de Usuarios</h3>
+                <div class="modal-meta">Administra asesores, doctores y personal de soporte.</div>
+            </div>
+            <button class="btn-close" onclick="document.getElementById('modal-usuarios').classList.remove('open')" style="margin:0;">✕</button>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:0.8rem;">
+            <button class="gu-tab active" onclick="switchUserTab('lista')" id="tab-lista">📋 Lista de Usuarios</button>
+            <button class="gu-tab" onclick="switchUserTab('nuevo')" id="tab-nuevo">➕ Crear Usuario</button>
+        </div>
+
+        <!-- Lista de usuarios -->
+        <div id="gu-lista">
+            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+                <button class="filter-btn active" onclick="filtrarUsuarios('todos')" id="uf-todos">Todos</button>
+                <button class="filter-btn" onclick="filtrarUsuarios('asesor')" id="uf-asesor">Asesores</button>
+                <button class="filter-btn" onclick="filtrarUsuarios('doctor')" id="uf-doctor">Doctores</button>
+                <button class="filter-btn" onclick="filtrarUsuarios('soporte')" id="uf-soporte">Soporte</button>
+            </div>
+            <div id="usuarios-list-body">
+                <div style="text-align:center;padding:2rem;color:var(--text3);">Cargando usuarios...</div>
+            </div>
+        </div>
+
+        <!-- Crear usuario -->
+        <div id="gu-nuevo" class="hidden">
+            <div class="two-col">
+                <div>
+                    <label class="lbl">Nombre Completo *</label>
+                    <input type="text" id="nu-nombre" placeholder="Nombre del usuario">
+                </div>
+                <div>
+                    <label class="lbl">Rol *</label>
+                    <select id="nu-rol">
+                        <option value="asesor">Asesor Comercial</option>
+                        <option value="doctor">Doctor / Médico</option>
+                        <option value="soporte">Soporte / Admin</option>
+                    </select>
+                </div>
+            </div>
+            <div class="two-col">
+                <div>
+                    <label class="lbl">Email *</label>
+                    <input type="email" id="nu-email" placeholder="correo@stemwell.com">
+                </div>
+                <div>
+                    <label class="lbl">Teléfono</label>
+                    <input type="text" id="nu-telefono" placeholder="Número de contacto">
+                </div>
+            </div>
+            <div class="two-col">
+                <div>
+                    <label class="lbl">Contraseña *</label>
+                    <input type="password" id="nu-password" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div>
+                    <label class="lbl">Idiomas</label>
+                    <select id="nu-idiomas">
+                        <option value="spanish">Español</option>
+                        <option value="english">Inglés</option>
+                        <option value="spanish,english">Español e Inglés</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top:1rem;">
+                <button class="btn-save" onclick="crearUsuario()">✅ Crear Usuario</button>
+                <button class="btn-close" onclick="switchUserTab('lista')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// ============================================
-// CONFIGURACIÓN
-// ============================================
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
 const API = "https://stiffly-rubdown-uncheck.ngrok-free.dev";
-const HEADERS = {
-    "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "1"
-};
+const H = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "1" };
 
-// Estados por pipeline
-const SALES_STATUSES = [
-    "New Lead", "First Contact", "No Answer", "Follow Up", "Interested",
-    "Appointment Scheduled", "Treatment Follow-Up", "scheduled treatment",
-    "canceled treatment", "Won", "Lost"
-];
+// ── ESTADOS ──
+const SALES = ["New Lead","First Contact","No Answer","Follow Up","Interested",
+               "Appointment Scheduled","Treatment Follow-Up","Treatment Confirmed",
+               "scheduled treatment","canceled treatment","Won","Lost"];
+const APPT  = ["Scheduled","Confirmed","Sent","Rescheduled","Canceled","Attended","No Show"];
+const MEDICAL = ["Pending Evaluation","Consultation Completed","Candidate Approved",
+                 "Candidate Rejected","Treatment Proposal Sent","Treatment Scheduled",
+                 "In Treatment","Treatment Completed"];
 
-const APPOINTMENT_STATUSES = ["Scheduled", "Confirmed", "Rescheduled", "No Show", "Completed"];
+/*
+  REGLAS DE VISIBILIDAD:
+  - Asesor ve un lead si: asesor_id == yo Y (doctor_id IS NULL O sales_status en estados de asesor)
+    → estados de asesor activos: New Lead, First Contact, No Answer, Follow Up, Interested,
+      Treatment Follow-Up, Treatment Confirmed, canceled treatment, Won, Lost
+    → estados en médico (ocultos para asesor): Appointment Scheduled + doctor_id set
+      EXCEPTO cuando el lead vuelve: Treatment Follow-Up, canceled treatment
+  - Doctor ve lead si: doctor_id == yo
+*/
 
-const MEDICAL_STATUSES = [
-    "Pending Evaluation", "Consultation Completed", "Candidate Approved",
-    "Candidate Rejected", "Treatment Proposal Sent", "Treatment Scheduled",
-    "In Treatment", "Treatment Completed"
-];
-
-// Transiciones permitidas para asesores
-const ASESOR_TRANSITIONS = {
-    "New Lead": ["First Contact", "No Answer", "Follow Up", "Interested", "Appointment Scheduled", "Lost"],
-    "First Contact": ["Follow Up", "Interested", "Appointment Scheduled", "No Answer", "Lost"],
-    "No Answer": ["Follow Up", "First Contact", "Lost"],
-    "Follow Up": ["Interested", "Appointment Scheduled", "Lost"],
-    "Interested": ["Appointment Scheduled", "Follow Up", "Lost"],
-    "Appointment Scheduled": ["Won", "Lost", "canceled treatment"],
-    "Treatment Follow-Up": ["scheduled treatment", "Lost"],
-    "scheduled treatment": ["Won", "Lost", "canceled treatment"],
-    "canceled treatment": ["Treatment Follow-Up", "Lost"],
-    "Won": [],
+// Transiciones permitidas asesor → sales_status
+const ASESOR_TRANS = {
+    "New Lead":            ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost"],
+    "First Contact":       ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost"],
+    "No Answer":           ["Follow Up","First Contact","Lost"],
+    "Follow Up":           ["Interested","Appointment Scheduled","Lost"],
+    "Interested":          ["Appointment Scheduled","Follow Up","Lost"],
+    "Appointment Scheduled": [],          // bloqueado: debe confirmar para pasar a médico (acción especial)
+    "Treatment Follow-Up": ["Treatment Confirmed","Lost"],   // confirmó propuesta → agenda tratamiento
+    "Treatment Confirmed": ["scheduled treatment","Lost"],   // ya confirmó, agenda fecha
+    "scheduled treatment": ["canceled treatment","Lost"],
+    "canceled treatment":  ["Treatment Follow-Up","Follow Up","Lost"],
+    "Won":  [],
     "Lost": []
 };
 
-// ============================================
-// VARIABLES GLOBALES
-// ============================================
-let usuarioActual = null;
-let leadsData = [];
-let leadSeleccionado = null;
+const REJECTION_REASONS = [
+    "No interés","Dinero","Cáncer o malignidad activa",
+    "Infecciones sistémicas no controladas","Falla orgánica descompensada",
+    "Trastornos hematológicos severos",
+    "Daño estructural avanzado o pérdida irreversible de tejido",
+    "Expectativas fuera del alcance clínico",
+    "Evaluación de historial clínico e imágenes"
+];
+
+const QUIT_REASONS = ["No interés","Dinero","Dolor excesivo","Problemas de salud","Otros"];
+
+// ══════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════
+let usuario = null;
+let leads = [];
+let seleccionado = null;
 let filtroActual = "all";
+let doctoresCache = [];
 
-// ============================================
-// PERSISTENCIA DE SESIÓN
-// ============================================
-const savedUser = localStorage.getItem("crm_user_v4");
-if (savedUser) {
-    try {
-        usuarioActual = JSON.parse(savedUser);
-        mostrarApp();
-    } catch(e) {
-        localStorage.removeItem("crm_user_v4");
-    }
-}
+// Persistencia de sesión
+const saved = localStorage.getItem("crm_sw6");
+if (saved) { try { usuario = JSON.parse(saved); iniciarApp(); } catch(e) { localStorage.removeItem("crm_sw6"); } }
 
-// ============================================
-// LOGIN
-// ============================================
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
 async function login() {
     const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-password").value;
-    
-    if (!email || !password) {
-        document.getElementById("login-error").textContent = "Completa todos los campos";
-        document.getElementById("login-error").style.display = "block";
-        return;
-    }
-    
+    const pass  = document.getElementById("login-password").value;
+    const errEl = document.getElementById("login-error");
+    errEl.style.display = "none";
+    if (!email || !pass) { errEl.textContent="Completa todos los campos"; errEl.style.display="block"; return; }
     try {
-        const res = await fetch(API + "/login", {
-            method: "POST",
-            headers: HEADERS,
-            body: JSON.stringify({ email, password })
-        });
-        
-        if (!res.ok) {
-            document.getElementById("login-error").style.display = "block";
-            return;
-        }
-        
-        usuarioActual = await res.json();
-        localStorage.setItem("crm_user_v4", JSON.stringify(usuarioActual));
-        mostrarApp();
-    } catch(e) {
-        document.getElementById("login-error").textContent = "Error de conexión";
-        document.getElementById("login-error").style.display = "block";
-    }
+        const res = await fetch(API+"/login", { method:"POST", headers:H, body:JSON.stringify({email, password:pass}) });
+        if (!res.ok) { errEl.style.display="block"; return; }
+        usuario = await res.json();
+        localStorage.setItem("crm_sw6", JSON.stringify(usuario));
+        iniciarApp();
+    } catch(e) { errEl.textContent="Error de conexión al servidor"; errEl.style.display="block"; }
 }
 
-// Permitir login con Enter
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Enter" && document.getElementById("login-screen").style.display !== "none") {
-        login();
-    }
-});
+function logout() { localStorage.removeItem("crm_sw6"); location.reload(); }
 
-function logout() {
-    localStorage.removeItem("crm_user_v4");
-    location.reload();
-}
-
-// ============================================
-// INICIALIZACIÓN DE LA APP
-// ============================================
-function mostrarApp() {
+// ══════════════════════════════════════════════
+// INICIAR APP
+// ══════════════════════════════════════════════
+function iniciarApp() {
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("app").style.display = "block";
-    document.getElementById("user-info").textContent = `👤 ${usuarioActual.nombre} (${usuarioActual.rol})`;
-    
-    // Configurar UI según rol
+    document.getElementById("user-info").textContent = `${usuario.nombre} · ${usuario.rol}`;
     configurarUI();
-    
-    // Cargar datos
     cargarLeads();
     cargarDoctores();
-    
-    if (usuarioActual.rol === "asesor") {
-        document.getElementById("panel-cancelados").style.display = "block";
-        cargarCancelados();
+    if (usuario.rol === "soporte") {
+        document.getElementById("soporte-header-actions").style.display = "flex";
+        document.getElementById("soporte-banner").classList.remove("hidden");
+        document.getElementById("search-container").classList.remove("hidden");
+        cargarAsesoresParaForm();
     }
 }
 
 function configurarUI() {
-    // Configurar tarjetas de estadísticas
-    if (usuarioActual.rol === "asesor") {
-        document.getElementById("s-label1").textContent = "Nuevos";
-        document.getElementById("s-label2").textContent = "Agendados";
-        document.getElementById("s-label3").textContent = "Ganados";
-        document.getElementById("stat-card-1").onclick = () => filtrar("New Lead");
-        document.getElementById("stat-card-2").onclick = () => filtrar("Appointment Scheduled");
-        document.getElementById("stat-card-3").onclick = () => filtrar("Won");
-    } else if (usuarioActual.rol === "doctor") {
-        document.getElementById("s-label1").textContent = "Pendientes";
-        document.getElementById("s-label2").textContent = "En Tratamiento";
-        document.getElementById("s-label3").textContent = "Completados";
-        document.getElementById("stat-card-1").onclick = () => filtrar("Pending Evaluation");
-        document.getElementById("stat-card-2").onclick = () => filtrar("In Treatment");
-        document.getElementById("stat-card-3").onclick = () => filtrar("Treatment Completed");
+    const rol = usuario.rol;
+    const filtersEl = document.getElementById("filters-container");
+    const headersEl = document.getElementById("table-headers");
+
+    // Stats labels
+    const labels = {
+        asesor: ["Nuevos","Agendados","Ganados"],
+        doctor: ["Pend. Evaluación","En Tratamiento","Completados"],
+        soporte: ["Nuevos","Agendados","Ganados"]
+    };
+    const [l1,l2,l3] = labels[rol] || labels.soporte;
+    document.getElementById("s-label1").textContent = l1;
+    document.getElementById("s-label2").textContent = l2;
+    document.getElementById("s-label3").textContent = l3;
+
+    // Filters
+    let filterStates = [];
+    if (rol === "asesor") {
+        filterStates = ["New Lead","First Contact","No Answer","Follow Up","Interested",
+                        "Appointment Scheduled","Treatment Follow-Up","Treatment Confirmed",
+                        "scheduled treatment","canceled treatment","Won","Lost"];
+        headersEl.innerHTML = `<th>Nombre</th><th>Teléfono</th><th>Categoría</th><th>Estado Ventas</th><th>Cita</th><th>Doctor</th><th>Fecha</th>`;
+        document.getElementById("table-title").textContent = "📋 Mis Leads";
+    } else if (rol === "doctor") {
+        filterStates = ["Pending Evaluation","Consultation Completed","Candidate Approved",
+                        "Treatment Scheduled","In Treatment","Treatment Completed"];
+        headersEl.innerHTML = `<th>Nombre</th><th>Teléfono</th><th>Categoría</th><th>Estado Médico</th><th>Cita</th><th>Asesor</th><th>Fecha</th>`;
+        document.getElementById("table-title").textContent = "🩺 Mis Pacientes";
+    } else {
+        filterStates = [...SALES];
+        headersEl.innerHTML = `<th>Nombre</th><th>Teléfono</th><th>Categoría</th><th>Ventas</th><th>Médico</th><th>Cita</th><th>Doctor/Asesor</th><th>Fecha</th>`;
+        document.getElementById("table-title").textContent = "📋 Todos los Leads";
     }
-    
-    // Configurar filtros
-    const filtersContainer = document.getElementById("filters-container");
-    filtersContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar(\'all\')">Todos</button>';
-    
-    if (usuarioActual.rol === "asesor") {
-        ["New Lead", "First Contact", "Follow Up", "Appointment Scheduled", "Treatment Follow-Up", "scheduled treatment", "Won", "Lost"].forEach(status => {
-            filtersContainer.innerHTML += `<button class="filter-btn" onclick="filtrar('${status}')">${status}</button>`;
-        });
-    } else if (usuarioActual.rol === "doctor") {
-        ["Pending Evaluation", "Consultation Completed", "Candidate Approved", "Treatment Scheduled", "In Treatment", "Treatment Completed"].forEach(status => {
-            filtersContainer.innerHTML += `<button class="filter-btn" onclick="filtrar('${status}')">${status}</button>`;
-        });
-    }
-    
-    // Configurar cabeceras de tabla
-    const tableHeaders = document.getElementById("table-headers");
-    if (usuarioActual.rol === "asesor") {
-        tableHeaders.innerHTML = `
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Estado Ventas</th>
-            <th>Cita</th>
-            <th>Doctor</th>
-            <th>Fecha</th>
-        `;
-    } else if (usuarioActual.rol === "doctor") {
-        tableHeaders.innerHTML = `
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Estado Médico</th>
-            <th>Cita</th>
-            <th>Asesor</th>
-            <th>Fecha</th>
-        `;
-    }
+
+    filtersEl.innerHTML = `<button class="filter-btn active" onclick="filtrar('all')">Todos</button>`;
+    filterStates.forEach(s => {
+        filtersEl.innerHTML += `<button class="filter-btn" onclick="filtrar('${s}')">${s}</button>`;
+    });
 }
 
-// ============================================
-// CARGAR LEADS
-// ============================================
+// ══════════════════════════════════════════════
+// LEADS
+// ══════════════════════════════════════════════
 async function cargarLeads() {
-    if (!usuarioActual) return;
-    
     try {
-        const url = `${API}/leads/usuario/${usuarioActual.id}${filtroActual !== "all" ? `?estado=${encodeURIComponent(filtroActual)}` : ""}`;
-        const res = await fetch(url, { headers: HEADERS });
+        const params = filtroActual !== "all" ? `?estado=${encodeURIComponent(filtroActual)}` : "";
+        const res = await fetch(`${API}/leads/usuario/${usuario.id}${params}`, { headers:H });
         const data = await res.json();
-        leadsData = data.leads || [];
+        leads = data.leads || [];
         renderLeads();
         renderStats();
-    } catch(e) {
-        console.error("Error cargando leads:", e);
-    }
+    } catch(e) { toast("Error al cargar leads", true); }
 }
 
 function renderLeads() {
     const tbody = document.getElementById("leads-body");
-    
-    if (leadsData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#8b949e;">No hay leads</td></tr>`;
+    if (!leads.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No hay leads para mostrar</td></tr>';
         return;
     }
-    
-    tbody.innerHTML = leadsData.map(l => {
-        const salesStatus = l.sales_status || "";
-        const medicalStatus = l.medical_status || "";
-        const appointmentStatus = l.appointment_status || "";
-        
-        // Determinar badge para el estado principal
-        let badgeClass = "badge-new";
-        let estadoPrincipal = "";
-        
-        if (usuarioActual.rol === "asesor") {
-            estadoPrincipal = salesStatus;
-            if (salesStatus === "Won") badgeClass = "badge-won";
-            else if (salesStatus.includes("Scheduled") || salesStatus === "Appointment Scheduled") badgeClass = "badge-scheduled";
-            else if (salesStatus === "Lost" || salesStatus === "canceled treatment") badgeClass = "badge-lost";
-        } else if (usuarioActual.rol === "doctor") {
-            estadoPrincipal = medicalStatus;
-            if (medicalStatus === "Treatment Completed") badgeClass = "badge-won";
-            else if (medicalStatus === "Treatment Scheduled" || medicalStatus === "In Treatment") badgeClass = "badge-scheduled";
-            else if (medicalStatus === "Candidate Rejected") badgeClass = "badge-lost";
-            else if (medicalStatus === "Pending Evaluation") badgeClass = "badge-medical";
-        }
-        
-        // Badge para cita
-        let citaBadge = "";
-        if (appointmentStatus === "Confirmed") citaBadge = '<span class="badge badge-won">Confirmada</span>';
-        else if (appointmentStatus === "Scheduled") citaBadge = '<span class="badge badge-scheduled">Agendada</span>';
-        else if (appointmentStatus === "No Show") citaBadge = '<span class="badge badge-lost">No Show</span>';
-        else if (appointmentStatus === "Rescheduled") citaBadge = '<span class="badge badge-medical">Reagendada</span>';
-        else if (appointmentStatus === "Completed") citaBadge = '<span class="badge badge-won">Completada</span>';
-        else citaBadge = '<span style="color:#484f58;">—</span>';
-        
+    tbody.innerHTML = leads.map(l => buildRow(l)).join("");
+}
+
+function buildRow(l) {
+    const rol = usuario.rol;
+    let estadoPrincipal = "", badgeClass = "b-new";
+
+    if (rol === "asesor") {
+        estadoPrincipal = l.sales_status || "—";
+        badgeClass = badgeForSales(l.sales_status);
+    } else if (rol === "doctor") {
+        estadoPrincipal = l.medical_status || "—";
+        badgeClass = badgeForMedical(l.medical_status);
+    } else {
+        estadoPrincipal = l.sales_status || "—";
+        badgeClass = badgeForSales(l.sales_status);
+    }
+
+    const citaBadge = badgeForAppt(l.appointment_status);
+    const col4 = rol === "doctor" ? (l.asesor_nombre || "—") : (l.doctor_nombre || "—");
+    const fecha = (l.fecha_creacion || "").slice(0, 10);
+
+    if (rol === "soporte") {
         return `<tr onclick="abrirModal(${l.id})">
-            <td><strong>${l.nombre}</strong></td>
-            <td>${l.telefono || "-"}</td>
-            <td style="font-size:0.8rem;">${l.email || "-"}</td>
-            <td><span class="badge ${badgeClass}">${estadoPrincipal || "—"}</span></td>
+            <td class="td-name">${l.nombre}</td>
+            <td class="td-muted">${l.telefono || "—"}</td>
+            <td><span class="badge b-gray">${l.categoria || "—"}</span></td>
+            <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
+            <td><span class="badge ${badgeForMedical(l.medical_status)}">${l.medical_status || "—"}</span></td>
             <td>${citaBadge}</td>
-            <td>${l.doctor_nombre || "—"}</td>
-            <td>${(l.fecha_creacion || "").slice(0,10)}</td>
+            <td class="td-muted">${l.doctor_nombre || l.asesor_nombre || "—"}</td>
+            <td class="td-muted">${fecha}</td>
         </tr>`;
-    }).join("");
+    }
+
+    return `<tr onclick="abrirModal(${l.id})">
+        <td class="td-name">${l.nombre}</td>
+        <td class="td-muted">${l.telefono || "—"}</td>
+        <td><span class="badge b-gray">${l.categoria || "—"}</span></td>
+        <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
+        <td>${citaBadge}</td>
+        <td class="td-muted">${col4}</td>
+        <td class="td-muted">${fecha}</td>
+    </tr>`;
+}
+
+function badgeForSales(s) {
+    if (!s) return "b-gray";
+    if (s === "Won") return "b-won";
+    if (s === "Lost") return "b-lost";
+    if (["Appointment Scheduled","scheduled treatment","Treatment Confirmed"].includes(s)) return "b-sched";
+    if (["canceled treatment"].includes(s)) return "b-cancel";
+    if (["Treatment Follow-Up"].includes(s)) return "b-follow";
+    if (s === "In Treatment") return "b-treat";
+    return "b-new";
+}
+function badgeForMedical(m) {
+    if (!m) return "b-gray";
+    if (m === "Treatment Completed") return "b-won";
+    if (m === "Candidate Rejected") return "b-lost";
+    if (["In Treatment","Treatment Scheduled"].includes(m)) return "b-treat";
+    if (m === "Pending Evaluation") return "b-med";
+    return "b-follow";
+}
+function badgeForAppt(a) {
+    if (!a) return '<span class="badge b-gray">—</span>';
+    const map = {
+        "Scheduled":   "b-sched", "Confirmed":  "b-won", "Sent": "b-follow",
+        "Rescheduled": "b-sched", "Canceled":   "b-cancel", "Attended": "b-won",
+        "No Show":     "b-lost"
+    };
+    return `<span class="badge ${map[a]||'b-gray'}">${a}</span>`;
 }
 
 function renderStats() {
-    const total = leadsData.length;
-    document.getElementById("s-total").textContent = total;
-    
-    if (usuarioActual.rol === "asesor") {
-        document.getElementById("s-stat1").textContent = leadsData.filter(l => l.sales_status === "New Lead").length;
-        document.getElementById("s-stat2").textContent = leadsData.filter(l => l.sales_status === "Appointment Scheduled" || l.sales_status === "scheduled treatment").length;
-        document.getElementById("s-stat3").textContent = leadsData.filter(l => l.sales_status === "Won").length;
-    } else if (usuarioActual.rol === "doctor") {
-        document.getElementById("s-stat1").textContent = leadsData.filter(l => l.medical_status === "Pending Evaluation").length;
-        document.getElementById("s-stat2").textContent = leadsData.filter(l => l.medical_status === "In Treatment" || l.medical_status === "Treatment Scheduled").length;
-        document.getElementById("s-stat3").textContent = leadsData.filter(l => l.medical_status === "Treatment Completed").length;
+    const rol = usuario.rol;
+    document.getElementById("s-total").textContent = leads.length;
+    if (rol === "asesor") {
+        document.getElementById("s-stat1").textContent = leads.filter(l=>l.sales_status==="New Lead").length;
+        document.getElementById("s-stat2").textContent = leads.filter(l=>["Appointment Scheduled","scheduled treatment","Treatment Confirmed"].includes(l.sales_status)).length;
+        document.getElementById("s-stat3").textContent = leads.filter(l=>l.sales_status==="Won").length;
+    } else if (rol === "doctor") {
+        document.getElementById("s-stat1").textContent = leads.filter(l=>l.medical_status==="Pending Evaluation").length;
+        document.getElementById("s-stat2").textContent = leads.filter(l=>["In Treatment","Treatment Scheduled"].includes(l.medical_status)).length;
+        document.getElementById("s-stat3").textContent = leads.filter(l=>l.medical_status==="Treatment Completed").length;
+    } else {
+        document.getElementById("s-stat1").textContent = leads.filter(l=>l.sales_status==="New Lead").length;
+        document.getElementById("s-stat2").textContent = leads.filter(l=>["Appointment Scheduled","scheduled treatment"].includes(l.sales_status)).length;
+        document.getElementById("s-stat3").textContent = leads.filter(l=>l.sales_status==="Won").length;
     }
 }
 
-// ============================================
-// CANCELADOS (SOLO ASESORES)
-// ============================================
-async function cargarCancelados() {
-    if (!usuarioActual || usuarioActual.rol !== "asesor") return;
-    
-    try {
-        const res = await fetch(`${API}/leads/cancelados/${usuarioActual.id}`, { headers: HEADERS });
-        const data = await res.json();
-        const leads = data.leads || [];
-        
-        document.getElementById("cancelados-body").innerHTML = leads.length === 0 
-            ? '<p style="color:#8b949e;">No hay citas canceladas</p>'
-            : leads.map(l => `
-                <div style="padding:0.5rem;border-bottom:1px solid #21262d;cursor:pointer;" onclick="abrirModal(${l.id})">
-                    • <strong>${l.nombre}</strong> - ${l.telefono} 
-                    <span style="color:#8b949e;font-size:0.8rem;">(${l.sales_status || l.medical_status})</span>
-                </div>`).join("");
-    } catch(e) {
-        console.error("Error cargando cancelados:", e);
-    }
-}
-
-// ============================================
-// CARGAR DOCTORES
-// ============================================
-async function cargarDoctores() {
-    try {
-        const res = await fetch(`${API}/doctores`, { headers: HEADERS });
-        const data = await res.json();
-        const select = document.getElementById("modal-doctor");
-        select.innerHTML = '<option value="">Seleccionar doctor...</option>';
-        (data.usuarios || []).forEach(d => {
-            select.innerHTML += `<option value="${d.id}">${d.nombre}</option>`;
-        });
-    } catch(e) {
-        console.error("Error cargando doctores:", e);
-    }
-}
-
-// ============================================
-// FILTROS
-// ============================================
 function filtrar(estado) {
     filtroActual = estado;
-    
-    // Actualizar botones activos
     document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    if (event && event.target) {
-        event.target.classList.add("active");
-    }
-    
+    event?.target?.classList.add("active");
     cargarLeads();
 }
 
-// ============================================
-// MODAL DE DETALLE
-// ============================================
+const STAT_FILTERS = {
+    asesor: [null, "New Lead", "Appointment Scheduled", "Won"],
+    doctor: [null, "Pending Evaluation", "In Treatment", "Treatment Completed"],
+    soporte: [null, "New Lead", "Appointment Scheduled", "Won"]
+};
+
+function filtrar_stat(n) {
+    const f = (STAT_FILTERS[usuario.rol] || STAT_FILTERS.soporte)[n];
+    filtrar(f || "all");
+}
+
+// ══════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════
 async function abrirModal(id) {
-    leadSeleccionado = leadsData.find(l => l.id === id);
-    if (!leadSeleccionado) return;
-    
-    document.getElementById("modal-nombre").textContent = leadSeleccionado.nombre;
-    document.getElementById("modal-info").textContent = 
-        `${leadSeleccionado.telefono || "Sin teléfono"} | ${leadSeleccionado.email || "Sin email"} | Canal: ${leadSeleccionado.canal || "N/A"}`;
-    document.getElementById("modal-comentarios").textContent = leadSeleccionado.comentarios || "Sin comentarios";
-    document.getElementById("modal-comentario").value = "";
-    
-    // Mostrar estados actuales
-    const estadoActual = document.getElementById("estado-actual");
-    estadoActual.innerHTML = `
-        <div class="estado-pill"><span>Ventas:</span> <strong>${leadSeleccionado.sales_status || "—"}</strong></div>
-        <div class="estado-pill"><span>Cita:</span> <strong>${leadSeleccionado.appointment_status || "—"}</strong></div>
-        <div class="estado-pill"><span>Médico:</span> <strong>${leadSeleccionado.medical_status || "—"}</strong></div>
+    seleccionado = leads.find(l => l.id === id);
+    if (!seleccionado) return;
+    const l = seleccionado;
+
+    document.getElementById("m-nombre").textContent = l.nombre;
+    document.getElementById("m-meta").textContent =
+        `${l.telefono || "Sin teléfono"} · ${l.email || "Sin email"} · Canal: ${l.canal || "N/A"} · Categoría: ${l.categoria || "N/A"}`;
+    document.getElementById("m-comentarios").textContent = l.comentarios || "Sin comentarios";
+    document.getElementById("m-comentario").value = "";
+
+    // Estados actuales
+    const statesEl = document.getElementById("m-states");
+    statesEl.innerHTML = `
+        <div class="cs-item"><div class="cs-label">Ventas</div><div class="cs-val">${l.sales_status || "—"}</div></div>
+        <div class="cs-item"><div class="cs-label">Cita</div><div class="cs-val">${l.appointment_status || "—"}</div></div>
+        <div class="cs-item"><div class="cs-label">Médico</div><div class="cs-val">${l.medical_status || "—"}</div></div>
+        ${l.rejection_reason ? `<div class="cs-item"><div class="cs-label">Rechazo</div><div class="cs-val" style="color:var(--red)">${l.rejection_reason}</div></div>` : ""}
+        ${l.treatment_date ? `<div class="cs-item"><div class="cs-label">Fecha Trat.</div><div class="cs-val" style="color:var(--teal)">${new Date(l.treatment_date).toLocaleString('es-CO')}</div></div>` : ""}
+        ${l.next_treatment_date ? `<div class="cs-item"><div class="cs-label">Próx. Sesión</div><div class="cs-val" style="color:var(--teal)">${new Date(l.next_treatment_date).toLocaleString('es-CO')}</div></div>` : ""}
     `;
-    
-    // Si hay razón de rechazo, mostrarla
-    if (leadSeleccionado.rejection_reason) {
-        estadoActual.innerHTML += `
-            <div class="estado-pill" style="background:#da363322;border-color:#da363344;">
-                <span>Rechazo:</span> <strong style="color:#f85149;">${leadSeleccionado.rejection_reason}</strong>
-            </div>
-        `;
-    }
-    
-    // Si hay fecha de tratamiento, mostrarla
-    if (leadSeleccionado.treatment_date) {
-        estadoActual.innerHTML += `
-            <div class="estado-pill" style="background:#23863622;border-color:#23863644;">
-                <span>Tratamiento:</span> <strong style="color:#3fb950;">${new Date(leadSeleccionado.treatment_date).toLocaleString()}</strong>
-            </div>
-        `;
-    }
-    
-    // Ocultar todos los contenedores condicionales
-    document.getElementById("doctor-select-container").classList.add("hidden");
-    document.getElementById("treatment-date-container").classList.add("hidden");
-    document.getElementById("rejection-reason-container").classList.add("hidden");
-    
-    // Construir selectores según rol
-    const estadoSelectContainer = document.getElementById("estado-select-container");
-    
-    if (usuarioActual.rol === "asesor") {
-        // Obtener transiciones permitidas
-        const currentStatus = leadSeleccionado.sales_status || "New Lead";
-        const allowedTransitions = ASESOR_TRANSITIONS[currentStatus] || [];
-        
-        if (allowedTransitions.length === 0) {
-            estadoSelectContainer.innerHTML = `
-                <label>Estado de Ventas</label>
-                <p style="color:#d29922;font-size:0.85rem;">⚠️ No hay transiciones disponibles desde "${currentStatus}"</p>
-            `;
-        } else {
-            let options = allowedTransitions.map(s => 
-                `<option value="${s}">${s}</option>`
-            ).join("");
-            
-            estadoSelectContainer.innerHTML = `
-                <label>Cambiar Estado de Ventas</label>
-                <select id="modal-sales-status" onchange="onSalesStatusChange()">
-                    <option value="">Seleccionar nuevo estado...</option>
-                    ${options}
-                </select>
-            `;
-        }
-        
-        // Verificar si debemos mostrar selectores adicionales por defecto
-        verificarSelectoresAdicionales();
-        
-    } else if (usuarioActual.rol === "doctor") {
-        estadoSelectContainer.innerHTML = `
-            <div class="flex">
-                <div>
-                    <label>Estado de la Cita</label>
-                    <select id="modal-appointment-status">
-                        <option value="">No cambiar</option>
-                        ${APPOINTMENT_STATUSES.map(s => `<option value="${s}" ${leadSeleccionado.appointment_status === s ? 'selected' : ''}>${s}</option>`).join("")}
-                    </select>
-                </div>
-                <div>
-                    <label>Estado Médico</label>
-                    <select id="modal-medical-status" onchange="onMedicalStatusChange()">
-                        <option value="">No cambiar</option>
-                        ${MEDICAL_STATUSES.map(s => `<option value="${s}" ${leadSeleccionado.medical_status === s ? 'selected' : ''}>${s}</option>`).join("")}
-                    </select>
-                </div>
-            </div>
-        `;
-        
-        // Verificar si ya está seleccionado "Candidate Rejected"
-        setTimeout(() => onMedicalStatusChange(), 100);
-    }
-    
-    document.getElementById("modal").style.display = "flex";
-    
-    // Cargar historial
+
+    // Construir cuerpo según rol
+    const bodyEl = document.getElementById("m-body");
+    bodyEl.innerHTML = buildModalBody(l);
+
+    document.getElementById("modal").classList.add("open");
     cargarHistorial(id);
+    setTimeout(bindModalEvents, 50);
 }
 
-// ============================================
-// FUNCIONES PARA SELECTORES CONDICIONALES
-// ============================================
-function onSalesStatusChange() {
-    const selectedStatus = document.getElementById("modal-sales-status")?.value;
-    
-    // Mostrar/ocultar selector de doctor
-    const doctorContainer = document.getElementById("doctor-select-container");
-    if (selectedStatus === "Appointment Scheduled") {
-        doctorContainer.classList.remove("hidden");
+function buildModalBody(l) {
+    const rol = usuario.rol;
+    const s = l.sales_status || "";
+    const m = l.medical_status || "";
+
+    if (rol === "asesor") {
+        return buildModalAsesor(l, s, m);
+    } else if (rol === "doctor") {
+        return buildModalDoctor(l, s, m);
     } else {
-        doctorContainer.classList.add("hidden");
+        return buildModalSoporte(l);
     }
-    
-    // Mostrar/ocultar selector de fecha de tratamiento
-    const treatmentContainer = document.getElementById("treatment-date-container");
-    if (selectedStatus === "scheduled treatment") {
-        treatmentContainer.classList.remove("hidden");
+}
+
+// ── ASESOR MODAL ──
+function buildModalAsesor(l, s, m) {
+    const trans = ASESOR_TRANS[s] || [];
+
+    // Lead está en manos del médico → no puede cambiar nada
+    const enMedico = l.doctor_id && ["Appointment Scheduled"].includes(s) &&
+                     l.appointment_status === "Confirmed";
+
+    if (enMedico) {
+        return `<div class="info-box info">
+            ℹ️ Este lead está actualmente con el médico <strong>${l.doctor_nombre || "asignado"}</strong>. 
+            Solo puedes ver el historial hasta que regrese.
+        </div>`;
+    }
+
+    let html = "";
+
+    // Acción especial: Appointment Scheduled sin confirmar
+    if (s === "Appointment Scheduled" && l.appointment_status !== "Confirmed") {
+        html += `<div class="info-box warning">
+            ⚠️ Cita agendada pero aún no confirmada. Confirma la cita y asigna un doctor para que pase al perfil médico.
+        </div>`;
+        html += `<label class="lbl">Confirmar Cita — Asignar Doctor</label>
+        <select id="a-doctor-confirm">
+            <option value="">Seleccionar doctor...</option>
+            ${doctoresCache.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("")}
+        </select>
+        <label class="lbl">Fecha/Hora de Consulta</label>
+        <input type="datetime-local" id="a-fecha-consulta">
+        <label class="lbl">Estado de Cita</label>
+        <select id="a-appt-status">
+            <option value="Scheduled">Scheduled — Agendada</option>
+            <option value="Confirmed">Confirmed — Confirmada (pasa al médico)</option>
+            <option value="Rescheduled">Rescheduled — Reagendada</option>
+            <option value="Canceled">Canceled — Cancelada</option>
+        </select>
+        <div id="a-cancel-msg" class="hidden info-box warning" style="margin-top:0.5rem;">
+            Al cancelar, el lead volverá a tus leads como "canceled treatment".
+        </div>`;
+        // Botón Lost también
+        html += `<label class="lbl" style="margin-top:1rem;">O marcar como Perdido</label>
+        <select id="a-lost-direct"><option value="">— No marcar como perdido —</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>`;
+        return html;
+    }
+
+    // Treatment Follow-Up: asesor confirma la propuesta y agenda tratamiento
+    if (s === "Treatment Follow-Up") {
+        html += `<div class="info-box info">ℹ️ El médico envió una propuesta de tratamiento. Confirma con el paciente y agenda la cita de tratamiento.</div>`;
+        html += `<label class="lbl">Acción</label>
+        <select id="a-sales-status" onchange="onAsesorStatusChange()">
+            <option value="">Seleccionar...</option>
+            <option value="Treatment Confirmed">Paciente confirma tratamiento</option>
+            <option value="Lost">Lead perdido</option>
+        </select>
+        <div id="a-reject-block" class="hidden">
+            <label class="lbl">Razón de pérdida</label>
+            <select id="a-lost-reason"><option value="">Seleccionar...</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>
+        </div>`;
+        return html;
+    }
+
+    // Treatment Confirmed: agenda fecha de tratamiento
+    if (s === "Treatment Confirmed") {
+        html += `<div class="info-box success">✅ Paciente confirmó. Agenda la fecha de tratamiento.</div>`;
+        html += `<label class="lbl">Fecha del Tratamiento</label>
+        <input type="datetime-local" id="a-treatment-date">
+        <label class="lbl">O marcar como Perdido</label>
+        <select id="a-lost-direct"><option value="">— No —</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>`;
+        return html;
+    }
+
+    // canceled treatment: puede reagendar o follow up
+    if (s === "canceled treatment") {
+        html += `<div class="info-box warning">⚠️ Cita/tratamiento cancelado. Puedes reagendar o hacer seguimiento.</div>`;
+        html += `<label class="lbl">Siguiente acción</label>
+        <select id="a-sales-status">
+            <option value="">Seleccionar...</option>
+            <option value="Treatment Follow-Up">Reagendar tratamiento (Treatment Follow-Up)</option>
+            <option value="Follow Up">Hacer seguimiento general</option>
+            <option value="Lost">Lead perdido</option>
+        </select>
+        <div id="a-reject-block" class="hidden">
+            <label class="lbl">Razón de pérdida</label>
+            <select id="a-lost-reason"><option value="">Seleccionar...</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>
+        </div>`;
+        return html;
+    }
+
+    // Estado normal con transiciones
+    if (trans.length === 0) {
+        return `<div class="info-box ${s==='Won'?'success':''}">
+            ${s === 'Won' ? '🏆 Lead ganado. Tratamiento completado.' : `Estado final: ${s}. No hay más acciones disponibles.`}
+        </div>`;
+    }
+
+    html += `<label class="lbl">Cambiar Estado de Ventas</label>
+    <select id="a-sales-status" onchange="onAsesorStatusChange()">
+        <option value="">Seleccionar nuevo estado...</option>
+        ${trans.map(t => `<option value="${t}">${t}</option>`).join("")}
+    </select>`;
+
+    // Si agenda cita → mostrar doctor y fecha
+    html += `<div id="a-agenda-block" class="hidden">
+        <label class="lbl">Asignar Doctor</label>
+        <select id="a-doctor-agenda">
+            <option value="">Seleccionar doctor...</option>
+            ${doctoresCache.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("")}
+        </select>
+        <label class="lbl">Fecha/Hora de Consulta</label>
+        <input type="datetime-local" id="a-fecha-agenda">
+    </div>`;
+
+    // Si Lost → razón
+    html += `<div id="a-reject-block" class="hidden">
+        <label class="lbl">Razón de pérdida</label>
+        <select id="a-lost-reason"><option value="">Seleccionar...</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>
+    </div>`;
+
+    return html;
+}
+
+// ── DOCTOR MODAL ──
+function buildModalDoctor(l, s, m) {
+    let html = "";
+
+    if (m === "In Treatment") {
+        html += `<div class="info-box info">ℹ️ Paciente en tratamiento activo.</div>`;
+        html += `<label class="lbl">¿Finalizó el tratamiento de hoy?</label>
+        <select id="d-finalizar" onchange="onFinalizarChange()">
+            <option value="">Seleccionar...</option>
+            <option value="si">Sí — Tratamiento completado</option>
+            <option value="siguiente">No — Programar siguiente sesión</option>
+            <option value="abandono">El paciente no desea continuar</option>
+            <option value="no_show">No Show / No se presentó</option>
+        </select>
+        <div id="d-next-session" class="hidden">
+            <label class="lbl">Fecha de Próxima Sesión</label>
+            <input type="datetime-local" id="d-next-date">
+        </div>
+        <div id="d-abandono" class="hidden">
+            <label class="lbl">Motivo de abandono</label>
+            <select id="d-quit-reason" onchange="onQuitReasonChange()">
+                <option value="">Seleccionar motivo...</option>
+                ${QUIT_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}
+            </select>
+            <input type="text" id="d-quit-other" placeholder="Especificar motivo..." class="hidden" style="margin-top:0.5rem;">
+        </div>`;
+        return html;
+    }
+
+    // Estados médicos disponibles según el flujo
+    let medOptions = [];
+    if (m === "Pending Evaluation") {
+        medOptions = ["Consultation Completed"];
+    } else if (m === "Consultation Completed") {
+        medOptions = ["Candidate Approved","Candidate Rejected"];
+    } else if (m === "Candidate Approved") {
+        medOptions = ["Treatment Proposal Sent","Candidate Rejected"];
+    } else if (m === "Treatment Scheduled") {
+        medOptions = ["In Treatment","Candidate Rejected"];
+        html += `<div class="info-box info">ℹ️ Tratamiento agendado. Cuando el paciente llegue, marca "In Treatment".</div>`;
     } else {
-        treatmentContainer.classList.add("hidden");
+        // Sin transición directa
+        medOptions = MEDICAL.filter(x => x !== m);
     }
-}
 
-function onMedicalStatusChange() {
-    const selectedStatus = document.getElementById("modal-medical-status")?.value;
-    const rejectionContainer = document.getElementById("rejection-reason-container");
-    
-    if (selectedStatus === "Candidate Rejected") {
-        rejectionContainer.classList.remove("hidden");
-    } else {
-        rejectionContainer.classList.add("hidden");
+    html += `<label class="lbl">Actualizar Estado Médico</label>
+    <select id="d-medical-status" onchange="onDoctorMedStatusChange()">
+        <option value="">Sin cambio</option>
+        ${medOptions.map(s=>`<option value="${s}">${s}</option>`).join("")}
+    </select>`;
+
+    // Candidate Rejected → razón
+    html += `<div id="d-reject-block" class="hidden">
+        <label class="lbl">Razón de Rechazo</label>
+        <select id="d-reject-reason"><option value="">Seleccionar...</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>
+    </div>`;
+
+    // Appointment status (solo para citas, no In Treatment)
+    if (!["In Treatment","Treatment Completed"].includes(m)) {
+        const apptOptions = ["Confirmed","Attended","No Show","Rescheduled","Canceled"];
+        html += `<label class="lbl" style="margin-top:0.8rem;">Estado de Cita</label>
+        <select id="d-appt-status" onchange="onDoctorApptChange()">
+            <option value="">Sin cambio</option>
+            ${apptOptions.map(a=>`<option value="${a}">${a}</option>`).join("")}
+        </select>`;
     }
+
+    // Lost directo desde médico
+    html += `<label class="lbl" style="margin-top:0.8rem;">Marcar como Perdido</label>
+    <select id="d-lost-direct" onchange="onDoctorLostChange()">
+        <option value="">— No —</option>
+        ${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}
+    </select>`;
+
+    return html;
 }
 
-function verificarSelectoresAdicionales() {
-    // Si el lead ya está en un estado que requiere datos adicionales
-    if (leadSeleccionado) {
-        if (leadSeleccionado.sales_status === "Appointment Scheduled") {
-            document.getElementById("doctor-select-container").classList.remove("hidden");
-        }
-    }
+// ── SOPORTE MODAL ──
+function buildModalSoporte(l) {
+    return `<div class="two-col">
+        <div>
+            <label class="lbl">Estado Ventas</label>
+            <select id="sp-sales">
+                ${SALES.map(s=>`<option value="${s}" ${l.sales_status===s?'selected':''}>${s}</option>`).join("")}
+            </select>
+        </div>
+        <div>
+            <label class="lbl">Estado Cita</label>
+            <select id="sp-appt">
+                <option value="">Sin cambio</option>
+                ${APPT.map(a=>`<option value="${a}" ${l.appointment_status===a?'selected':''}>${a}</option>`).join("")}
+            </select>
+        </div>
+    </div>
+    <div class="two-col">
+        <div>
+            <label class="lbl">Estado Médico</label>
+            <select id="sp-medical">
+                <option value="">Sin cambio</option>
+                ${MEDICAL.map(m=>`<option value="${m}" ${l.medical_status===m?'selected':''}>${m}</option>`).join("")}
+            </select>
+        </div>
+        <div>
+            <label class="lbl">Asignar Doctor</label>
+            <select id="sp-doctor">
+                <option value="">Sin cambio</option>
+                ${doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id===d.id?'selected':''}>${d.nombre}</option>`).join("")}
+            </select>
+        </div>
+    </div>
+    <label class="lbl">Fecha de Tratamiento</label>
+    <input type="datetime-local" id="sp-treatment-date" value="${l.treatment_date ? l.treatment_date.slice(0,16) : ''}">`;
 }
 
-// ============================================
-// CERRAR MODAL
-// ============================================
-function cerrarModal() {
-    document.getElementById("modal").style.display = "none";
-    leadSeleccionado = null;
+// ── EVENTOS DINÁMICOS ──
+function bindModalEvents() {
+    // noop — los eventos están inline en el HTML generado
 }
 
-// Cerrar modal al hacer clic fuera
-document.getElementById("modal").addEventListener("click", function(e) {
-    if (e.target === this) cerrarModal();
-});
-
-// ============================================
-// CARGAR HISTORIAL
-// ============================================
-async function cargarHistorial(leadId) {
-    try {
-        const res = await fetch(`${API}/leads/${leadId}/historial`, { headers: HEADERS });
-        const data = await res.json();
-        const historial = data.historial || [];
-        
-        document.getElementById("modal-historial").innerHTML = historial.length === 0
-            ? '<p style="color:#8b949e;">Sin cambios registrados</p>'
-            : historial.map(h => `
-                <div class="historial-item">
-                    <strong>${h.nombre || "Sistema"}</strong>: 
-                    ${h.estado_anterior || "—"} → ${h.estado_nuevo || "—"} 
-                    <small>(${new Date(h.fecha).toLocaleString()})</small>
-                    ${h.comentario ? `<br><em style="color:#8b949e;">${h.comentario}</em>` : ""}
-                </div>`).join("");
-    } catch(e) {
-        document.getElementById("modal-historial").innerHTML = '<p style="color:#f85149;">Error al cargar historial</p>';
-    }
+function onAsesorStatusChange() {
+    const v = document.getElementById("a-sales-status")?.value;
+    const agendaBlock = document.getElementById("a-agenda-block");
+    const rejectBlock = document.getElementById("a-reject-block");
+    if (agendaBlock) agendaBlock.classList.toggle("hidden", v !== "Appointment Scheduled");
+    if (rejectBlock) rejectBlock.classList.toggle("hidden", v !== "Lost");
 }
 
-// ============================================
+function onDoctorMedStatusChange() {
+    const v = document.getElementById("d-medical-status")?.value;
+    const rb = document.getElementById("d-reject-block");
+    if (rb) rb.classList.toggle("hidden", v !== "Candidate Rejected");
+}
+
+function onDoctorApptChange() {
+    const v = document.getElementById("d-appt-status")?.value;
+    // Si selecciona Canceled o No Show, info al asesor
+}
+
+function onDoctorLostChange() {
+    const v = document.getElementById("d-lost-direct")?.value;
+    const med = document.getElementById("d-medical-status");
+    if (v && med) { med.value = ""; med.disabled = true; }
+    else if (med) { med.disabled = false; }
+}
+
+function onFinalizarChange() {
+    const v = document.getElementById("d-finalizar")?.value;
+    document.getElementById("d-next-session")?.classList.toggle("hidden", v !== "siguiente");
+    document.getElementById("d-abandono")?.classList.toggle("hidden", v !== "abandono");
+}
+
+function onQuitReasonChange() {
+    const v = document.getElementById("d-quit-reason")?.value;
+    document.getElementById("d-quit-other")?.classList.toggle("hidden", v !== "Otros");
+}
+
+function onApptStatusChange() {
+    const v = document.getElementById("a-appt-status")?.value;
+    const msg = document.getElementById("a-cancel-msg");
+    if (msg) msg.classList.toggle("hidden", v !== "Canceled");
+}
+
+// ══════════════════════════════════════════════
 // GUARDAR CAMBIOS
-// ============================================
+// ══════════════════════════════════════════════
 async function guardarCambios() {
-    if (!leadSeleccionado) return;
-    
-    const comentario = document.getElementById("modal-comentario").value.trim();
-    
-    let body = {
-        lead_id: leadSeleccionado.id,
-        usuario_id: usuarioActual.id,
-        comentario: comentario
-    };
-    
-    if (usuarioActual.rol === "asesor") {
-        const salesStatus = document.getElementById("modal-sales-status")?.value;
-        if (!salesStatus) {
-            toast("❌ Selecciona un estado de ventas", true);
-            return;
-        }
-        body.sales_status = salesStatus;
-        
-        // Agregar doctor si está visible y seleccionado
-        const doctorSelect = document.getElementById("modal-doctor");
-        const doctorContainer = document.getElementById("doctor-select-container");
-        if (!doctorContainer.classList.contains("hidden") && doctorSelect.value) {
-            body.doctor_id = parseInt(doctorSelect.value);
-        }
-        
-        // Agregar fecha de tratamiento si está visible
-        const treatmentDate = document.getElementById("modal-treatment-date");
-        const treatmentContainer = document.getElementById("treatment-date-container");
-        if (!treatmentContainer.classList.contains("hidden") && treatmentDate.value) {
-            body.treatment_date = treatmentDate.value;
-        }
-        
-    } else if (usuarioActual.rol === "doctor") {
-        const appointmentStatus = document.getElementById("modal-appointment-status")?.value;
-        const medicalStatus = document.getElementById("modal-medical-status")?.value;
-        
-        if (!appointmentStatus && !medicalStatus) {
-            toast("❌ Selecciona al menos un estado para cambiar", true);
-            return;
-        }
-        
-        if (appointmentStatus) body.appointment_status = appointmentStatus;
-        if (medicalStatus) body.medical_status = medicalStatus;
-        
-        // Agregar razón de rechazo si aplica
-        if (medicalStatus === "Candidate Rejected") {
-            const rejectionReason = document.getElementById("modal-rejection-reason")?.value;
-            if (!rejectionReason) {
-                toast("❌ Selecciona una razón de rechazo", true);
-                return;
-            }
-            body.rejection_reason = rejectionReason;
-        }
+    if (!seleccionado) return;
+    const l = seleccionado;
+    const comentario = document.getElementById("m-comentario").value.trim();
+    const rol = usuario.rol;
+
+    let body = { lead_id: l.id, usuario_id: usuario.id, comentario };
+
+    if (rol === "asesor") {
+        if (!buildBodyAsesor(body, l)) return;
+    } else if (rol === "doctor") {
+        if (!buildBodyDoctor(body, l)) return;
+    } else if (rol === "soporte") {
+        buildBodySoporte(body);
     }
-    
+
+    await enviarCambios(body);
+}
+
+function buildBodyAsesor(body, l) {
+    const s = l.sales_status || "";
+
+    // Appointment Scheduled no confirmado → acción de confirmar
+    if (s === "Appointment Scheduled" && l.appointment_status !== "Confirmed") {
+        const lostDirect = document.getElementById("a-lost-direct")?.value;
+        if (lostDirect) {
+            body.sales_status = "Lost";
+            body.rejection_reason = lostDirect;
+            return true;
+        }
+        const apptStatus = document.getElementById("a-appt-status")?.value;
+        const doctorId   = document.getElementById("a-doctor-confirm")?.value;
+        const fechaCons  = document.getElementById("a-fecha-consulta")?.value;
+        if (!apptStatus) { toast("Selecciona un estado de cita", true); return false; }
+        if (apptStatus === "Confirmed" && !doctorId) { toast("Asigna un doctor para confirmar la cita", true); return false; }
+        body.appointment_status = apptStatus;
+        if (doctorId) body.doctor_id = parseInt(doctorId);
+        if (fechaCons) body.treatment_date = fechaCons;
+        if (apptStatus === "Canceled") body.sales_status = "canceled treatment";
+        return true;
+    }
+
+    // Treatment Follow-Up / canceled treatment
+    if (["Treatment Follow-Up","canceled treatment"].includes(s)) {
+        const newStatus = document.getElementById("a-sales-status")?.value;
+        if (!newStatus) { toast("Selecciona una acción", true); return false; }
+        body.sales_status = newStatus;
+        if (newStatus === "Lost") {
+            const reason = document.getElementById("a-lost-reason")?.value;
+            if (!reason) { toast("Selecciona razón de pérdida", true); return false; }
+            body.rejection_reason = reason;
+        }
+        return true;
+    }
+
+    // Treatment Confirmed → agenda fecha
+    if (s === "Treatment Confirmed") {
+        const lostDirect = document.getElementById("a-lost-direct")?.value;
+        if (lostDirect) {
+            body.sales_status = "Lost"; body.rejection_reason = lostDirect; return true;
+        }
+        const fd = document.getElementById("a-treatment-date")?.value;
+        if (!fd) { toast("Ingresa la fecha del tratamiento", true); return false; }
+        body.sales_status = "scheduled treatment";
+        body.treatment_date = fd;
+        return true;
+    }
+
+    // Normal
+    const newStatus = document.getElementById("a-sales-status")?.value;
+    if (!newStatus) { toast("Selecciona un estado", true); return false; }
+    body.sales_status = newStatus;
+
+    if (newStatus === "Appointment Scheduled") {
+        const doctorId  = document.getElementById("a-doctor-agenda")?.value;
+        const fechaAg   = document.getElementById("a-fecha-agenda")?.value;
+        // doctor opcional aquí, se confirma después
+        if (doctorId) body.doctor_id = parseInt(doctorId);
+        if (fechaAg)  body.treatment_date = fechaAg;
+    }
+
+    if (newStatus === "Lost") {
+        const reason = document.getElementById("a-lost-reason")?.value;
+        if (!reason) { toast("Selecciona razón de pérdida", true); return false; }
+        body.rejection_reason = reason;
+    }
+
+    return true;
+}
+
+function buildBodyDoctor(body, l) {
+    const m = l.medical_status || "";
+
+    // In Treatment
+    if (m === "In Treatment") {
+        const fin = document.getElementById("d-finalizar")?.value;
+        if (!fin) { toast("Indica si finalizó el tratamiento", true); return false; }
+
+        if (fin === "si") {
+            body.mark_treatment_completed = true;
+        } else if (fin === "siguiente") {
+            const nextDate = document.getElementById("d-next-date")?.value;
+            if (!nextDate) { toast("Ingresa la fecha de próxima sesión", true); return false; }
+            body.mark_treatment_completed = false;
+            body.next_treatment_date = nextDate;
+        } else if (fin === "abandono") {
+            let motivo = document.getElementById("d-quit-reason")?.value;
+            if (motivo === "Otros") motivo = document.getElementById("d-quit-other")?.value || "No especificado";
+            if (!motivo) { toast("Indica el motivo de abandono", true); return false; }
+            body.quit_reason = motivo;
+        } else if (fin === "no_show") {
+            body.appointment_status = "No Show";
+            body.medical_status = "Treatment Scheduled"; // vuelve a scheduled, asesor verá canceled
+        }
+        return true;
+    }
+
+    // Lost directo
+    const lostDirect = document.getElementById("d-lost-direct")?.value;
+    if (lostDirect) {
+        body.medical_status = "Candidate Rejected";
+        body.rejection_reason = lostDirect;
+        return true;
+    }
+
+    const medStatus  = document.getElementById("d-medical-status")?.value;
+    const apptStatus = document.getElementById("d-appt-status")?.value;
+
+    if (medStatus) body.medical_status = medStatus;
+    if (apptStatus) body.appointment_status = apptStatus;
+
+    if (medStatus === "Candidate Rejected") {
+        const reason = document.getElementById("d-reject-reason")?.value;
+        if (!reason) { toast("Selecciona razón de rechazo", true); return false; }
+        body.rejection_reason = reason;
+    }
+
+    if (!medStatus && !apptStatus && !body.comentario) {
+        toast("No hay cambios para guardar", true); return false;
+    }
+
+    return true;
+}
+
+function buildBodySoporte(body) {
+    const sales   = document.getElementById("sp-sales")?.value;
+    const appt    = document.getElementById("sp-appt")?.value;
+    const medical = document.getElementById("sp-medical")?.value;
+    const doctor  = document.getElementById("sp-doctor")?.value;
+    const tdate   = document.getElementById("sp-treatment-date")?.value;
+
+    if (sales)   body.sales_status = sales;
+    if (appt)    body.appointment_status = appt;
+    if (medical) body.medical_status = medical;
+    if (doctor)  body.doctor_id = parseInt(doctor);
+    if (tdate)   body.treatment_date = tdate;
+}
+
+async function enviarCambios(body) {
     try {
-        const res = await fetch(API + "/leads/estado", {
-            method: "PUT",
-            headers: HEADERS,
-            body: JSON.stringify(body)
-        });
-        
+        const res = await fetch(API+"/leads/estado", { method:"PUT", headers:H, body:JSON.stringify(body) });
         if (res.ok) {
             const data = await res.json();
-            toast("✅ " + (data.message || "Estado actualizado correctamente"));
+            toast("✅ " + (data.message || "Guardado correctamente"));
             cerrarModal();
             cargarLeads();
-            if (usuarioActual.rol === "asesor") cargarCancelados();
         } else {
             const err = await res.json();
-            toast("❌ Error: " + (err.detail || "Error desconocido"), true);
+            toast("❌ " + (err.detail || "Error al guardar"), true);
         }
+    } catch(e) { toast("❌ Error de conexión", true); }
+}
+
+function cerrarModal() {
+    document.getElementById("modal").classList.remove("open");
+    seleccionado = null;
+}
+document.getElementById("modal").addEventListener("click", e => { if (e.target === document.getElementById("modal")) cerrarModal(); });
+
+// ══════════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════════
+async function cargarHistorial(leadId) {
+    const el = document.getElementById("m-historial");
+    try {
+        const res = await fetch(`${API}/leads/${leadId}/historial`, { headers:H });
+        const data = await res.json();
+        const hist = data.historial || [];
+        if (!hist.length) { el.innerHTML = '<div class="history-item" style="color:var(--text3)">Sin cambios registrados</div>'; return; }
+        el.innerHTML = hist.map(h => `
+            <div class="history-item">
+                <span class="history-who">${h.nombre || "Sistema"}</span>
+                <span class="history-arrow">→</span>
+                <span>${h.estado_nuevo || "—"}</span>
+                <span class="history-date"> · ${new Date(h.fecha).toLocaleString('es-CO')}</span>
+                ${h.comentario ? `<br><span style="color:var(--text3);font-size:0.75rem;">${h.comentario}</span>` : ""}
+            </div>`).join("");
+    } catch(e) { el.innerHTML = '<div class="history-item" style="color:var(--red)">Error al cargar historial</div>'; }
+}
+
+// ══════════════════════════════════════════════
+// DOCTORES / ASESORES
+// ══════════════════════════════════════════════
+async function cargarDoctores() {
+    try {
+        const res = await fetch(`${API}/doctores`, { headers:H });
+        const data = await res.json();
+        doctoresCache = data.usuarios || [];
+    } catch(e) {}
+}
+
+async function cargarAsesoresParaForm() {
+    try {
+        const [aRes, dRes] = await Promise.all([
+            fetch(`${API}/asesores`, {headers:H}),
+            fetch(`${API}/doctores`, {headers:H})
+        ]);
+        const asesores = (await aRes.json()).usuarios || [];
+        const doctores = (await dRes.json()).usuarios || [];
+        document.getElementById("nl-asesor").innerHTML = `<option value="">Asignar automáticamente</option>` +
+            asesores.map(a=>`<option value="${a.id}">${a.nombre}</option>`).join("");
+        document.getElementById("nl-doctor").innerHTML = `<option value="">Ninguno</option>` +
+            doctores.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("");
+    } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// NUEVO LEAD (SOPORTE)
+// ══════════════════════════════════════════════
+async function abrirNuevoLead() {
+    await cargarAsesoresParaForm();
+    // Limpiar form
+    ["nl-nombre","nl-telefono","nl-email","nl-ciudad","nl-categoria-custom","nl-notas"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    ["nl-genero","nl-canal","nl-categoria","nl-asesor","nl-doctor","nl-estado-inicial"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.selectedIndex = 0;
+    });
+    document.getElementById("nl-canal").value = "Manual";
+    document.getElementById("modal-nuevo").classList.add("open");
+}
+
+async function crearLead() {
+    const nombre   = document.getElementById("nl-nombre").value.trim();
+    const telefono = document.getElementById("nl-telefono").value.trim();
+    if (!nombre || !telefono) { toast("❌ Nombre y teléfono son obligatorios", true); return; }
+
+    const email      = document.getElementById("nl-email").value.trim();
+    const genero     = document.getElementById("nl-genero").value;
+    const ciudad     = document.getElementById("nl-ciudad").value.trim();
+    const canal      = document.getElementById("nl-canal").value;
+    const catSelect  = document.getElementById("nl-categoria").value;
+    const catCustom  = document.getElementById("nl-categoria-custom").value.trim();
+    const categoria  = catSelect === "Otro" && catCustom ? catCustom : catSelect;
+    const asesorId   = document.getElementById("nl-asesor").value || null;
+    const doctorId   = document.getElementById("nl-doctor").value || null;
+    const estadoIni  = document.getElementById("nl-estado-inicial").value || "New Lead";
+    const notas      = document.getElementById("nl-notas").value.trim();
+
+    const body = {
+        nombre, telefono, email, genero, ciudad,
+        canal, categoria,
+        asesor_id: asesorId ? parseInt(asesorId) : null,
+        doctor_id: doctorId ? parseInt(doctorId) : null,
+        sales_status_inicial: estadoIni,
+        notas,
+        creado_por: "soporte"
+    };
+
+    try {
+        const res = await fetch(`${API}/leads`, { method:"POST", headers:H, body:JSON.stringify(body) });
+        if (res.ok) {
+            const data = await res.json();
+            toast(`✅ Lead creado — ID #${data.id}`);
+            document.getElementById("modal-nuevo").classList.remove("open");
+            cargarLeads();
+        } else {
+            const err = await res.json();
+            toast("❌ " + (err.detail || "Error al crear lead"), true);
+        }
+    } catch(e) { toast("❌ Error de conexión con el servidor", true); }
+}
+
+// ══════════════════════════════════════════════
+// BÚSQUEDA (SOPORTE)
+// ══════════════════════════════════════════════
+let todosLeads = [];  // copia completa para filtrar localmente
+
+function buscarLeads(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        leads = [...todosLeads];
+    } else {
+        leads = todosLeads.filter(l =>
+            (l.nombre  || "").toLowerCase().includes(q) ||
+            (l.telefono || "").toLowerCase().includes(q) ||
+            (l.email   || "").toLowerCase().includes(q)
+        );
+    }
+    renderLeads();
+    document.getElementById("s-total").textContent = leads.length;
+}
+
+// ══════════════════════════════════════════════
+// GESTIÓN DE USUARIOS (SOPORTE)
+// ══════════════════════════════════════════════
+let todosUsuarios = [];
+let filtroUsuario = "todos";
+
+async function abrirGestionUsuarios() {
+    document.getElementById("modal-usuarios").classList.add("open");
+    switchUserTab("lista");
+    await cargarTodosUsuarios();
+}
+
+async function cargarTodosUsuarios() {
+    try {
+        const res = await fetch(`${API}/usuarios`, { headers:H });
+        const data = await res.json();
+        todosUsuarios = data.usuarios || [];
+        renderUsuarios();
     } catch(e) {
-        toast("❌ Error de conexión", true);
+        document.getElementById("usuarios-list-body").innerHTML =
+            '<div style="text-align:center;padding:2rem;color:var(--red)">Error al cargar usuarios</div>';
     }
 }
 
-// ============================================
-// TOAST (NOTIFICACIONES)
-// ============================================
-function toast(msg, err = false) {
+function renderUsuarios() {
+    const container = document.getElementById("usuarios-list-body");
+    let lista = todosUsuarios;
+    if (filtroUsuario !== "todos") lista = lista.filter(u => u.rol === filtroUsuario);
+
+    if (!lista.length) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3)">No hay usuarios en este rol</div>';
+        return;
+    }
+
+    const avatarClass = { asesor:"ua-asesor", doctor:"ua-doctor", soporte:"ua-soporte" };
+    const rolClass    = { asesor:"ur-asesor", doctor:"ur-doctor", soporte:"ur-soporte" };
+    const rolLabel    = { asesor:"Asesor", doctor:"Doctor", soporte:"Soporte" };
+    const initials    = n => n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+
+    container.innerHTML = lista.map(u => `
+        <div class="user-card">
+            <div class="user-avatar ${avatarClass[u.rol] || 'ua-soporte'}">${initials(u.nombre)}</div>
+            <div class="user-info">
+                <div class="user-name">${u.nombre}</div>
+                <div class="user-email">${u.email}${u.telefono ? ' · ' + u.telefono : ''}</div>
+            </div>
+            <span class="user-rol-badge ${rolClass[u.rol] || ''}">${rolLabel[u.rol] || u.rol}</span>
+        </div>
+    `).join("");
+}
+
+function filtrarUsuarios(rol) {
+    filtroUsuario = rol;
+    document.querySelectorAll("[id^='uf-']").forEach(b => b.classList.remove("active"));
+    document.getElementById(`uf-${rol}`)?.classList.add("active");
+    renderUsuarios();
+}
+
+function switchUserTab(tab) {
+    document.getElementById("gu-lista").classList.toggle("hidden", tab !== "lista");
+    document.getElementById("gu-nuevo").classList.toggle("hidden", tab !== "nuevo");
+    document.getElementById("tab-lista").classList.toggle("active", tab === "lista");
+    document.getElementById("tab-nuevo").classList.toggle("active", tab === "nuevo");
+    if (tab === "lista") cargarTodosUsuarios();
+}
+
+async function crearUsuario() {
+    const nombre   = document.getElementById("nu-nombre").value.trim();
+    const email    = document.getElementById("nu-email").value.trim();
+    const password = document.getElementById("nu-password").value;
+    const rol      = document.getElementById("nu-rol").value;
+    const telefono = document.getElementById("nu-telefono").value.trim();
+    const idiomas  = document.getElementById("nu-idiomas").value;
+
+    if (!nombre || !email || !password || !rol) {
+        toast("❌ Nombre, email, contraseña y rol son obligatorios", true); return;
+    }
+    if (password.length < 6) { toast("❌ La contraseña debe tener al menos 6 caracteres", true); return; }
+
+    try {
+        const res = await fetch(`${API}/usuarios`, {
+            method:"POST", headers:H,
+            body: JSON.stringify({ nombre, email, password, rol, telefono, idiomas })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            toast(`✅ Usuario creado correctamente`);
+            ["nu-nombre","nu-email","nu-password","nu-telefono"].forEach(id => document.getElementById(id).value = "");
+            switchUserTab("lista");
+        } else {
+            const err = await res.json();
+            toast("❌ " + (err.detail || "Error al crear usuario"), true);
+        }
+    } catch(e) { toast("❌ Error de conexión", true); }
+}
+
+document.getElementById("modal-usuarios").addEventListener("click", e => {
+    if (e.target === document.getElementById("modal-usuarios")) document.getElementById("modal-usuarios").classList.remove("open");
+});
+
+document.getElementById("modal-nuevo").addEventListener("click", e => {
+    if (e.target === document.getElementById("modal-nuevo")) document.getElementById("modal-nuevo").classList.remove("open");
+});
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function toast(msg, err=false) {
     const t = document.createElement("div");
     t.className = "toast " + (err ? "toast-err" : "toast-ok");
     t.textContent = msg;
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3500);
+    setTimeout(() => t.remove(), 4000);
 }
 
-// ============================================
-// CIERRE CON TECLA ESCAPE
-// ============================================
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape" && document.getElementById("modal").style.display === "flex") {
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
         cerrarModal();
+        document.getElementById("modal-nuevo").classList.remove("open");
     }
 });
 </script>
-
 </body>
 </html>
