@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -7,51 +7,30 @@ from typing import Optional, Literal
 from datetime import datetime
 import hashlib
 
-app = FastAPI(title="CRM Stemwell API", version="6.0.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="CRM Stemwell API", version="7.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
+                   allow_methods=["*"], allow_headers=["*"])
 
 # ══════════════════════════════════════════════════════════════════
 #  TIPOS
 # ══════════════════════════════════════════════════════════════════
 SalesStatus = Literal[
     "New Lead", "First Contact", "No Answer", "Follow Up", "Interested",
-    "Appointment Scheduled",          # Asesor agenda consulta → espera confirmar
-    "Treatment Follow-Up",            # Vuelve al asesor después de propuesta médica
-    "Treatment Confirmed",            # Asesor confirma aceptación de tratamiento
-    "scheduled treatment",            # Asesor agenda fecha de tratamiento
-    "canceled treatment",             # Cita/tratamiento cancelado → asesor reagenda
-    "Won",                            # Tratamiento completado
-    "Lost"
+    "Appointment Scheduled",     # Asesor agenda consulta (pendiente confirmar)
+    "Treatment Proposal Sent",   # Médico envió propuesta → vuelve al asesor
+    "scheduled treatment",       # Asesor agendó fecha de tratamiento → pasa al médico
+    "canceled treatment",        # Cita/tratamiento cancelado → asesor reagenda
+    "Won", "Lost"
 ]
-
 AppointmentStatus = Literal[
-    "Scheduled",       # Agendada por asesor (pendiente confirmación)
-    "Confirmed",       # Asesor confirma → pasa a médico
-    "Sent",            # Propuesta de tratamiento enviada al paciente
-    "Rescheduled",     # Reagendada
-    "Canceled",        # Cancelada
-    "Attended",        # Asistió
-    "No Show",         # No se presentó
+    "Scheduled", "Confirmed", "Sent", "Rescheduled",
+    "Canceled", "Attended", "No Show", "Completed"
 ]
-
 MedicalStatus = Literal[
-    "Pending Evaluation",        # Auto al confirmar cita consulta
-    "Consultation Completed",    # Médico atendió consulta
-    "Candidate Approved",        # Médico aprueba candidato
-    "Candidate Rejected",        # Médico rechaza → Lost automático
-    "Treatment Proposal Sent",   # Médico envía propuesta → vuelve al asesor
-    "Treatment Scheduled",       # Asesor confirmó fecha → médico ve agendado
-    "In Treatment",              # Médico inicia tratamiento
-    "Treatment Completed",       # Médico finaliza → Won automático
+    "Pending Evaluation", "Consultation Completed", "Candidate Approved",
+    "Candidate Rejected", "Treatment Proposal Sent", "Treatment Scheduled",
+    "In Treatment", "Treatment Completed"
 ]
-
 RejectionReason = Literal[
     "No interés", "Dinero", "Cáncer o malignidad activa",
     "Infecciones sistémicas no controladas", "Falla orgánica descompensada",
@@ -70,17 +49,13 @@ class LeadCreate(BaseModel):
     email: Optional[str] = ""
     categoria: Optional[str] = ""
     canal: Optional[str] = ""
+    genero: Optional[str] = ""
+    ciudad: Optional[str] = ""
+    notas: Optional[str] = ""
+    sales_status_inicial: Optional[str] = "New Lead"
     creado_por: Optional[str] = "api"
     asesor_id: Optional[int] = None
     doctor_id: Optional[int] = None
-
-class LeadGoogle(BaseModel):
-    nombre: str
-    phone: Optional[str] = ""
-    email: Optional[str] = ""
-    categoria: Optional[str] = ""
-    canal: Optional[str] = "Website"
-    source: Optional[str] = "google_sheets"
 
 class UsuarioCreate(BaseModel):
     nombre: str
@@ -94,20 +69,34 @@ class UsuarioLogin(BaseModel):
     email: str
     password: str
 
+class CrearControl(BaseModel):
+    tipo: Optional[str] = "Control"
+    fecha_control: Optional[str] = None
+    doctor_id: Optional[int] = None
+    descripcion: Optional[str] = ""
+
 class UpdateStatus(BaseModel):
     lead_id: int
     usuario_id: int
     comentario: Optional[str] = ""
-    # Campos que puede enviar el frontend
+    # Campos de estado
     sales_status: Optional[SalesStatus] = None
     appointment_status: Optional[AppointmentStatus] = None
     medical_status: Optional[MedicalStatus] = None
     doctor_id: Optional[int] = None
-    treatment_date: Optional[str] = None           # fecha consulta o tratamiento
-    next_treatment_date: Optional[str] = None       # próxima sesión In Treatment
+    # Fechas
+    treatment_date: Optional[str] = None          # fecha de consulta (appointment)
+    treatment_start_date: Optional[str] = None    # inicio de tratamiento
+    treatment_end_date: Optional[str] = None      # fin estimado de tratamiento
+    next_treatment_date: Optional[str] = None     # próxima sesión
+    # Info adicional
+    medilink_numero: Optional[str] = None
+    cita_confirmada: Optional[bool] = None
     rejection_reason: Optional[RejectionReason] = None
-    quit_reason: Optional[str] = None              # abandono de tratamiento
-    mark_treatment_completed: Optional[bool] = None  # True=completado, False=siguiente sesión
+    quit_reason: Optional[str] = None
+    mark_treatment_completed: Optional[bool] = None
+    # Control/seguimiento
+    crear_control: Optional[dict] = None
 
 # ══════════════════════════════════════════════════════════════════
 #  DB
@@ -127,12 +116,10 @@ def hash_password(p: str) -> str:
 @app.post("/login")
 def login(data: UsuarioLogin):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
-    hashed = hash_password(data.password)
-    cur.execute("SELECT * FROM usuarios WHERE email=%s AND password=%s AND activo=true", (data.email, hashed))
-    user = cur.fetchone()
-    cur.close(); conn.close()
-    if not user:
-        raise HTTPException(401, "Credenciales inválidas")
+    cur.execute("SELECT * FROM usuarios WHERE email=%s AND password=%s AND activo=true",
+                (data.email, hash_password(data.password)))
+    user = cur.fetchone(); cur.close(); conn.close()
+    if not user: raise HTTPException(401, "Credenciales inválidas")
     return {"id": user["id"], "nombre": user["nombre"], "email": user["email"], "rol": user["rol"]}
 
 # ══════════════════════════════════════════════════════════════════
@@ -141,11 +128,10 @@ def login(data: UsuarioLogin):
 @app.post("/usuarios")
 def crear_usuario(data: UsuarioCreate):
     conn = get_db(); cur = conn.cursor()
-    hashed = hash_password(data.password)
     cur.execute(
-        "INSERT INTO usuarios (nombre, email, password, rol, telefono, idiomas) "
+        "INSERT INTO usuarios (nombre,email,password,rol,telefono,idiomas) "
         "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (email) DO NOTHING RETURNING id",
-        (data.nombre, data.email, hashed, data.rol, data.telefono, data.idiomas)
+        (data.nombre, data.email, hash_password(data.password), data.rol, data.telefono, data.idiomas)
     )
     res = cur.fetchone(); conn.commit(); cur.close(); conn.close()
     return {"id": res[0]} if res else {"message": "Ya existe"}
@@ -154,9 +140,9 @@ def crear_usuario(data: UsuarioCreate):
 def listar_usuarios(rol: Optional[str] = None):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
     if rol:
-        cur.execute("SELECT id, nombre, email, rol, telefono FROM usuarios WHERE activo=true AND rol=%s", (rol,))
+        cur.execute("SELECT id,nombre,email,rol,telefono FROM usuarios WHERE activo=true AND rol=%s", (rol,))
     else:
-        cur.execute("SELECT id, nombre, email, rol, telefono FROM usuarios WHERE activo=true")
+        cur.execute("SELECT id,nombre,email,rol,telefono FROM usuarios WHERE activo=true")
     usuarios = cur.fetchall(); cur.close(); conn.close()
     return {"usuarios": usuarios}
 
@@ -170,28 +156,26 @@ def listar_asesores(): return listar_usuarios(rol="asesor")
 #  LEADS — FORMATO
 # ══════════════════════════════════════════════════════════════════
 def format_lead(l):
+    def dt(v): return str(v) if v else None
     return {
-        "id": l["id"],
-        "nombre": l["nombre"],
-        "telefono": l["telefono"],
-        "email": l["email"],
-        "categoria": l.get("categoria") or "",
-        "canal": l.get("canal") or "",
-        "sales_status": l.get("sales_status"),
-        "appointment_status": l.get("appointment_status"),
+        "id": l["id"], "nombre": l["nombre"], "telefono": l["telefono"], "email": l["email"],
+        "categoria": l.get("categoria") or "", "canal": l.get("canal") or "",
+        "genero": l.get("genero") or "", "ciudad": l.get("ciudad") or "",
+        "sales_status": l.get("sales_status"), "appointment_status": l.get("appointment_status"),
         "medical_status": l.get("medical_status"),
-        "asesor_id": l.get("asesor_id"),
-        "asesor_nombre": l.get("asesor_nombre"),
-        "doctor_id": l.get("doctor_id"),
-        "doctor_nombre": l.get("doctor_nombre"),
+        "asesor_id": l.get("asesor_id"), "asesor_nombre": l.get("asesor_nombre"),
+        "doctor_id": l.get("doctor_id"), "doctor_nombre": l.get("doctor_nombre"),
         "comentarios": l.get("comentarios") or "",
-        "rejection_reason": l.get("rejection_reason"),
-        "quit_reason": l.get("quit_reason"),
-        "treatment_date": str(l["treatment_date"]) if l.get("treatment_date") else None,
-        "next_treatment_date": str(l["next_treatment_date"]) if l.get("next_treatment_date") else None,
+        "rejection_reason": l.get("rejection_reason"), "quit_reason": l.get("quit_reason"),
+        "medilink_numero": l.get("medilink_numero"),
+        "cita_confirmada": l.get("cita_confirmada", False),
+        "treatment_date": dt(l.get("treatment_date")),
+        "treatment_start_date": dt(l.get("treatment_start_date")),
+        "treatment_end_date": dt(l.get("treatment_end_date")),
+        "next_treatment_date": dt(l.get("next_treatment_date")),
         "treatment_completed": l.get("treatment_completed", False),
-        "fecha_creacion": str(l["fecha_creacion"]) if l.get("fecha_creacion") else None,
-        "fecha_actualizacion": str(l["fecha_actualizacion"]) if l.get("fecha_actualizacion") else None,
+        "fecha_creacion": dt(l.get("fecha_creacion")),
+        "fecha_actualizacion": dt(l.get("fecha_actualizacion")),
     }
 
 # ══════════════════════════════════════════════════════════════════
@@ -202,73 +186,52 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT rol FROM usuarios WHERE id=%s", (usuario_id,))
     user = cur.fetchone()
-    if not user:
-        raise HTTPException(404, "Usuario no encontrado")
-
+    if not user: raise HTTPException(404, "Usuario no encontrado")
     rol = user["rol"]
-
     base = """
-        SELECT l.*,
-               d.nombre AS doctor_nombre,
-               a.nombre AS asesor_nombre
+        SELECT l.*, d.nombre AS doctor_nombre, a.nombre AS asesor_nombre
         FROM leads l
         LEFT JOIN usuarios d ON l.doctor_id = d.id
         LEFT JOIN usuarios a ON l.asesor_id = a.id
     """
-
     if rol == "asesor":
-        # El asesor ve sus leads EXCEPTO los que están "en manos del médico":
-        # un lead está en manos del médico cuando:
-        #   - appointment_status = 'Confirmed' Y sales_status = 'Appointment Scheduled'
-        #   - medical_status = 'Treatment Scheduled' Y sales_status = 'scheduled treatment'
-        #   - medical_status = 'In Treatment'
-        # En esos estados el lead desaparece del asesor, EXCEPTO si vuelve (Treatment Follow-Up, canceled treatment, Won, Lost)
+        # Asesor NO ve leads que están en manos activas del médico:
+        # - En consulta con médico: Appointment Scheduled + cita_confirmada=true + medical en Pending/Consultation
+        # - En tratamiento activo: scheduled treatment + medical = Treatment Scheduled o In Treatment
+        # SÍ ve: Treatment Proposal Sent (volvió del médico), canceled treatment, Won, Lost, estados normales
         where = """
             WHERE l.asesor_id = %s
             AND NOT (
-                -- En consulta confirmada con médico
-                (l.sales_status = 'Appointment Scheduled' AND l.appointment_status = 'Confirmed')
+                (l.sales_status = 'Appointment Scheduled' AND l.cita_confirmada = true
+                 AND l.medical_status IN ('Pending Evaluation','Consultation Completed','Candidate Approved'))
                 OR
-                -- En tratamiento agendado con médico
-                (l.sales_status = 'scheduled treatment' AND l.medical_status = 'Treatment Scheduled')
-                OR
-                -- En tratamiento activo (pero SÍ aparece en asesor como info)
-                -- Descomentarr la siguiente línea si quieres que In Treatment desaparezca del asesor:
-                -- (l.medical_status = 'In Treatment')
-                -- Por ahora In Treatment SÍ aparece en el asesor (modo informativo)
-                (1=0)
+                (l.sales_status = 'scheduled treatment'
+                 AND l.medical_status IN ('Treatment Scheduled','In Treatment'))
             )
         """
         params = [usuario_id]
         if estado:
             where += " AND l.sales_status = %s"
             params.append(estado)
-
     elif rol == "doctor":
-        # El doctor ve SOLO los leads asignados a él
-        # y que estén en fases médicas activas
         where = """
             WHERE l.doctor_id = %s
             AND l.medical_status IS NOT NULL
-            AND l.medical_status NOT IN ('Treatment Completed', 'Candidate Rejected')
+            AND l.medical_status NOT IN ('Treatment Completed','Candidate Rejected')
         """
-        # Incluir Completed/Rejected si se filtra explícitamente
         params = [usuario_id]
         if estado:
             where = "WHERE l.doctor_id = %s AND l.medical_status = %s"
             params = [usuario_id, estado]
-
-    else:  # soporte ve todo
+    else:  # soporte
         where = "WHERE 1=1"
         params = []
         if estado:
-            where += " AND (l.sales_status = %s OR l.medical_status = %s)"
+            where += " AND (l.sales_status=%s OR l.medical_status=%s)"
             params = [estado, estado]
 
-    query = base + where + " ORDER BY l.fecha_actualizacion DESC"
-    cur.execute(query, params)
-    leads = cur.fetchall()
-    cur.close(); conn.close()
+    cur.execute(base + where + " ORDER BY l.fecha_actualizacion DESC", params)
+    leads = cur.fetchall(); cur.close(); conn.close()
     return {"leads": [format_lead(l) for l in leads], "total": len(leads)}
 
 # ══════════════════════════════════════════════════════════════════
@@ -277,42 +240,30 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
 @app.put("/leads/estado")
 def cambiar_estado(data: UpdateStatus):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
-
     cur.execute("SELECT * FROM leads WHERE id=%s", (data.lead_id,))
     lead = cur.fetchone()
-    if not lead:
-        raise HTTPException(404, "Lead no encontrado")
-
+    if not lead: raise HTTPException(404, "Lead no encontrado")
     cur.execute("SELECT * FROM usuarios WHERE id=%s", (data.usuario_id,))
     usuario = cur.fetchone()
-    if not usuario:
-        raise HTTPException(404, "Usuario no encontrado")
+    if not usuario: raise HTTPException(404, "Usuario no encontrado")
 
-    rol = usuario["rol"]
-    now = datetime.now()
-
-    # Estado actual del lead
-    sales  = lead["sales_status"]   or ""
-    appt   = lead["appointment_status"] or ""
-    med    = lead["medical_status"]  or ""
-
+    rol   = usuario["rol"]
+    now   = datetime.now()
+    sales = lead["sales_status"] or ""
+    appt  = lead["appointment_status"] or ""
+    med   = lead["medical_status"] or ""
     updates = {}
-    nota    = ""
+    nota = ""
 
-    def log(extra=""):
-        after_s = updates.get("sales_status",  sales)
+    def log():
+        after_s = updates.get("sales_status", sales)
         after_a = updates.get("appointment_status", appt)
         after_m = updates.get("medical_status", med)
         cur.execute(
-            "INSERT INTO historial_estados (lead_id, estado_anterior, estado_nuevo, cambiado_por, comentario) "
+            "INSERT INTO historial_estados (lead_id,estado_anterior,estado_nuevo,cambiado_por,comentario) "
             "VALUES (%s,%s,%s,%s,%s)",
-            (
-                data.lead_id,
-                f"S:{sales}|A:{appt}|M:{med}",
-                f"S:{after_s}|A:{after_a}|M:{after_m}",
-                data.usuario_id,
-                extra
-            )
+            (data.lead_id, f"S:{sales}|A:{appt}|M:{med}",
+             f"S:{after_s}|A:{after_a}|M:{after_m}", data.usuario_id, nota)
         )
 
     # ─────────────────────────────────────────
@@ -320,291 +271,323 @@ def cambiar_estado(data: UpdateStatus):
     # ─────────────────────────────────────────
     if rol == "asesor":
 
-        # ── Caso especial: confirmar cita de consulta ──
-        # El asesor envía appointment_status="Confirmed" + doctor_id
-        if data.appointment_status == "Confirmed" and sales == "Appointment Scheduled":
+        # ── Confirmar cita → pasa al médico ──
+        if data.cita_confirmada is True and sales == "Appointment Scheduled":
             if not data.doctor_id:
-                raise HTTPException(400, "Se requiere doctor_id para confirmar cita")
+                raise HTTPException(400, "Se requiere doctor para confirmar")
+            updates["cita_confirmada"] = True
             updates["appointment_status"] = "Confirmed"
-            updates["doctor_id"]          = data.doctor_id
+            updates["doctor_id"] = data.doctor_id
             if not med:
                 updates["medical_status"] = "Pending Evaluation"
             if data.treatment_date:
                 updates["treatment_date"] = data.treatment_date
-            nota = f"Cita confirmada → asignada al doctor id={data.doctor_id}"
+            nota = f"Cita confirmada → doctor id={data.doctor_id}"
 
-        # ── Caso: cancelar cita de consulta pendiente ──
-        elif data.appointment_status == "Canceled" and sales == "Appointment Scheduled":
-            updates["sales_status"]       = "canceled treatment"
-            updates["appointment_status"] = "Canceled"
-            nota = "Cita de consulta cancelada por asesor"
-
-        # ── Caso: reagendar cita pendiente ──
+        # ── Reagendar cita ──
         elif data.appointment_status == "Rescheduled" and sales == "Appointment Scheduled":
             updates["appointment_status"] = "Rescheduled"
             if data.treatment_date:
                 updates["treatment_date"] = data.treatment_date
             nota = "Cita reagendada por asesor"
 
-        # ── Transiciones normales de sales_status ──
+        # ── Cancelar cita ──
+        elif data.appointment_status == "Canceled" and sales == "Appointment Scheduled":
+            updates["sales_status"] = "canceled treatment"
+            updates["appointment_status"] = "Canceled"
+            updates["cita_confirmada"] = False
+            nota = "Cita cancelada → devuelto al asesor"
+
+        # ── Treatment Proposal Sent: asesor confirma fecha de tratamiento ──
+        elif data.sales_status == "scheduled treatment" and sales == "Treatment Proposal Sent":
+            if not data.medilink_numero:
+                raise HTTPException(400, "Número Medilink obligatorio")
+            if not data.treatment_start_date or not data.treatment_end_date:
+                raise HTTPException(400, "Fechas de inicio y fin del tratamiento obligatorias")
+            updates["sales_status"] = "scheduled treatment"
+            updates["medical_status"] = "Treatment Scheduled"
+            updates["medilink_numero"] = data.medilink_numero
+            updates["treatment_start_date"] = data.treatment_start_date
+            updates["treatment_end_date"] = data.treatment_end_date
+            nota = f"Tratamiento agendado: {data.treatment_start_date} → {data.treatment_end_date}"
+
+        # ── Treatment Proposal Sent: cancelado o no show ──
+        elif sales == "Treatment Proposal Sent" and data.appointment_status in ["Canceled","No Show"]:
+            updates["sales_status"] = "canceled treatment"
+            updates["appointment_status"] = data.appointment_status
+            nota = f"Tratamiento {data.appointment_status} → devuelto al asesor"
+
+        # ── canceled treatment: reagendar consulta ──
+        elif data.sales_status == "Appointment Scheduled" and sales == "canceled treatment":
+            updates["sales_status"] = "Appointment Scheduled"
+            updates["appointment_status"] = "Scheduled"
+            updates["cita_confirmada"] = False
+            if data.doctor_id: updates["doctor_id"] = data.doctor_id
+            if data.treatment_date: updates["treatment_date"] = data.treatment_date
+            nota = "Consulta reagendada desde cancelación"
+
+        # ── canceled treatment: reagendar tratamiento ──
+        elif data.sales_status == "Treatment Proposal Sent" and sales == "canceled treatment":
+            updates["sales_status"] = "Treatment Proposal Sent"
+            nota = "Tratamiento reagendado"
+
+        # ── canceled treatment: follow up ──
+        elif data.sales_status == "Follow Up" and sales == "canceled treatment":
+            updates["sales_status"] = "Follow Up"
+            nota = "Seguimiento iniciado"
+
+        # ── Transiciones normales ──
         elif data.sales_status:
             nuevo = data.sales_status
-            transiciones_validas = {
-                "New Lead":            ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost"],
-                "First Contact":       ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost"],
-                "No Answer":           ["Follow Up","First Contact","Lost"],
-                "Follow Up":           ["Interested","Appointment Scheduled","Lost"],
-                "Interested":          ["Appointment Scheduled","Follow Up","Lost"],
-                "Appointment Scheduled": [],  # solo via appointment_status=Confirmed
-                "Treatment Follow-Up": ["Treatment Confirmed","Lost"],
-                "Treatment Confirmed": ["scheduled treatment","Lost"],
-                "scheduled treatment": ["canceled treatment","Lost"],
-                "canceled treatment":  ["Treatment Follow-Up","Follow Up","Lost"],
-                "Won": [], "Lost": []
+            trans_validas = {
+                "New Lead":      ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost"],
+                "First Contact": ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost"],
+                "No Answer":     ["Follow Up","First Contact","Lost"],
+                "Follow Up":     ["Interested","Appointment Scheduled","Lost"],
+                "Interested":    ["Appointment Scheduled","Follow Up","Lost"],
             }
-            if nuevo not in transiciones_validas.get(sales, []):
+            if nuevo not in trans_validas.get(sales, []):
                 raise HTTPException(400, f"Transición no permitida: {sales} → {nuevo}")
-
             updates["sales_status"] = nuevo
             nota = f"Asesor: {sales} → {nuevo}"
-
-            # Acciones automáticas según estado nuevo
             if nuevo == "Appointment Scheduled":
                 updates["appointment_status"] = "Scheduled"
-                updates["medical_status"]     = "Pending Evaluation"
-                if data.doctor_id:
-                    updates["doctor_id"] = data.doctor_id
-                if data.treatment_date:
-                    updates["treatment_date"] = data.treatment_date
-                nota = "Cita de consulta agendada (pendiente confirmación)"
-
-            elif nuevo == "Treatment Confirmed":
-                # Asesor confirma que el paciente acepta la propuesta
-                updates["appointment_status"] = "Confirmed"
-                nota = "Paciente confirma aceptación de tratamiento"
-
-            elif nuevo == "scheduled treatment":
-                # Asesor agenda la fecha de tratamiento
-                if not data.treatment_date:
-                    raise HTTPException(400, "Se requiere fecha de tratamiento")
-                updates["treatment_date"]     = data.treatment_date
-                updates["medical_status"]     = "Treatment Scheduled"
-                updates["appointment_status"] = "Confirmed"
-                nota = f"Tratamiento agendado: {data.treatment_date}"
-
-            elif nuevo == "canceled treatment":
-                updates["appointment_status"] = "Canceled"
-                nota = "Cancelación registrada por asesor"
-
+                updates["medical_status"] = "Pending Evaluation"
+                updates["cita_confirmada"] = False
+                if data.doctor_id: updates["doctor_id"] = data.doctor_id
+                if data.treatment_date: updates["treatment_date"] = data.treatment_date
             elif nuevo == "Lost":
+                if not data.rejection_reason:
+                    raise HTTPException(400, "Se requiere razón de pérdida")
+                updates["rejection_reason"] = data.rejection_reason
                 updates["appointment_status"] = None
-                updates["medical_status"]     = None
-                if data.rejection_reason:
-                    updates["rejection_reason"] = data.rejection_reason
-                nota = f"Lead perdido: {data.rejection_reason or 'sin razón'}"
+                updates["medical_status"] = None
 
-            elif nuevo == "Follow Up":
-                # Desde canceled treatment → seguimiento
-                nota = "Seguimiento iniciado desde cancelación"
+        # ── Control/seguimiento para Won ──
+        elif data.crear_control:
+            pass  # se procesa abajo
 
-        else:
-            raise HTTPException(400, "El asesor debe enviar sales_status o appointment_status")
+        elif not data.comentario:
+            raise HTTPException(400, "No hay cambios válidos para el asesor")
 
     # ─────────────────────────────────────────
     #  DOCTOR
     # ─────────────────────────────────────────
     elif rol == "doctor":
 
-        # ── In Treatment: gestión de sesiones ──
-        if med == "In Treatment" and data.mark_treatment_completed is not None:
+        # ── Actualizar fecha fin (fecha pasada) ──
+        if data.treatment_end_date and med == "In Treatment":
+            updates["treatment_end_date"] = data.treatment_end_date
+            nota = f"Fecha fin actualizada: {data.treatment_end_date}"
 
+        # ── In Treatment: completar o gestionar sesión ──
+        elif med == "In Treatment":
             if data.mark_treatment_completed:
-                # Tratamiento completado → Won
-                updates["medical_status"]     = "Treatment Completed"
-                updates["sales_status"]       = "Won"
-                updates["appointment_status"] = None
+                updates["medical_status"] = "Treatment Completed"
+                updates["sales_status"] = "Won"
+                updates["appointment_status"] = "Completed"
                 updates["treatment_completed"] = True
-                nota = "Tratamiento completado (Won)"
-
-            else:
-                if data.quit_reason:
-                    # Paciente abandona
-                    motivo = data.quit_reason
-                    updates["medical_status"]     = None
-                    updates["sales_status"]       = "Lost"
-                    updates["appointment_status"] = None
-                    updates["quit_reason"]        = motivo
-                    nota = f"Paciente abandonó: {motivo}"
-
-                elif data.next_treatment_date:
-                    # Siguiente sesión
-                    updates["next_treatment_date"] = data.next_treatment_date
-                    nota = f"Siguiente sesión: {data.next_treatment_date}"
-
-                else:
-                    raise HTTPException(400, "Indica fecha de próxima sesión o motivo de abandono")
-
-        # ── No Show en tratamiento → canceled treatment ──
-        elif data.appointment_status == "No Show" and med in ["In Treatment","Treatment Scheduled"]:
-            updates["appointment_status"] = "No Show"
-            updates["sales_status"]       = "canceled treatment"
-            updates["medical_status"]     = None
-            nota = "No Show registrado → devuelto al asesor"
-
-        # ── Cambio de medical_status ──
-        elif data.medical_status:
-            nuevo_med = data.medical_status
-
-            # Validaciones de flujo médico
-            flujo_medico = {
-                "Pending Evaluation":   ["Consultation Completed", "Candidate Rejected"],
-                "Consultation Completed": ["Candidate Approved", "Candidate Rejected"],
-                "Candidate Approved":   ["Treatment Proposal Sent", "Candidate Rejected"],
-                "Treatment Scheduled":  ["In Treatment", "Candidate Rejected"],
-                "In Treatment":         [],  # se gestiona arriba con mark_treatment_completed
-            }
-            permitidos = flujo_medico.get(med, list(MedicalStatus.__args__))
-            if nuevo_med not in permitidos and med != "":
-                # Si no está en el flujo esperado, soporte puede sobreescribir; doctor solo el flujo
-                raise HTTPException(400, f"Transición médica no permitida: {med} → {nuevo_med}")
-
-            updates["medical_status"] = nuevo_med
-            nota = f"Doctor: {med} → {nuevo_med}"
-
-            if nuevo_med == "Candidate Rejected":
-                if not data.rejection_reason:
-                    raise HTTPException(400, "Se requiere razón de rechazo")
-                updates["rejection_reason"] = data.rejection_reason
-                updates["sales_status"]     = "Lost"
-                updates["appointment_status"] = None
-                nota = f"Candidato rechazado: {data.rejection_reason}"
-
-            elif nuevo_med == "Treatment Proposal Sent":
-                # Lead vuelve al asesor para seguimiento de propuesta
-                updates["sales_status"]       = "Treatment Follow-Up"
-                updates["appointment_status"] = "Sent"
-                nota = "Propuesta enviada → lead devuelto al asesor (Treatment Follow-Up)"
-
-            elif nuevo_med == "In Treatment":
-                updates["appointment_status"] = "Attended"
-                nota = "Paciente en tratamiento activo"
-
-            elif nuevo_med == "Consultation Completed":
-                updates["appointment_status"] = "Attended"
-                nota = "Consulta completada"
-
-        # ── Cambio de appointment_status por doctor ──
-        elif data.appointment_status:
-            nuevo_appt = data.appointment_status
-            updates["appointment_status"] = nuevo_appt
-
-            if nuevo_appt == "Canceled":
-                if med in ["Pending Evaluation","Consultation Completed","Treatment Scheduled"]:
-                    updates["sales_status"]   = "canceled treatment"
-                    updates["medical_status"] = None
-                nota = "Cita cancelada por doctor → devuelto al asesor"
-
-            elif nuevo_appt == "No Show":
-                updates["sales_status"]   = "canceled treatment"
+                nota = "Tratamiento completado → Won"
+            elif data.quit_reason:
+                updates["sales_status"] = "Lost"
+                updates["quit_reason"] = data.quit_reason
+                updates["medical_status"] = None
+                nota = f"Abandono: {data.quit_reason}"
+            elif data.next_treatment_date:
+                updates["next_treatment_date"] = data.next_treatment_date
+                nota = f"Próxima sesión: {data.next_treatment_date}"
+            elif data.appointment_status == "No Show":
+                updates["appointment_status"] = "No Show"
+                updates["sales_status"] = "canceled treatment"
                 updates["medical_status"] = None
                 nota = "No Show → devuelto al asesor"
+            elif not data.comentario:
+                raise HTTPException(400, "Indica acción para el tratamiento activo")
 
-            elif nuevo_appt == "Rescheduled":
-                nota = "Cita reagendada por doctor"
+        # ── Pending Evaluation: consulta completada o cancelada ──
+        elif med == "Pending Evaluation":
+            if data.appointment_status == "Canceled":
+                updates["appointment_status"] = "Canceled"
+                updates["sales_status"] = "canceled treatment"
+                updates["medical_status"] = None
+                nota = "Cita cancelada por doctor → asesor"
+            elif data.medical_status == "Consultation Completed":
+                updates["medical_status"] = "Consultation Completed"
+                updates["appointment_status"] = "Completed"
+                nota = "Consulta completada"
+                # Si viene con candidato
+                if data.medical_status == "Candidate Approved":
+                    updates["medical_status"] = "Candidate Approved"
+            else:
+                if data.medical_status:
+                    updates["medical_status"] = data.medical_status
+                    nota = f"Doctor: {med} → {data.medical_status}"
 
-        # ── Lost directo desde médico ──
-        elif data.rejection_reason and data.medical_status is None:
-            updates["medical_status"]     = "Candidate Rejected"
-            updates["rejection_reason"]   = data.rejection_reason
-            updates["sales_status"]       = "Lost"
-            updates["appointment_status"] = None
-            nota = f"Perdido por médico: {data.rejection_reason}"
+        # ── Candidate Approved / Consultation Completed: enviar propuesta ──
+        elif med in ("Consultation Completed", "Candidate Approved"):
+            if data.medical_status == "Treatment Proposal Sent":
+                updates["medical_status"] = "Treatment Proposal Sent"
+                updates["sales_status"] = "Treatment Proposal Sent"
+                updates["appointment_status"] = "Sent"
+                nota = "Propuesta enviada → asesor hace seguimiento"
+            elif data.medical_status == "Candidate Approved":
+                updates["medical_status"] = "Candidate Approved"
+                nota = "Candidato aprobado"
+            elif data.medical_status == "Candidate Rejected":
+                if not data.rejection_reason:
+                    raise HTTPException(400, "Se requiere razón de rechazo")
+                updates["medical_status"] = "Candidate Rejected"
+                updates["rejection_reason"] = data.rejection_reason
+                updates["sales_status"] = "Lost"
+                nota = f"Rechazado: {data.rejection_reason}"
+            elif data.medical_status:
+                updates["medical_status"] = data.medical_status
+                nota = f"Doctor actualiza estado: {data.medical_status}"
 
-        else:
-            if not data.comentario:
-                raise HTTPException(400, "No hay cambios válidos para el doctor")
+        # ── Treatment Scheduled: iniciar tratamiento ──
+        elif med == "Treatment Scheduled":
+            if data.medical_status == "In Treatment":
+                updates["medical_status"] = "In Treatment"
+                updates["appointment_status"] = "Attended"
+                nota = "Tratamiento iniciado"
+            elif data.appointment_status == "No Show":
+                updates["appointment_status"] = "No Show"
+                updates["sales_status"] = "canceled treatment"
+                updates["medical_status"] = None
+                nota = "No Show → devuelto al asesor"
+            elif data.appointment_status == "Canceled":
+                updates["appointment_status"] = "Canceled"
+                updates["sales_status"] = "canceled treatment"
+                updates["medical_status"] = None
+                nota = "Tratamiento cancelado → devuelto al asesor"
+
+        # ── Rechazo directo ──
+        elif data.rejection_reason and not data.medical_status:
+            updates["medical_status"] = "Candidate Rejected"
+            updates["rejection_reason"] = data.rejection_reason
+            updates["sales_status"] = "Lost"
+            nota = f"Rechazado: {data.rejection_reason}"
+
+        # ── Control para Treatment Completed ──
+        elif data.crear_control:
+            pass  # se procesa abajo
+
+        elif not data.comentario:
+            raise HTTPException(400, "No hay cambios válidos para el doctor")
 
     # ─────────────────────────────────────────
     #  SOPORTE — Control total
     # ─────────────────────────────────────────
     elif rol == "soporte":
-        if data.sales_status:        updates["sales_status"]        = data.sales_status
-        if data.appointment_status:  updates["appointment_status"]  = data.appointment_status
-        if data.medical_status:      updates["medical_status"]      = data.medical_status
-        if data.doctor_id is not None: updates["doctor_id"]         = data.doctor_id
-        if data.treatment_date:      updates["treatment_date"]      = data.treatment_date
-        if data.rejection_reason:    updates["rejection_reason"]    = data.rejection_reason
-        if data.next_treatment_date: updates["next_treatment_date"] = data.next_treatment_date
-        if data.quit_reason:         updates["quit_reason"]         = data.quit_reason
+        if data.sales_status:         updates["sales_status"]         = data.sales_status
+        if data.appointment_status:   updates["appointment_status"]   = data.appointment_status
+        if data.medical_status:       updates["medical_status"]       = data.medical_status
+        if data.doctor_id is not None: updates["doctor_id"]           = data.doctor_id
+        if data.treatment_date:       updates["treatment_date"]       = data.treatment_date
+        if data.treatment_start_date: updates["treatment_start_date"] = data.treatment_start_date
+        if data.treatment_end_date:   updates["treatment_end_date"]   = data.treatment_end_date
+        if data.rejection_reason:     updates["rejection_reason"]     = data.rejection_reason
+        if data.next_treatment_date:  updates["next_treatment_date"]  = data.next_treatment_date
+        if data.quit_reason:          updates["quit_reason"]          = data.quit_reason
+        if data.medilink_numero:      updates["medilink_numero"]      = data.medilink_numero
+        if data.cita_confirmada is not None: updates["cita_confirmada"] = data.cita_confirmada
         if data.mark_treatment_completed is not None:
             updates["treatment_completed"] = data.mark_treatment_completed
         nota = "Actualización manual por soporte"
-
     else:
         raise HTTPException(403, "Rol no autorizado")
 
     # ─────────────────────────────────────────
-    #  Ejecutar UPDATE
+    #  Ejecutar UPDATE principal
     # ─────────────────────────────────────────
-    if not updates and not data.comentario:
+    if not updates and not data.comentario and not data.crear_control:
         raise HTTPException(400, "No hay cambios para aplicar")
 
-    updates["fecha_actualizacion"] = "now"
-    set_parts, values = [], []
-    for k, v in updates.items():
-        if v == "now":
-            set_parts.append(f"{k}=CURRENT_TIMESTAMP")
-        else:
-            set_parts.append(f"{k}=%s")
-            values.append(v)
+    if updates:
+        updates["fecha_actualizacion"] = "now"
+        set_parts, values = [], []
+        for k, v in updates.items():
+            if v == "now":
+                set_parts.append(f"{k}=CURRENT_TIMESTAMP")
+            else:
+                set_parts.append(f"{k}=%s")
+                values.append(v)
+        values.append(data.lead_id)
+        cur.execute(f"UPDATE leads SET {', '.join(set_parts)} WHERE id=%s RETURNING *", values)
+        updated = cur.fetchone()
+        log()
+    else:
+        updated = lead
 
-    values.append(data.lead_id)
-    cur.execute(
-        f"UPDATE leads SET {', '.join(set_parts)} WHERE id=%s RETURNING *",
-        values
-    )
-    updated = cur.fetchone()
-
-    # Historial
-    log(nota)
-
-    # Comentario
+    # ─────────────────────────────────────────
+    #  Comentario
+    # ─────────────────────────────────────────
     if data.comentario:
         ts  = now.strftime("[%Y-%m-%d %H:%M]")
         tag = f"[{rol.upper()}]"
-        nuevo_comentario = f"{ts} {tag} {data.comentario}"
+        nuevo_com = f"{ts} {tag} {data.comentario}"
         prev = lead.get("comentarios") or ""
-        full = (prev + "\n" + nuevo_comentario).strip()
-        cur.execute("UPDATE leads SET comentarios=%s WHERE id=%s", (full, data.lead_id))
+        cur.execute("UPDATE leads SET comentarios=%s WHERE id=%s",
+                    ((prev+"\n"+nuevo_com).strip(), data.lead_id))
+
+    # ─────────────────────────────────────────
+    #  Control / seguimiento
+    # ─────────────────────────────────────────
+    control_id = None
+    if data.crear_control:
+        c = data.crear_control
+        fecha_ctrl = c.get("fecha_control") or None
+        cur.execute(
+            "INSERT INTO controles (lead_id,tipo,descripcion,fecha_control,doctor_id,asesor_id,estado) "
+            "VALUES (%s,%s,%s,%s,%s,%s,'Agendado') RETURNING id",
+            (data.lead_id, c.get("tipo","Control"), c.get("descripcion",""),
+             fecha_ctrl, c.get("doctor_id"), data.usuario_id if rol=="asesor" else None)
+        )
+        control_id = cur.fetchone()[0]
+        nota = nota or f"Control agendado: {c.get('tipo')}"
 
     conn.commit(); cur.close(); conn.close()
-
     return {
-        "id":                 updated["id"],
-        "sales_status":       updated["sales_status"],
-        "appointment_status": updated["appointment_status"],
-        "medical_status":     updated["medical_status"],
-        "message":            nota
+        "id": updated["id"],
+        "sales_status": updated.get("sales_status"),
+        "appointment_status": updated.get("appointment_status"),
+        "medical_status": updated.get("medical_status"),
+        "message": nota,
+        "control_id": control_id
     }
 
 # ══════════════════════════════════════════════════════════════════
-#  CREAR LEAD
+#  CREAR LEAD — con validaciones unicidad
 # ══════════════════════════════════════════════════════════════════
 @app.post("/leads")
 def crear_lead(data: LeadCreate):
-    conn = get_db(); cur = conn.cursor()
+    conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
+    # Validar unicidad
+    if data.email:
+        cur.execute("SELECT id,nombre FROM leads WHERE email=%s AND email<>''", (data.email,))
+        dup = cur.fetchone()
+        if dup: raise HTTPException(400, f"Ya existe un lead con ese email: {dup['nombre']}")
+    if data.telefono:
+        cur.execute("SELECT id,nombre FROM leads WHERE telefono=%s AND telefono<>''", (data.telefono,))
+        dup = cur.fetchone()
+        if dup: raise HTTPException(400, f"Ya existe un lead con ese teléfono: {dup['nombre']}")
+    cur2 = conn.cursor()
     asesor_id = data.asesor_id
     if not asesor_id:
-        cur.execute("SELECT id FROM usuarios WHERE rol='asesor' AND activo=true ORDER BY RANDOM() LIMIT 1")
-        row = cur.fetchone()
+        cur2.execute("SELECT id FROM usuarios WHERE rol='asesor' AND activo=true ORDER BY RANDOM() LIMIT 1")
+        row = cur2.fetchone()
         if row: asesor_id = row[0]
-    cur.execute(
-        "INSERT INTO leads (nombre, telefono, email, categoria, canal, sales_status, asesor_id, doctor_id, creado_por) "
-        "VALUES (%s,%s,%s,%s,%s,'New Lead',%s,%s,%s) RETURNING id",
-        (data.nombre, data.telefono, data.email, data.categoria, data.canal, asesor_id, data.doctor_id, data.creado_por)
+    cur2.execute(
+        "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,notas,"
+        "sales_status,asesor_id,doctor_id,creado_por) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+        (data.nombre, data.telefono, data.email, data.categoria, data.canal,
+         data.genero, data.ciudad, data.notas,
+         data.sales_status_inicial or "New Lead",
+         asesor_id, data.doctor_id, data.creado_por)
     )
-    lead_id = cur.fetchone()[0]
-    conn.commit(); cur.close(); conn.close()
+    lead_id = cur2.fetchone()[0]
+    conn.commit(); cur.close(); cur2.close(); conn.close()
     return {"id": lead_id, "message": "Lead creado"}
 
 # ══════════════════════════════════════════════════════════════════
@@ -614,8 +597,8 @@ def crear_lead(data: LeadCreate):
 def get_historial(lead_id: int):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(
-        "SELECT h.*, u.nombre FROM historial_estados h "
-        "LEFT JOIN usuarios u ON h.cambiado_por = u.id "
+        "SELECT h.*,u.nombre FROM historial_estados h "
+        "LEFT JOIN usuarios u ON h.cambiado_por=u.id "
         "WHERE h.lead_id=%s ORDER BY h.fecha DESC",
         (lead_id,)
     )
@@ -623,15 +606,69 @@ def get_historial(lead_id: int):
     return {"historial": hist}
 
 # ══════════════════════════════════════════════════════════════════
+#  AGENDA DOCTORES
+# ══════════════════════════════════════════════════════════════════
+@app.get("/agenda")
+def get_agenda():
+    conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
+    # Citas de leads activos con doctor asignado y fechas definidas
+    cur.execute("""
+        SELECT
+            l.id AS lead_id, l.nombre AS paciente,
+            l.treatment_date AS fecha_inicio,
+            l.treatment_start_date, l.treatment_end_date,
+            l.sales_status, l.medical_status, l.appointment_status,
+            d.nombre AS doctor_nombre, d.id AS doctor_id,
+            CASE
+                WHEN l.medical_status = 'In Treatment' THEN 'Tratamiento'
+                WHEN l.medical_status = 'Treatment Scheduled' THEN 'Tratamiento'
+                WHEN l.medical_status = 'Pending Evaluation' THEN 'Consulta'
+                ELSE 'Cita'
+            END AS tipo,
+            COALESCE(l.appointment_status, 'Reservado') AS estado
+        FROM leads l
+        LEFT JOIN usuarios d ON l.doctor_id = d.id
+        WHERE l.doctor_id IS NOT NULL
+          AND l.sales_status NOT IN ('Won','Lost')
+          AND (l.treatment_date IS NOT NULL OR l.treatment_start_date IS NOT NULL)
+        ORDER BY COALESCE(l.treatment_start_date, l.treatment_date) ASC
+    """)
+    slots = cur.fetchall(); cur.close(); conn.close()
+    return {"slots": slots}
+
+# ══════════════════════════════════════════════════════════════════
+#  CONTROLES / SEGUIMIENTOS
+# ══════════════════════════════════════════════════════════════════
+@app.get("/leads/{lead_id}/controles")
+def get_controles(lead_id: int):
+    conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(
+        "SELECT c.*,d.nombre AS doctor_nombre FROM controles c "
+        "LEFT JOIN usuarios d ON c.doctor_id=d.id "
+        "WHERE c.lead_id=%s ORDER BY c.fecha_creacion DESC",
+        (lead_id,)
+    )
+    controles = cur.fetchall(); cur.close(); conn.close()
+    return {"controles": controles}
+
+# ══════════════════════════════════════════════════════════════════
 #  GOOGLE SHEETS
 # ══════════════════════════════════════════════════════════════════
+class LeadGoogle(BaseModel):
+    nombre: str
+    phone: Optional[str] = ""
+    email: Optional[str] = ""
+    categoria: Optional[str] = ""
+    canal: Optional[str] = "Website"
+    source: Optional[str] = "google_sheets"
+
 @app.post("/google/lead")
 def recibir_lead_google(lead: LeadGoogle):
     conn = get_db(); cur = conn.cursor()
     cur.execute("SELECT id FROM usuarios WHERE rol='asesor' AND activo=true ORDER BY RANDOM() LIMIT 1")
     row = cur.fetchone(); asesor_id = row[0] if row else None
     cur.execute(
-        "INSERT INTO leads (nombre, telefono, email, categoria, canal, sales_status, asesor_id, creado_por) "
+        "INSERT INTO leads (nombre,telefono,email,categoria,canal,sales_status,asesor_id,creado_por) "
         "VALUES (%s,%s,%s,%s,%s,'New Lead',%s,%s) RETURNING id",
         (lead.nombre, lead.phone, lead.email, lead.categoria, lead.canal, asesor_id, lead.source)
     )
@@ -643,8 +680,5 @@ def recibir_lead_google(lead: LeadGoogle):
 # ══════════════════════════════════════════════════════════════════
 @app.get("/health")
 def health():
-    try:
-        conn = get_db(); conn.close(); return {"status": "ok"}
-    except:
-        return {"status": "error"}
-    
+    try: conn = get_db(); conn.close(); return {"status": "ok"}
+    except: return {"status": "error"}
