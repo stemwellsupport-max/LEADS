@@ -736,10 +736,10 @@ function buildAsesor(l) {
           <label class="lbl">Seleccionar Doctor *</label>
           <select id="a-doctor-confirm">
             <option value="">Seleccionar doctor...</option>
-            ${doctoresCache.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("")}
+            ${doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id == d.id ? 'selected' : ''}>${d.nombre}</option>`).join("")}
           </select>
           <label class="lbl">Fecha/Hora de Consulta</label>
-          <input type="datetime-local" id="a-fecha-consulta">
+          <input type="datetime-local" id="a-fecha-consulta" value="${l.treatment_date ? l.treatment_date.slice(0,16) : ''}">
         </div>
         <div id="block-reagendar" class="hidden">
           <label class="lbl">Nueva Fecha de Cita</label>
@@ -758,7 +758,6 @@ function buildAsesor(l) {
         </div>`;
       return html;
     } else {
-      // Ya confirmada pero aún en Appointment Scheduled (esperando ir al médico)
       return `<div class="info-box success">✅ Cita confirmada — será asignada al médico.</div>
         <label class="lbl">Otras acciones</label>
         <select id="a-appt-accion" onchange="onApptAccion()">
@@ -864,7 +863,6 @@ function buildDoctor(l) {
   const s = l.sales_status||"";
   let html = "";
 
-  // ── En tratamiento activo ──
   if (m==="In Treatment") {
     const hoy   = new Date();
     const fin   = l.treatment_end_date ? new Date(l.treatment_end_date) : null;
@@ -907,7 +905,6 @@ function buildDoctor(l) {
     return html;
   }
 
-  // ── Pending Evaluation: médico ve al paciente ──
   if (m==="Pending Evaluation") {
     return `<div class="info-box info">📋 Paciente en consulta de evaluación.</div>
       <label class="lbl">Estado de la Consulta</label>
@@ -938,7 +935,6 @@ function buildDoctor(l) {
       </div>`;
   }
 
-  // ── Consultation Completed ──
   if (m==="Consultation Completed") {
     return `<div class="info-box success">✅ Consulta completada.</div>
       <label class="lbl">Evaluación del Candidato</label>
@@ -961,7 +957,6 @@ function buildDoctor(l) {
       </div>`;
   }
 
-  // ── Candidate Approved ──
   if (m==="Candidate Approved") {
     return `<div class="info-box success">✅ Candidato aprobado.</div>
       <label class="lbl">¿Enviar Propuesta de Tratamiento?</label>
@@ -981,7 +976,6 @@ function buildDoctor(l) {
       </div>`;
   }
 
-  // ── Treatment Scheduled: espera que el paciente llegue ──
   if (m==="Treatment Scheduled") {
     const inicio = l.treatment_start_date ? new Date(l.treatment_start_date).toLocaleString('es-CO') : "No definida";
     const fin2   = l.treatment_end_date   ? new Date(l.treatment_end_date).toLocaleString('es-CO')   : "No definida";
@@ -996,7 +990,6 @@ function buildDoctor(l) {
       </select>`;
   }
 
-  // ── Treatment Completed: ofrecer control ──
   if (m==="Treatment Completed") {
     return `<div class="info-box success">🏆 Tratamiento completado.</div>
       <label class="lbl">¿Agendar control de seguimiento?</label>
@@ -1072,7 +1065,6 @@ function toggleConfirm() {
   btn.className = "toggle-btn " + (_citaToggle ? "on" : "off");
   blockC?.classList.toggle("hidden", !_citaToggle);
   blockR?.classList.toggle("hidden", _citaToggle);
-  // Si confirmada, limpiar otras acciones
   if (_citaToggle) document.getElementById("a-appt-accion").value = "";
 }
 
@@ -1128,7 +1120,7 @@ function onCancelAccion() {
   document.getElementById("a-nueva-fecha-block")?.classList.toggle("hidden", !["reagendar_consulta","reagendar_trat"].includes(v));
   document.getElementById("a-lost-block")?.classList.toggle("hidden", v!=="lost");
 }
-// Bind change en canceled treatment
+
 document.addEventListener("change", e => {
   if (e.target.id === "a-cancel-accion") onCancelAccion();
   if (e.target.id === "d-candidato-override") {
@@ -1159,7 +1151,6 @@ async function guardarCambios() {
 function buildBodyAsesor(body, l) {
   const s = l.sales_status||"";
 
-  // Won: control
   if (s==="Won") {
     const tipo  = document.getElementById("a-control-tipo")?.value;
     const fecha = document.getElementById("a-control-fecha")?.value;
@@ -1171,7 +1162,6 @@ function buildBodyAsesor(body, l) {
     return true;
   }
 
-  // Appointment Scheduled pendiente de confirmar
   if (s==="Appointment Scheduled" && !l.cita_confirmada) {
     const accion = document.getElementById("a-appt-accion")?.value;
     if (accion==="cancelar") {
@@ -1204,7 +1194,6 @@ function buildBodyAsesor(body, l) {
     return true;
   }
 
-  // Treatment Proposal Sent: asesor confirma o cancela
   if (s==="Treatment Proposal Sent") {
     const accion = document.getElementById("a-prop-accion")?.value;
     if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
@@ -1241,7 +1230,6 @@ function buildBodyAsesor(body, l) {
     return true;
   }
 
-  // canceled treatment
   if (s==="canceled treatment") {
     const accion = document.getElementById("a-cancel-accion")?.value;
     if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
@@ -1270,7 +1258,6 @@ function buildBodyAsesor(body, l) {
     return true;
   }
 
-  // Normal
   const newStatus = document.getElementById("a-sales-status")?.value;
   if (!newStatus && !body.comentario) { toast("Selecciona un estado o escribe un comentario",true); return false; }
   if (newStatus) {
@@ -1295,7 +1282,6 @@ function buildBodyAsesor(body, l) {
 function buildBodyDoctor(body, l) {
   const m = l.medical_status||"";
 
-  // Fecha pasada: actualizar fecha fin
   if (document.getElementById("d-nueva-fecha-fin")) {
     const nf = document.getElementById("d-nueva-fecha-fin")?.value;
     if (!nf) { toast("Ingresa la nueva fecha de fin",true); return false; }
@@ -1304,7 +1290,6 @@ function buildBodyDoctor(body, l) {
     return true;
   }
 
-  // In Treatment
   if (m==="In Treatment") {
     const accion = document.getElementById("d-trat-accion")?.value;
     if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
@@ -1328,7 +1313,6 @@ function buildBodyDoctor(body, l) {
     return true;
   }
 
-  // Pending Evaluation
   if (m==="Pending Evaluation") {
     const consulta = document.getElementById("d-consulta-accion")?.value;
     if (!consulta && !body.comentario) { toast("Selecciona el estado de la consulta",true); return false; }
@@ -1341,18 +1325,15 @@ function buildBodyDoctor(body, l) {
     if (consulta==="completada") {
       body.medical_status = "Consultation Completed";
       body.appointment_status = "Completed";
-      // Evaluar candidato si ya seleccionó
       return _procesarCandidato(body);
     }
     return true;
   }
 
-  // Consultation Completed / Candidate Approved
   if (["Consultation Completed","Candidate Approved"].includes(m)) {
     return _procesarCandidato(body);
   }
 
-  // Treatment Scheduled
   if (m==="Treatment Scheduled") {
     const accion = document.getElementById("d-trat-inicio-accion")?.value;
     if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
@@ -1362,7 +1343,6 @@ function buildBodyDoctor(body, l) {
     return true;
   }
 
-  // Treatment Completed: control
   if (m==="Treatment Completed") {
     const tipo  = document.getElementById("d-control-tipo")?.value;
     const fecha = document.getElementById("d-control-fecha")?.value;
@@ -1370,7 +1350,6 @@ function buildBodyDoctor(body, l) {
     return true;
   }
 
-  // Candidate Approved: override rejected
   const override = document.getElementById("d-candidato-override")?.value;
   if (override==="rechazado") {
     const reason = document.getElementById("d-reject-reason")?.value;
@@ -1403,7 +1382,6 @@ function _procesarCandidato(body) {
     }
     return true;
   }
-  // Solo propuesta sin candidato
   const propuesta = document.getElementById("d-propuesta")?.value;
   if (propuesta==="si") {
     body.medical_status = "Treatment Proposal Sent";
@@ -1501,7 +1479,6 @@ async function verAgendaDoctores() {
     const slots = data.slots||[];
     const el   = document.getElementById("agenda-body");
     if (!slots.length) { el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3)">Sin citas agendadas</div>'; return; }
-    // Agrupar por doctor
     const byDoc = {};
     slots.forEach(s => { if (!byDoc[s.doctor_nombre]) byDoc[s.doctor_nombre]=[]; byDoc[s.doctor_nombre].push(s); });
     el.innerHTML = Object.entries(byDoc).map(([doc,citas])=>`
