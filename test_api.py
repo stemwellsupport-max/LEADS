@@ -195,10 +195,6 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
         LEFT JOIN usuarios a ON l.asesor_id = a.id
     """
     if rol == "asesor":
-        # Asesor NO ve leads que están en manos activas del médico:
-        # - En consulta con médico: Appointment Scheduled + cita_confirmada=true + medical en Pending/Consultation
-        # - En tratamiento activo: scheduled treatment + medical = Treatment Scheduled o In Treatment
-        # SÍ ve: Treatment Proposal Sent (volvió del médico), canceled treatment, Won, Lost, estados normales
         where = """
             WHERE l.asesor_id = %s
             AND NOT (
@@ -271,7 +267,6 @@ def cambiar_estado(data: UpdateStatus):
     # ─────────────────────────────────────────
     if rol == "asesor":
 
-        # ── Confirmar cita → pasa al médico ──
         if data.cita_confirmada is True and sales == "Appointment Scheduled":
             if not data.doctor_id:
                 raise HTTPException(400, "Se requiere doctor para confirmar")
@@ -284,21 +279,18 @@ def cambiar_estado(data: UpdateStatus):
                 updates["treatment_date"] = data.treatment_date
             nota = f"Cita confirmada → doctor id={data.doctor_id}"
 
-        # ── Reagendar cita ──
         elif data.appointment_status == "Rescheduled" and sales == "Appointment Scheduled":
             updates["appointment_status"] = "Rescheduled"
             if data.treatment_date:
                 updates["treatment_date"] = data.treatment_date
             nota = "Cita reagendada por asesor"
 
-        # ── Cancelar cita ──
         elif data.appointment_status == "Canceled" and sales == "Appointment Scheduled":
             updates["sales_status"] = "canceled treatment"
             updates["appointment_status"] = "Canceled"
             updates["cita_confirmada"] = False
             nota = "Cita cancelada → devuelto al asesor"
 
-        # ── Treatment Proposal Sent: asesor confirma fecha de tratamiento ──
         elif data.sales_status == "scheduled treatment" and sales == "Treatment Proposal Sent":
             if not data.medilink_numero:
                 raise HTTPException(400, "Número Medilink obligatorio")
@@ -311,13 +303,11 @@ def cambiar_estado(data: UpdateStatus):
             updates["treatment_end_date"] = data.treatment_end_date
             nota = f"Tratamiento agendado: {data.treatment_start_date} → {data.treatment_end_date}"
 
-        # ── Treatment Proposal Sent: cancelado o no show ──
         elif sales == "Treatment Proposal Sent" and data.appointment_status in ["Canceled","No Show"]:
             updates["sales_status"] = "canceled treatment"
             updates["appointment_status"] = data.appointment_status
             nota = f"Tratamiento {data.appointment_status} → devuelto al asesor"
 
-        # ── canceled treatment: reagendar consulta ──
         elif data.sales_status == "Appointment Scheduled" and sales == "canceled treatment":
             updates["sales_status"] = "Appointment Scheduled"
             updates["appointment_status"] = "Scheduled"
@@ -326,17 +316,14 @@ def cambiar_estado(data: UpdateStatus):
             if data.treatment_date: updates["treatment_date"] = data.treatment_date
             nota = "Consulta reagendada desde cancelación"
 
-        # ── canceled treatment: reagendar tratamiento ──
         elif data.sales_status == "Treatment Proposal Sent" and sales == "canceled treatment":
             updates["sales_status"] = "Treatment Proposal Sent"
             nota = "Tratamiento reagendado"
 
-        # ── canceled treatment: follow up ──
         elif data.sales_status == "Follow Up" and sales == "canceled treatment":
             updates["sales_status"] = "Follow Up"
             nota = "Seguimiento iniciado"
 
-        # ── Transiciones normales ──
         elif data.sales_status:
             nuevo = data.sales_status
             trans_validas = {
@@ -363,9 +350,8 @@ def cambiar_estado(data: UpdateStatus):
                 updates["appointment_status"] = None
                 updates["medical_status"] = None
 
-        # ── Control/seguimiento para Won ──
         elif data.crear_control:
-            pass  # se procesa abajo
+            pass
 
         elif not data.comentario:
             raise HTTPException(400, "No hay cambios válidos para el asesor")
@@ -375,12 +361,10 @@ def cambiar_estado(data: UpdateStatus):
     # ─────────────────────────────────────────
     elif rol == "doctor":
 
-        # ── Actualizar fecha fin (fecha pasada) ──
         if data.treatment_end_date and med == "In Treatment":
             updates["treatment_end_date"] = data.treatment_end_date
             nota = f"Fecha fin actualizada: {data.treatment_end_date}"
 
-        # ── In Treatment: completar o gestionar sesión ──
         elif med == "In Treatment":
             if data.mark_treatment_completed:
                 updates["medical_status"] = "Treatment Completed"
@@ -404,7 +388,9 @@ def cambiar_estado(data: UpdateStatus):
             elif not data.comentario:
                 raise HTTPException(400, "Indica acción para el tratamiento activo")
 
-        # ── Pending Evaluation: consulta completada o cancelada ──
+        # ══════════════════════════════════════════════════════════
+        #  CORRECCIÓN: Pending Evaluation → Treatment Proposal Sent
+        # ══════════════════════════════════════════════════════════
         elif med == "Pending Evaluation":
             if data.appointment_status == "Canceled":
                 updates["appointment_status"] = "Canceled"
@@ -415,15 +401,19 @@ def cambiar_estado(data: UpdateStatus):
                 updates["medical_status"] = "Consultation Completed"
                 updates["appointment_status"] = "Completed"
                 nota = "Consulta completada"
-                # Si viene con candidato
                 if data.medical_status == "Candidate Approved":
                     updates["medical_status"] = "Candidate Approved"
+            # ← NUEVO BLOQUE: envía propuesta directamente desde Pending Evaluation
+            elif data.medical_status == "Treatment Proposal Sent":
+                updates["medical_status"] = "Treatment Proposal Sent"
+                updates["sales_status"] = "Treatment Proposal Sent"
+                updates["appointment_status"] = "Sent"
+                nota = "Propuesta enviada → asesor hace seguimiento"
             else:
                 if data.medical_status:
                     updates["medical_status"] = data.medical_status
                     nota = f"Doctor: {med} → {data.medical_status}"
 
-        # ── Candidate Approved / Consultation Completed: enviar propuesta ──
         elif med in ("Consultation Completed", "Candidate Approved"):
             if data.medical_status == "Treatment Proposal Sent":
                 updates["medical_status"] = "Treatment Proposal Sent"
@@ -444,7 +434,6 @@ def cambiar_estado(data: UpdateStatus):
                 updates["medical_status"] = data.medical_status
                 nota = f"Doctor actualiza estado: {data.medical_status}"
 
-        # ── Treatment Scheduled: iniciar tratamiento ──
         elif med == "Treatment Scheduled":
             if data.medical_status == "In Treatment":
                 updates["medical_status"] = "In Treatment"
@@ -461,16 +450,14 @@ def cambiar_estado(data: UpdateStatus):
                 updates["medical_status"] = None
                 nota = "Tratamiento cancelado → devuelto al asesor"
 
-        # ── Rechazo directo ──
         elif data.rejection_reason and not data.medical_status:
             updates["medical_status"] = "Candidate Rejected"
             updates["rejection_reason"] = data.rejection_reason
             updates["sales_status"] = "Lost"
             nota = f"Rechazado: {data.rejection_reason}"
 
-        # ── Control para Treatment Completed ──
         elif data.crear_control:
-            pass  # se procesa abajo
+            pass
 
         elif not data.comentario:
             raise HTTPException(400, "No hay cambios válidos para el doctor")
@@ -519,9 +506,6 @@ def cambiar_estado(data: UpdateStatus):
     else:
         updated = lead
 
-    # ─────────────────────────────────────────
-    #  Comentario
-    # ─────────────────────────────────────────
     if data.comentario:
         ts  = now.strftime("[%Y-%m-%d %H:%M]")
         tag = f"[{rol.upper()}]"
@@ -530,9 +514,6 @@ def cambiar_estado(data: UpdateStatus):
         cur.execute("UPDATE leads SET comentarios=%s WHERE id=%s",
                     ((prev+"\n"+nuevo_com).strip(), data.lead_id))
 
-    # ─────────────────────────────────────────
-    #  Control / seguimiento
-    # ─────────────────────────────────────────
     control_id = None
     if data.crear_control:
         c = data.crear_control
@@ -562,7 +543,6 @@ def cambiar_estado(data: UpdateStatus):
 @app.post("/leads")
 def crear_lead(data: LeadCreate):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
-    # Validar unicidad
     if data.email:
         cur.execute("SELECT id,nombre FROM leads WHERE email=%s AND email<>''", (data.email,))
         dup = cur.fetchone()
@@ -611,7 +591,6 @@ def get_historial(lead_id: int):
 @app.get("/agenda")
 def get_agenda():
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
-    # Citas de leads activos con doctor asignado y fechas definidas
     cur.execute("""
         SELECT
             l.id AS lead_id, l.nombre AS paciente,
