@@ -84,7 +84,6 @@ class UpdateStatus(BaseModel):
     mark_treatment_completed: Optional[bool] = None
     crear_control: Optional[dict] = None
 
-
 class LeadGoogle(BaseModel):
     nombre: str
     phone: Optional[str] = ""
@@ -96,4 +95,6 @@ class LeadGoogle(BaseModel):
     comentario: Optional[str] = ""
     admission_date: Optional[str] = None
     last_contact_date: Optional[str] = None
+    first_contact: Optional[str] = None        # ← NOMBRE de quien contactó (TEXTO)
     sales_status: Optional[str] = None
+    asesor_id: Optional[int] = None

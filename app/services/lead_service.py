@@ -4,9 +4,9 @@ from ..models.schemas import UpdateStatus, LeadCreate
 
 
 # ─────────────────────────────────────────
-#  SEMÁFORO — se define ANTES de format_lead
+#  SEMÁFORO
 # ─────────────────────────────────────────
-def semaforo(lead):
+def calc_semaforo(lead):
     """
     🎉 si Won
     ""  si Lost
@@ -18,7 +18,7 @@ def semaforo(lead):
     sales = (lead.get("sales_status") or "").lower()
     if "won" in sales:
         return "🎉"
-    if "lost" in sales or "not interested" in sales:
+    if "lost" in sales:
         return ""
 
     last = lead.get("last_contact_date") or lead.get("fecha_actualizacion")
@@ -29,7 +29,8 @@ def semaforo(lead):
         last = last.date()
     elif isinstance(last, str):
         try:
-            last = datetime.fromisoformat(last[:10]).date()
+            # Intentar parsear fecha (puede venir con o sin hora)
+            last = datetime.fromisoformat(last[:10].replace(" ", "T")).date()
         except Exception:
             return "?"
 
@@ -43,10 +44,20 @@ def semaforo(lead):
 
 
 # ─────────────────────────────────────────
-#  FORMAT LEAD — única definición
+#  FORMAT LEAD
 # ─────────────────────────────────────────
 def format_lead(l):
-    def dt(v): return str(v) if v else None
+    def dt(v):
+        if not v:
+            return None
+        s = str(v)
+        # Si tiene hora, tomar solo la fecha
+        if " " in s:
+            return s.split(" ")[0]
+        if "T" in s:
+            return s.split("T")[0]
+        return s
+
     return {
         "id": l["id"],
         "nombre": l["nombre"],
@@ -75,10 +86,11 @@ def format_lead(l):
         "treatment_completed": l.get("treatment_completed", False),
         "fecha_creacion": dt(l.get("fecha_creacion")),
         "fecha_actualizacion": dt(l.get("fecha_actualizacion")),
-        # NUEVOS CAMPOS para el HTML
+        # NUEVOS CAMPOS
         "admission_date": dt(l.get("admission_date") or l.get("fecha_creacion")),
         "last_contact_date": dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
-        "semaforo": l.get("semaforo", ""),
+        "first_contact": l.get("first_contact") or "",           # ← TEXTO (nombre de quien contactó)
+        "semaforo": l.get("semaforo") or calc_semaforo(l),       # ← calculado si no viene de BD
     }
 
 
