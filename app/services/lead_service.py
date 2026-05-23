@@ -75,10 +75,10 @@ def format_lead(l):
         "treatment_completed": l.get("treatment_completed", False),
         "fecha_creacion": dt(l.get("fecha_creacion")),
         "fecha_actualizacion": dt(l.get("fecha_actualizacion")),
-        # ── CAMPOS NUEVOS ──
-        "admission_date": dt(l.get("admission_date")),
-        "last_contact_date": dt(l.get("last_contact_date")),
-        "semaforo": semaforo(l),
+        # NUEVOS CAMPOS para el HTML
+        "admission_date": dt(l.get("admission_date") or l.get("fecha_creacion")),
+        "last_contact_date": dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
+        "semaforo": l.get("semaforo", ""),
     }
 
 

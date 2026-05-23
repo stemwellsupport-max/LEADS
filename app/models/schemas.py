@@ -84,6 +84,7 @@ class UpdateStatus(BaseModel):
     mark_treatment_completed: Optional[bool] = None
     crear_control: Optional[dict] = None
 
+
 class LeadGoogle(BaseModel):
     nombre: str
     phone: Optional[str] = ""
@@ -92,7 +93,7 @@ class LeadGoogle(BaseModel):
     canal: Optional[str] = "Website"
     source: Optional[str] = "google_sheets"
     genero: Optional[str] = ""
-    comentario: Optional[str] = ""          # ← NUEVO: columna AM (38)
-    admission_date: Optional[str] = None    # ← NUEVO: columna H (7)
-    last_contact_date: Optional[str] = None # ← NUEVO: columna AK (36)
-    sales_status: Optional[str] = None      # ← NUEVO: columna P (15)
+    comentario: Optional[str] = ""
+    admission_date: Optional[str] = None
+    last_contact_date: Optional[str] = None
+    sales_status: Optional[str] = None
