@@ -89,8 +89,8 @@ def format_lead(l):
         # NUEVOS CAMPOS
         "admission_date": dt(l.get("admission_date") or l.get("fecha_creacion")),
         "last_contact_date": dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
-        "first_contact": l.get("first_contact") or "",           # ← TEXTO (nombre de quien contactó)
-        "semaforo": l.get("semaforo") or calc_semaforo(l),       # ← calculado si no viene de BD
+        "first_contact": l.get("first_contact") or "",           # <- TEXTO (nombre de quien contactó)
+        "semaforo": l.get("semaforo") or calc_semaforo(l),       # <- calculado si no viene de BD
     }
 
 
@@ -239,7 +239,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 updates["medical_status"] = "Pending Evaluation"
             if data.treatment_date:
                 updates["treatment_date"] = data.treatment_date
-            nota = f"Cita confirmada → doctor id={data.doctor_id}"
+            nota = f"Cita confirmada -> doctor id={data.doctor_id}"
 
         elif data.appointment_status == "Rescheduled" and sales == "Appointment Scheduled":
             updates["appointment_status"] = "Rescheduled"
@@ -251,7 +251,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
             updates["sales_status"] = "canceled treatment"
             updates["appointment_status"] = "Canceled"
             updates["cita_confirmada"] = False
-            nota = "Cita cancelada → devuelto al asesor"
+            nota = "Cita cancelada -> devuelto al asesor"
 
         elif data.sales_status == "scheduled treatment" and sales == "Treatment Proposal Sent":
             if not data.medilink_numero:
@@ -263,12 +263,12 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
             updates["medilink_numero"] = data.medilink_numero
             updates["treatment_start_date"] = data.treatment_start_date
             updates["treatment_end_date"] = data.treatment_end_date
-            nota = f"Tratamiento agendado: {data.treatment_start_date} → {data.treatment_end_date}"
+            nota = f"Tratamiento agendado: {data.treatment_start_date} -> {data.treatment_end_date}"
 
         elif sales == "Treatment Proposal Sent" and data.appointment_status in ["Canceled", "No Show"]:
             updates["sales_status"] = "canceled treatment"
             updates["appointment_status"] = data.appointment_status
-            nota = f"Tratamiento {data.appointment_status} → devuelto al asesor"
+            nota = f"Tratamiento {data.appointment_status} -> devuelto al asesor"
 
         elif data.sales_status == "Appointment Scheduled" and sales == "canceled treatment":
             updates["sales_status"] = "Appointment Scheduled"
@@ -296,9 +296,9 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 "Interested":    ["Appointment Scheduled", "Follow Up", "Lost"],
             }
             if nuevo not in trans_validas.get(sales, []):
-                raise ValueError(f"Transición no permitida: {sales} → {nuevo}")
+                raise ValueError(f"Transición no permitida: {sales} -> {nuevo}")
             updates["sales_status"] = nuevo
-            nota = f"Asesor: {sales} → {nuevo}"
+            nota = f"Asesor: {sales} -> {nuevo}"
             if nuevo == "Appointment Scheduled":
                 updates["appointment_status"] = "Scheduled"
                 updates["medical_status"] = "Pending Evaluation"
@@ -330,7 +330,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 updates["sales_status"] = "Won"
                 updates["appointment_status"] = "Completed"
                 updates["treatment_completed"] = True
-                nota = "Tratamiento completado → Won"
+                nota = "Tratamiento completado -> Won"
             elif data.quit_reason:
                 updates["sales_status"] = "Lost"
                 updates["quit_reason"] = data.quit_reason
@@ -343,7 +343,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 updates["appointment_status"] = "No Show"
                 updates["sales_status"] = "canceled treatment"
                 updates["medical_status"] = None
-                nota = "No Show → devuelto al asesor"
+                nota = "No Show -> devuelto al asesor"
             elif not data.comentario:
                 raise ValueError("Indica acción para el tratamiento activo")
 
@@ -352,7 +352,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 updates["appointment_status"] = "Canceled"
                 updates["sales_status"] = "canceled treatment"
                 updates["medical_status"] = None
-                nota = "Cita cancelada por doctor → asesor"
+                nota = "Cita cancelada por doctor -> asesor"
             elif data.medical_status == "Consultation Completed":
                 updates["medical_status"] = "Consultation Completed"
                 updates["appointment_status"] = "Completed"
@@ -361,18 +361,18 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 updates["medical_status"] = "Treatment Proposal Sent"
                 updates["sales_status"] = "Treatment Proposal Sent"
                 updates["appointment_status"] = "Sent"
-                nota = "Propuesta enviada → asesor hace seguimiento"
+                nota = "Propuesta enviada -> asesor hace seguimiento"
             else:
                 if data.medical_status:
                     updates["medical_status"] = data.medical_status
-                    nota = f"Doctor: {med} → {data.medical_status}"
+                    nota = f"Doctor: {med} -> {data.medical_status}"
 
         elif med in ("Consultation Completed", "Candidate Approved"):
             if data.medical_status == "Treatment Proposal Sent":
                 updates["medical_status"] = "Treatment Proposal Sent"
                 updates["sales_status"] = "Treatment Proposal Sent"
                 updates["appointment_status"] = "Sent"
-                nota = "Propuesta enviada → asesor hace seguimiento"
+                nota = "Propuesta enviada -> asesor hace seguimiento"
             elif data.medical_status == "Candidate Approved":
                 updates["medical_status"] = "Candidate Approved"
                 nota = "Candidato aprobado"
@@ -396,12 +396,12 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
                 updates["appointment_status"] = "No Show"
                 updates["sales_status"] = "canceled treatment"
                 updates["medical_status"] = None
-                nota = "No Show → devuelto al asesor"
+                nota = "No Show -> devuelto al asesor"
             elif data.appointment_status == "Canceled":
                 updates["appointment_status"] = "Canceled"
                 updates["sales_status"] = "canceled treatment"
                 updates["medical_status"] = None
-                nota = "Tratamiento cancelado → devuelto al asesor"
+                nota = "Tratamiento cancelado -> devuelto al asesor"
 
         elif data.rejection_reason and not data.medical_status:
             updates["medical_status"] = "Candidate Rejected"
