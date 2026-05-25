@@ -1,10 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MATTHEW GOD</title>
+<title>Patient Tracking Sheet</title>
+<!-- FullCalendar -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -32,7 +36,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .app{display:none;}
 .header{background:var(--bg2);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;}
 .header-logo{font-size:1.1rem;font-weight:700;color:var(--accent);}
-.header-right{display:flex;align-items:center;gap:1rem;}
+.header-right{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;}
 .role-badge{padding:.25rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;font-size:.75rem;color:var(--text2);font-family:'DM Mono',monospace;}
 .btn-logout{padding:.35rem .9rem;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.78rem;}
 .btn-logout:hover{border-color:var(--red);color:var(--red);}
@@ -46,7 +50,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .stat-label{color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;margin-top:.4rem;}
 
 /* TOOLBAR */
-.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap;}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;gap:1rem;flex-wrap:wrap;}
 .filters{display:flex;gap:.4rem;flex-wrap:wrap;}
 .filter-btn{padding:.3rem .8rem;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.75rem;transition:all .2s;}
 .filter-btn:hover{border-color:var(--accent);color:var(--text);}
@@ -54,16 +58,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn-new{padding:.45rem 1.1rem;background:var(--accent);border:none;border-radius:8px;color:white;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;}
 .btn-new:hover{background:var(--accent2);}
 
+/* SEARCH + COL FILTERS */
+.search-container{margin-bottom:.8rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;}
+.search-bar{flex:1;min-width:220px;padding:.55rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.88rem;}
+.search-bar:focus{outline:none;border-color:var(--accent);}
+.col-filter-btn{padding:.3rem .75rem;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.72rem;transition:all .2s;}
+.col-filter-btn:hover{border-color:var(--accent);color:var(--text);}
+.col-filter-btn.active{background:var(--purple);color:white;border-color:var(--purple);}
+
 /* TABLE */
 .table-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-.table-card h2{padding:1rem 1.5rem;color:var(--text);font-size:.95rem;font-weight:600;border-bottom:1px solid var(--border);background:var(--bg3);}
+.table-card h2{padding:1rem 1.5rem;color:var(--text);font-size:.95rem;font-weight:600;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;gap:.8rem;}
 table{width:100%;border-collapse:collapse;}
-th{text-align:left;padding:.6rem 1rem;background:var(--bg);color:var(--text3);font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;font-weight:500;border-bottom:1px solid var(--border);}
+th{text-align:left;padding:.6rem 1rem;background:var(--bg);color:var(--text3);font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;font-weight:500;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+th:hover{color:var(--accent);}
+th .sort-arrow{font-size:.6rem;margin-left:3px;opacity:.5;}
+th.sorted .sort-arrow{opacity:1;color:var(--accent);}
 td{padding:.65rem 1rem;border-bottom:1px solid var(--border);font-size:.83rem;vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:var(--bg3);cursor:pointer;}
 .td-name{font-weight:600;color:var(--text);}
 .td-muted{color:var(--text2);font-size:.78rem;font-family:'DM Mono',monospace;}
+.sort-indicator{font-size:.65rem;margin-left:2px;}
 
 /* SEMAFORO */
 .semaforo{font-size:1rem;display:inline-block;}
@@ -79,7 +95,7 @@ tr:hover td{background:var(--bg3);cursor:pointer;}
 .b-treat{background:#0f3d3d;color:#2dd4bf;border:1px solid #0d948444;}
 .b-follow{background:#1c1f2e;color:#a5b4fc;border:1px solid #6366f144;}
 .b-cancel{background:#2d1515;color:#fc8181;border:1px solid #c0392b44;}
-.b-gray{background:var(--bg3);color:var(--text4);border:1px solid var(--border);}
+.b-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
 .b-control{background:#1a2d1a;color:#86efac;border:1px solid #22c55e44;}
 
 /* MODAL */
@@ -126,7 +142,6 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 .info-box.success{background:#0a2d1a;border:1px solid #16a34a44;color:#4ade80;}
 .info-box.danger{background:#2d0a0a;border:1px solid #ef444444;color:#f87171;}
 
-/* INFO GRID MODAL */
 .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.6rem;margin-bottom:1rem;}
 .info-grid-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;}
 .ig-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);margin-bottom:.2rem;}
@@ -136,7 +151,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
 
-/* TOGGLE CONFIRMADO */
+/* TOGGLE */
 .toggle-wrap{display:flex;align-items:center;gap:.8rem;margin-top:.8rem;padding:.8rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;}
 .toggle-label{font-size:.82rem;color:var(--text2);}
 .toggle-btn{padding:.4rem 1.2rem;border-radius:20px;border:none;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;transition:all .2s;}
@@ -146,7 +161,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 .toggle-status.confirmed{color:var(--green);}
 .toggle-status.pending{color:var(--yellow);}
 
-/* SOPORTE */
+/* HEADER ACTIONS */
 .soporte-banner{background:linear-gradient(135deg,#0f1f3d,#0e1520);border:1px solid #1e40af44;border-radius:12px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.5rem;}
 .sb-icon{font-size:1.8rem;}
 .sb-text h4{color:#60a5fa;font-size:.9rem;margin-bottom:.2rem;}
@@ -157,15 +172,55 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 .btn-header.primary{background:var(--accent);border-color:var(--accent);color:white;}
 .header-actions{display:flex;gap:.5rem;}
 
+/* CALENDARIO */
+#calendar-wrapper{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.cal-doc-filters{display:flex;gap:.5rem;flex-wrap:wrap;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg3);}
+.cal-doc-btn{padding:.3rem .9rem;border-radius:20px;font-size:.75rem;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .2s;}
+.cal-doc-btn.active{color:white;border-color:transparent;}
+.doc-color-0{background:#1e3a5f!important;color:#60a5fa!important;}
+.doc-color-1{background:#14532d!important;color:#4ade80!important;}
+.doc-color-2{background:#4c1d95!important;color:#c084fc!important;}
+.doc-color-3{background:#713f12!important;color:#fbbf24!important;}
+.doc-color-4{background:#0f3d3d!important;color:#2dd4bf!important;}
+#stemwell-calendar{padding:1rem;}
+/* FullCalendar dark overrides */
+.fc{color:var(--text);font-family:'DM Sans',sans-serif;}
+.fc .fc-toolbar-title{font-size:1rem;font-weight:600;color:var(--text);}
+.fc .fc-button{background:var(--bg3);border-color:var(--border);color:var(--text);font-size:.78rem;}
+.fc .fc-button:hover{background:var(--accent);border-color:var(--accent);}
+.fc .fc-button-primary:not(:disabled).fc-button-active{background:var(--accent);border-color:var(--accent);}
+.fc-theme-standard td,.fc-theme-standard th{border-color:var(--border);}
+.fc .fc-col-header-cell-cushion{color:var(--text2);font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;}
+.fc .fc-daygrid-day-number{color:var(--text2);font-size:.8rem;}
+.fc .fc-daygrid-day.fc-day-today{background:rgba(59,130,246,.08);}
+.fc-event{border-radius:4px;font-size:.72rem;border:none;padding:1px 4px;}
+.fc .fc-popover{background:var(--bg2);border-color:var(--border);}
+.fc .fc-popover-header{background:var(--bg3);}
+.fc-daygrid-event-dot{display:none;}
+.fc .fc-timegrid-slot{border-color:var(--border);}
+.fc .fc-timegrid-slot-label{color:var(--text2);font-size:.72rem;}
+
+/* DISPONIBILIDAD */
+.avail-header{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem;}
+.avail-header select,.avail-header input{padding:.55rem .9rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.85rem;}
+.avail-header select:focus,.avail-header input:focus{outline:none;border-color:var(--accent);}
+.avail-legend{display:flex;gap:1rem;font-size:.75rem;color:var(--text2);margin-bottom:.8rem;flex-wrap:wrap;}
+.leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle;}
+.slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem;}
+.time-slot{padding:.7rem;border-radius:8px;text-align:center;font-size:.8rem;cursor:pointer;border:1px solid var(--border);transition:all .15s;}
+.slot-free{background:#0a2d1a;color:#4ade80;border-color:#166534;}
+.slot-busy{background:#2d0a0a;color:#f87171;border-color:#450a0a;cursor:not-allowed;opacity:.7;}
+.slot-sel{background:#1e40af;color:#93c5fd;border-color:#3b82f6;}
+.slot-time{font-weight:600;font-size:.85rem;}
+.slot-who{font-size:.68rem;margin-top:2px;opacity:.8;}
+.confirm-strip{margin-top:1rem;padding:.8rem 1.2rem;background:#0f1f3d;border:1px solid #1e40af44;border-radius:8px;font-size:.82rem;color:#60a5fa;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+.confirm-strip strong{color:white;}
+
 /* AGENDA DOCTORES */
 .agenda-slot{display:flex;gap:1rem;align-items:center;padding:.7rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:.5rem;font-size:.82rem;}
 .agenda-slot-time{font-family:'DM Mono',monospace;color:var(--accent);font-size:.78rem;min-width:120px;}
 .agenda-slot-name{flex:1;font-weight:600;}
 .agenda-slot-tipo{color:var(--text2);font-size:.75rem;}
-
-/* SEARCH BAR */
-.search-bar{width:100%;padding:.6rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.88rem;margin-bottom:1rem;}
-.search-bar:focus{outline:none;border-color:var(--accent);}
 
 /* USER CARDS */
 .user-card{display:flex;align-items:center;gap:1rem;padding:.8rem 1rem;border-bottom:1px solid var(--border);}
@@ -190,8 +245,15 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 @keyframes slideIn{from{transform:translateX(120px);opacity:0}to{transform:translateX(0);opacity:1}}
 
 .empty-row td{text-align:center;padding:3rem;color:var(--text3);font-size:.85rem;}
-.medilink-required{background:#2d1f0a;border:1px solid #d9770044;border-radius:8px;padding:1rem;margin-bottom:1rem;}
-.medilink-required p{color:#fbbf24;font-size:.82rem;margin-bottom:.6rem;}
+/* Vista principal tabs */
+.main-tabs{display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap;}
+.main-tab{padding:.4rem 1rem;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.82rem;transition:all .2s;}
+.main-tab:hover{border-color:var(--accent);color:var(--accent);}
+.main-tab.active{background:var(--accent);border-color:var(--accent);color:white;}
+.main-view{display:none;}
+.main-view.active{display:block;}
+/* Result count */
+.result-count{font-size:.75rem;color:var(--text2);padding:.3rem .8rem;background:var(--bg3);border-radius:12px;border:1px solid var(--border);}
 </style>
 </head>
 <body>
@@ -199,7 +261,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 <!-- LOGIN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
-    <div class="login-logo">Patient Tracking Sheet</div>
+    <div class="login-logo">CRM Stemwell</div>
     <div class="login-sub">Panel de Asesores · Doctores · Soporte</div>
     <input type="email" id="login-email" placeholder="Correo electrónico">
     <input type="password" id="login-password" placeholder="Contraseña">
@@ -216,10 +278,9 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
       <div class="header-actions" id="soporte-header-actions" style="display:none">
         <button class="btn-header primary" onclick="abrirNuevoLead()">+ Nuevo Lead</button>
         <button class="btn-header" onclick="abrirGestionUsuarios()">👥 Usuarios</button>
-        <button class="btn-header" onclick="verAgendaDoctores()">📅 Agenda</button>
       </div>
       <div class="header-actions" id="asesor-header-actions" style="display:none">
-        <button class="btn-header" onclick="verAgendaDoctores()">📅 Ver Agenda Doctores</button>
+        <!-- empty, actions are in tabs -->
       </div>
       <span class="role-badge" id="user-info">—</span>
       <button class="btn-logout" onclick="abrirCambiarPassword()" style="border-color:var(--border2)">🔑 Contraseña</button>
@@ -237,7 +298,6 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
       <div class="sb-actions">
         <button class="btn-header primary" onclick="abrirNuevoLead()">+ Nuevo Lead</button>
         <button class="btn-header" onclick="abrirGestionUsuarios()">👥 Usuarios</button>
-        <button class="btn-header" onclick="verAgendaDoctores()">📅 Agenda</button>
       </div>
     </div>
 
@@ -260,19 +320,89 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
       </div>
     </div>
 
-    <div class="toolbar">
-      <div class="filters" id="filters-container"></div>
-    </div>
-    <div id="search-container" class="hidden" style="margin-bottom:1rem">
-      <input class="search-bar" id="search-input" placeholder="🔍 Buscar por nombre, teléfono o email..." oninput="buscarLeads(this.value)">
+    <!-- MAIN TABS -->
+    <div class="main-tabs">
+      <button class="main-tab active" onclick="switchMainView('leads',this)">📋 Leads</button>
+      <button class="main-tab" onclick="switchMainView('calendar',this)">📅 Calendario</button>
+      <button class="main-tab" onclick="switchMainView('availability',this)">🕐 Disponibilidad</button>
     </div>
 
-    <div class="table-card">
-      <h2 id="table-title">📋 Leads</h2>
-      <table>
-        <thead><tr id="table-headers"></tr></thead>
-        <tbody id="leads-body"><tr class="empty-row"><td colspan="9">Cargando...</td></tr></tbody>
-      </table>
+    <!-- ══ VIEW: LEADS ══ -->
+    <div class="main-view active" id="view-leads">
+      <div class="toolbar">
+        <div class="filters" id="filters-container"></div>
+        <span class="result-count" id="result-count">0 resultados</span>
+      </div>
+      <!-- Search + Column Filters -->
+      <div class="search-container">
+        <input class="search-bar" id="search-input" placeholder="🔍 Buscar por nombre, teléfono o email..." oninput="buscarLeads(this.value)">
+        <button class="col-filter-btn active" onclick="setColFilter('all',this)" data-col="all">Todos los campos</button>
+        <button class="col-filter-btn" onclick="setColFilter('nombre',this)" data-col="nombre">Nombre</button>
+        <button class="col-filter-btn" onclick="setColFilter('telefono',this)" data-col="telefono">Teléfono</button>
+        <button class="col-filter-btn" onclick="setColFilter('email',this)" data-col="email">Email</button>
+        <button class="col-filter-btn" onclick="setColFilter('categoria',this)" data-col="categoria">Categoría</button>
+        <button class="col-filter-btn" onclick="setColFilter('doctor',this)" data-col="doctor">Doctor</button>
+      </div>
+
+      <div class="table-card">
+        <h2 id="table-title">📋 Leads <span id="table-badge" class="badge b-new" style="font-size:.72rem"></span></h2>
+        <table>
+          <thead><tr id="table-headers"></tr></thead>
+          <tbody id="leads-body"><tr class="empty-row"><td colspan="9">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: CALENDAR ══ -->
+    <div class="main-view" id="view-calendar">
+      <div id="calendar-wrapper">
+        <div class="cal-doc-filters">
+          <span style="font-size:.75rem;color:var(--text2);margin-right:.3rem;line-height:2">Filtrar doctor:</span>
+          <button class="cal-doc-btn active" data-doc-id="all" onclick="calSetDoc('all',this)">Todos</button>
+          <div id="cal-doc-buttons"></div>
+        </div>
+        <div id="stemwell-calendar"></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: AVAILABILITY ══ -->
+    <div class="main-view" id="view-availability">
+      <div class="table-card" style="padding:1.5rem">
+        <h2 style="border:none;background:transparent;padding:0;margin-bottom:1.2rem">🕐 Disponibilidad de Doctores</h2>
+        <p style="font-size:.82rem;color:var(--text2);margin-bottom:1.2rem">Consulta los horarios libres antes de agendar una cita con un paciente.</p>
+        <div class="avail-header">
+          <div>
+            <label class="lbl">Doctor</label>
+            <select id="avail-doctor" onchange="renderAvailability()">
+              <option value="">Seleccionar doctor...</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">Fecha</label>
+            <input type="date" id="avail-date" onchange="renderAvailability()">
+          </div>
+          <div>
+            <label class="lbl">Ver semana</label>
+            <select id="avail-week-mode" onchange="renderAvailability()">
+              <option value="day">Solo este día</option>
+              <option value="week">Toda la semana</option>
+            </select>
+          </div>
+        </div>
+        <div class="avail-legend">
+          <span><span class="leg-dot" style="background:#166534"></span>Disponible</span>
+          <span><span class="leg-dot" style="background:#450a0a"></span>Ocupado</span>
+          <span><span class="leg-dot" style="background:#1e40af"></span>Seleccionado</span>
+        </div>
+        <div id="avail-content">
+          <p style="color:var(--text2);font-size:.85rem;text-align:center;padding:2rem">Selecciona un doctor y una fecha para ver disponibilidad.</p>
+        </div>
+        <div class="confirm-strip hidden" id="confirm-strip">
+          <span>✅ Horario seleccionado:</span>
+          <strong id="confirm-details">—</strong>
+          <button class="btn-save" style="padding:.4rem 1rem;font-size:.8rem" onclick="usarHorarioSeleccionado()">Usar este horario →</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -282,10 +412,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
   <div class="modal-content">
     <h3 id="m-nombre">—</h3>
     <div class="modal-meta" id="m-meta">—</div>
-
-    <!-- ★ NUEVO: Info grid con semáforo, fechas y admisión -->
     <div class="info-grid" id="m-info-grid"></div>
-
     <div class="current-states" id="m-states"></div>
     <div id="m-body"></div>
     <label class="lbl">Añadir Comentario</label>
@@ -366,17 +493,6 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
   </div>
 </div>
 
-<!-- ══ MODAL AGENDA DOCTORES ══ -->
-<div class="modal" id="modal-agenda">
-  <div class="modal-content" style="width:800px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem">
-      <div><h3>📅 Agenda de Doctores</h3><div class="modal-meta">Consulta disponibilidad antes de agendar</div></div>
-      <button class="btn-close" onclick="document.getElementById('modal-agenda').classList.remove('open')">✕</button>
-    </div>
-    <div id="agenda-body"><div style="text-align:center;padding:2rem;color:var(--text3)">Cargando agenda...</div></div>
-  </div>
-</div>
-
 <!-- ══ MODAL GESTIÓN USUARIOS ══ -->
 <div class="modal" id="modal-usuarios">
   <div class="modal-content" style="width:800px">
@@ -438,8 +554,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
     <input type="password" id="cp-confirma" placeholder="Repite la contraseña" oninput="validarPasswords()">
     <div id="cp-match-msg" style="font-size:.78rem;margin-top:.5rem;min-height:1.2rem"></div>
     <div class="modal-actions" style="margin-top:1rem">
-      <button class="btn-save" id="cp-btn-guardar" onclick="guardarPassword()" disabled
-        style="opacity:.4;cursor:not-allowed">💾 Guardar</button>
+      <button class="btn-save" id="cp-btn-guardar" onclick="guardarPassword()" disabled style="opacity:.4;cursor:not-allowed">💾 Guardar</button>
       <button class="btn-close" onclick="cerrarCambiarPassword()">Cancelar</button>
     </div>
   </div>
@@ -459,7 +574,6 @@ const APPT    = ["Scheduled","Confirmed","Sent","Rescheduled","Canceled","Attend
 const MEDICAL = ["Pending Evaluation","Consultation Completed","Candidate Approved",
                  "Candidate Rejected","Treatment Proposal Sent","Treatment Scheduled",
                  "In Treatment","Treatment Completed"];
-
 const REJECTION_REASONS = [
   "No interés","Dinero","Cáncer o malignidad activa",
   "Infecciones sistémicas no controladas","Falla orgánica descompensada",
@@ -469,19 +583,28 @@ const REJECTION_REASONS = [
   "Evaluación de historial clínico e imágenes"
 ];
 
+// Colores por doctor (índice)
+const DOC_COLORS = ["#1e3a5f","#14532d","#4c1d95","#713f12","#0f3d3d","#2d1a4c"];
+const DOC_TEXT   = ["#60a5fa","#4ade80","#c084fc","#fbbf24","#2dd4bf","#c084fc"];
+
 // ══════════════════════════════════════════════
 // ESTADO GLOBAL
 // ══════════════════════════════════════════════
-let usuario     = null;
-let leads       = [];
-let todosLeads  = [];
-let seleccionado= null;
-let filtroActual= "all";
+let usuario      = null;
+let leads        = [];
+let todosLeads   = [];
+let seleccionado = null;
+let filtroActual = "all";
+let colFilterActual = "all";
 let doctoresCache = [];
-let citaConfirmada = false;
+let _citaToggle  = false;
+let sortCol = "", sortAsc = true;
+let calInstance  = null;
+let calDocFiltro = "all";
+let availSelected = null;
 
-const saved = localStorage.getItem("crm_sw7");
-if (saved) { try { usuario = JSON.parse(saved); iniciarApp(); } catch(e) { localStorage.removeItem("crm_sw7"); } }
+const saved = localStorage.getItem("crm_sw8");
+if (saved) { try { usuario = JSON.parse(saved); iniciarApp(); } catch(e) { localStorage.removeItem("crm_sw8"); } }
 
 // ══════════════════════════════════════════════
 // AUTH
@@ -496,26 +619,37 @@ async function login() {
     const res = await fetch(API+"/login",{method:"POST",headers:H,body:JSON.stringify({email,password:pass})});
     if (!res.ok) { errEl.style.display="block"; return; }
     usuario = await res.json();
-    localStorage.setItem("crm_sw7", JSON.stringify(usuario));
+    localStorage.setItem("crm_sw8", JSON.stringify(usuario));
     iniciarApp();
   } catch(e) { errEl.textContent="Error de conexión"; errEl.style.display="block"; }
 }
-function logout() { localStorage.removeItem("crm_sw7"); location.reload(); }
+function logout() { localStorage.removeItem("crm_sw8"); location.reload(); }
+
+// ══════════════════════════════════════════════
+// MAIN VIEW TABS
+// ══════════════════════════════════════════════
+function switchMainView(view, btn) {
+  document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));
+  document.querySelectorAll(".main-tab").forEach(b=>b.classList.remove("active"));
+  document.getElementById("view-"+view).classList.add("active");
+  btn.classList.add("active");
+  if (view === "calendar") initCalendar();
+  if (view === "availability") initAvailability();
+}
 
 // ══════════════════════════════════════════════
 // INICIAR APP
 // ══════════════════════════════════════════════
 function iniciarApp() {
-  document.getElementById("login-screen").style.display  = "none";
-  document.getElementById("app").style.display           = "block";
-  document.getElementById("user-info").textContent       = `${usuario.nombre} · ${usuario.rol}`;
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("user-info").textContent = `${usuario.nombre} · ${usuario.rol}`;
   configurarUI();
   cargarLeads();
   cargarDoctores();
   if (usuario.rol === "soporte") {
     document.getElementById("soporte-header-actions").style.display = "flex";
     document.getElementById("soporte-banner").classList.remove("hidden");
-    document.getElementById("search-container").classList.remove("hidden");
     cargarAsesoresParaForm();
   }
   if (usuario.rol === "asesor") {
@@ -542,23 +676,87 @@ function configurarUI() {
     filterStates = ["New Lead","First Contact","No Answer","Follow Up","Interested",
                     "Appointment Scheduled","Treatment Proposal Sent","Treatment Confirmed",
                     "scheduled treatment","canceled treatment","Won","Lost"];
-    // ★ Columna Semáforo + Admisión agregadas
-    headersEl.innerHTML = `<th>🚦</th><th>Nombre</th><th>Teléfono</th><th>Categoría</th><th>Estado Ventas</th><th>Cita</th><th>Doctor</th><th>Admisión</th><th>Últ. Contacto</th>`;
-    document.getElementById("table-title").textContent = "📋 Mis Leads";
+    headersEl.innerHTML = buildHeaders([
+      {key:"sem",label:"🚦",sort:false},
+      {key:"nombre",label:"Nombre"},
+      {key:"telefono",label:"Teléfono"},
+      {key:"categoria",label:"Categoría"},
+      {key:"sales_status",label:"Estado Ventas"},
+      {key:"appointment_status",label:"Cita"},
+      {key:"doctor_nombre",label:"Doctor"},
+      {key:"admission_date",label:"Admisión"},
+      {key:"last_contact_date",label:"Últ. Contacto"}
+    ]);
+    document.getElementById("table-title").childNodes[0].textContent = "📋 Mis Leads ";
   } else if (rol === "doctor") {
     filterStates = ["Pending Evaluation","Consultation Completed","Candidate Approved",
                     "Treatment Scheduled","In Treatment","Treatment Completed"];
-    headersEl.innerHTML = `<th>🚦</th><th>Nombre</th><th>Teléfono</th><th>Categoría</th><th>Estado Médico</th><th>Cita</th><th>Asesor</th><th>Admisión</th><th>Fecha Trat.</th>`;
-    document.getElementById("table-title").textContent = "🩺 Mis Pacientes";
+    headersEl.innerHTML = buildHeaders([
+      {key:"sem",label:"🚦",sort:false},
+      {key:"nombre",label:"Nombre"},
+      {key:"telefono",label:"Teléfono"},
+      {key:"categoria",label:"Categoría"},
+      {key:"medical_status",label:"Estado Médico"},
+      {key:"appointment_status",label:"Cita"},
+      {key:"asesor_nombre",label:"Asesor"},
+      {key:"admission_date",label:"Admisión"},
+      {key:"treatment_start_date",label:"Fecha Trat."}
+    ]);
+    document.getElementById("table-title").childNodes[0].textContent = "🩺 Mis Pacientes ";
   } else {
     filterStates = [...SALES];
-    headersEl.innerHTML = `<th>🚦</th><th>Nombre</th><th>Teléfono</th><th>Categoría</th><th>Ventas</th><th>Médico</th><th>Cita</th><th>Doctor/Asesor</th><th>Admisión</th>`;
-    document.getElementById("table-title").textContent = "📋 Todos los Leads";
+    headersEl.innerHTML = buildHeaders([
+      {key:"sem",label:"🚦",sort:false},
+      {key:"nombre",label:"Nombre"},
+      {key:"telefono",label:"Teléfono"},
+      {key:"categoria",label:"Categoría"},
+      {key:"sales_status",label:"Ventas"},
+      {key:"medical_status",label:"Médico"},
+      {key:"appointment_status",label:"Cita"},
+      {key:"doctor_nombre",label:"Doctor/Asesor"},
+      {key:"admission_date",label:"Admisión"}
+    ]);
+    document.getElementById("table-title").childNodes[0].textContent = "📋 Todos los Leads ";
   }
 
-  filtersEl.innerHTML = `<button class="filter-btn active" onclick="filtrar('all')">Todos</button>`;
+  filtersEl.innerHTML = `<button class="filter-btn active" onclick="filtrar('all',this)">Todos</button>`;
   filterStates.forEach(s => {
-    filtersEl.innerHTML += `<button class="filter-btn" onclick="filtrar('${s}')">${s}</button>`;
+    filtersEl.innerHTML += `<button class="filter-btn" onclick="filtrar('${s}',this)">${s}</button>`;
+  });
+}
+
+function buildHeaders(cols) {
+  return cols.map(c => {
+    if (!c.sort && c.sort !== undefined) return `<th>${c.label}</th>`;
+    const isSorted = sortCol === c.key;
+    const arrow = isSorted ? (sortAsc ? " ▲" : " ▼") : " ⇅";
+    return `<th class="${isSorted?'sorted':''}" onclick="sortTable('${c.key}')">${c.label}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join("");
+}
+
+// ══════════════════════════════════════════════
+// SORTING
+// ══════════════════════════════════════════════
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  applySort();
+  // Rebuild headers
+  configurarUI();
+  renderLeads();
+}
+
+function applySort() {
+  if (!sortCol) return;
+  leads.sort((a, b) => {
+    let va = a[sortCol] || "";
+    let vb = b[sortCol] || "";
+    if (sortCol === "admission_date" || sortCol === "last_contact_date" || sortCol === "treatment_start_date") {
+      va = va ? new Date(va).getTime() : 0;
+      vb = vb ? new Date(vb).getTime() : 0;
+      return sortAsc ? va - vb : vb - va;
+    }
+    return sortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
   });
 }
 
@@ -570,18 +768,21 @@ async function cargarLeads() {
     const params = filtroActual !== "all" ? `?estado=${encodeURIComponent(filtroActual)}` : "";
     const res  = await fetch(`${API}/leads/usuario/${usuario.id}${params}`,{headers:H});
     const data = await res.json();
-    leads = todosLeads = data.leads || [];
-    renderLeads(); renderStats();
+    todosLeads = data.leads || [];
+    leads = [...todosLeads];
+    const q = document.getElementById("search-input")?.value;
+    if (q) buscarLeads(q, false);
+    else { applySort(); renderLeads(); renderStats(); }
   } catch(e) { toast("Error al cargar leads",true); }
 }
 
 function renderLeads() {
   const tbody = document.getElementById("leads-body");
+  document.getElementById("result-count").textContent = `${leads.length} resultados`;
   if (!leads.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No hay leads para mostrar</td></tr>'; return; }
   tbody.innerHTML = leads.map(l => buildRow(l)).join("");
 }
 
-// ★ SEMÁFORO: calculado en frontend como fallback si la API no lo trae aún
 function calcSemaforo(l) {
   if (l.semaforo !== undefined) return l.semaforo;
   const sales = (l.sales_status||"").toLowerCase();
@@ -595,7 +796,6 @@ function calcSemaforo(l) {
   return "🔴";
 }
 
-// ★ Formatea fecha corta para tabla
 function fechaCorta(d) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'2-digit'});
@@ -606,7 +806,7 @@ function buildRow(l) {
   const sem = calcSemaforo(l);
   let estadoPrincipal = "", badgeClass = "b-new";
   if (rol === "doctor") { estadoPrincipal = l.medical_status||"—"; badgeClass = badgeForMedical(l.medical_status); }
-  else                  { estadoPrincipal = l.sales_status||"—"; badgeClass = badgeForSales(l.sales_status); }
+  else { estadoPrincipal = l.sales_status||"—"; badgeClass = badgeForSales(l.sales_status); }
   const citaBadge = badgeForAppt(l.appointment_status);
   const admision  = fechaCorta(l.admission_date || l.fecha_creacion);
   const ultimoContacto = fechaCorta(l.last_contact_date || l.fecha_actualizacion);
@@ -636,7 +836,6 @@ function buildRow(l) {
       <td class="td-muted">${admision}</td>
       <td class="td-muted">${fechaTrat}</td></tr>`;
   }
-  // asesor
   return `<tr onclick="abrirModal(${l.id})">
     <td><span class="semaforo">${sem}</span></td>
     <td class="td-name">${l.nombre}</td>
@@ -673,26 +872,27 @@ function badgeForAppt(a) {
 
 function renderStats() {
   const rol = usuario.rol;
-  document.getElementById("s-total").textContent = leads.length;
+  document.getElementById("s-total").textContent = todosLeads.length;
   if (rol==="asesor") {
-    document.getElementById("s-stat1").textContent = leads.filter(l=>l.sales_status==="New Lead").length;
-    document.getElementById("s-stat2").textContent = leads.filter(l=>["Appointment Scheduled","scheduled treatment","Treatment Confirmed"].includes(l.sales_status)).length;
-    document.getElementById("s-stat3").textContent = leads.filter(l=>l.sales_status==="Won").length;
+    document.getElementById("s-stat1").textContent = todosLeads.filter(l=>l.sales_status==="New Lead").length;
+    document.getElementById("s-stat2").textContent = todosLeads.filter(l=>["Appointment Scheduled","scheduled treatment","Treatment Confirmed"].includes(l.sales_status)).length;
+    document.getElementById("s-stat3").textContent = todosLeads.filter(l=>l.sales_status==="Won").length;
   } else if (rol==="doctor") {
-    document.getElementById("s-stat1").textContent = leads.filter(l=>l.medical_status==="Pending Evaluation").length;
-    document.getElementById("s-stat2").textContent = leads.filter(l=>["In Treatment","Treatment Scheduled"].includes(l.medical_status)).length;
-    document.getElementById("s-stat3").textContent = leads.filter(l=>l.medical_status==="Treatment Completed").length;
+    document.getElementById("s-stat1").textContent = todosLeads.filter(l=>l.medical_status==="Pending Evaluation").length;
+    document.getElementById("s-stat2").textContent = todosLeads.filter(l=>["In Treatment","Treatment Scheduled"].includes(l.medical_status)).length;
+    document.getElementById("s-stat3").textContent = todosLeads.filter(l=>l.medical_status==="Treatment Completed").length;
   } else {
-    document.getElementById("s-stat1").textContent = leads.filter(l=>l.sales_status==="New Lead").length;
-    document.getElementById("s-stat2").textContent = leads.filter(l=>["Appointment Scheduled","scheduled treatment"].includes(l.sales_status)).length;
-    document.getElementById("s-stat3").textContent = leads.filter(l=>l.sales_status==="Won").length;
+    document.getElementById("s-stat1").textContent = todosLeads.filter(l=>l.sales_status==="New Lead").length;
+    document.getElementById("s-stat2").textContent = todosLeads.filter(l=>["Appointment Scheduled","scheduled treatment"].includes(l.sales_status)).length;
+    document.getElementById("s-stat3").textContent = todosLeads.filter(l=>l.sales_status==="Won").length;
   }
 }
 
-function filtrar(estado) {
+function filtrar(estado, btn) {
   filtroActual = estado;
   document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
-  event?.target?.classList.add("active");
+  if (btn) btn.classList.add("active");
+  document.getElementById("search-input").value = "";
   cargarLeads();
 }
 function filtrar_stat(n) {
@@ -702,17 +902,265 @@ function filtrar_stat(n) {
     soporte:[null,"New Lead","Appointment Scheduled","Won"]
   };
   const arr = f[usuario.rol]||f.soporte;
-  filtrar(arr[n]||"all");
+  filtroActual = arr[n]||"all";
+  document.getElementById("search-input").value = "";
+  cargarLeads();
+}
+
+// ══════════════════════════════════════════════
+// SEARCH + COLUMN FILTER
+// ══════════════════════════════════════════════
+function setColFilter(col, btn) {
+  colFilterActual = col;
+  document.querySelectorAll(".col-filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  buscarLeads(document.getElementById("search-input").value);
+}
+
+function buscarLeads(query, doSort=true) {
+  const q = query.toLowerCase().trim();
+  if (!q) { leads = [...todosLeads]; }
+  else {
+    leads = todosLeads.filter(l => {
+      if (colFilterActual === "all") {
+        return (l.nombre||"").toLowerCase().includes(q)
+          || (l.telefono||"").toLowerCase().includes(q)
+          || (l.email||"").toLowerCase().includes(q)
+          || (l.categoria||"").toLowerCase().includes(q)
+          || (l.doctor_nombre||"").toLowerCase().includes(q)
+          || (l.asesor_nombre||"").toLowerCase().includes(q);
+      }
+      if (colFilterActual === "nombre")   return (l.nombre||"").toLowerCase().includes(q);
+      if (colFilterActual === "telefono") return (l.telefono||"").toLowerCase().includes(q);
+      if (colFilterActual === "email")    return (l.email||"").toLowerCase().includes(q);
+      if (colFilterActual === "categoria")return (l.categoria||"").toLowerCase().includes(q);
+      if (colFilterActual === "doctor")   return (l.doctor_nombre||"").toLowerCase().includes(q)||(l.asesor_nombre||"").toLowerCase().includes(q);
+      return true;
+    });
+  }
+  if (doSort) applySort();
+  renderLeads();
+  document.getElementById("s-total").textContent = leads.length;
+}
+
+// ══════════════════════════════════════════════
+// CALENDARIO — FullCalendar
+// ══════════════════════════════════════════════
+async function initCalendar() {
+  if (calInstance) { calInstance.render(); return; }
+  const el = document.getElementById("stemwell-calendar");
+  calInstance = new FullCalendar.Calendar(el, {
+    initialView: "dayGridMonth",
+    locale: "es",
+    height: 580,
+    headerToolbar: {
+      left: "prev,next today",
+      center: "title",
+      right: "dayGridMonth,timeGridWeek,timeGridDay"
+    },
+    buttonText: { today:"Hoy", month:"Mes", week:"Semana", day:"Día" },
+    eventClick: function(info) {
+      const id = info.event.extendedProps.lead_id;
+      if (id) abrirModal(id);
+    },
+    eventTimeFormat: { hour:"2-digit", minute:"2-digit", hour12:false },
+    slotMinTime: "07:00:00",
+    slotMaxTime: "20:00:00",
+    allDaySlot: false,
+    eventSources: [{ events: fetchCalendarEvents }],
+    eventDidMount: function(info) {
+      const doc = info.event.extendedProps.doctor_nombre || "";
+      info.el.title = `${info.event.title}\n${doc}`;
+    }
+  });
+  calInstance.render();
+  renderCalDocButtons();
+}
+
+async function fetchCalendarEvents(info, successCB, failCB) {
+  try {
+    const res  = await fetch(`${API}/agenda`,{headers:H});
+    const data = await res.json();
+    const slots = data.slots || [];
+    // Map doc names to indices for colors
+    const docMap = {};
+    let di = 0;
+    doctoresCache.forEach(d => { docMap[d.id] = di++; });
+    const events = slots
+      .filter(s => calDocFiltro === "all" || s.doctor_id == calDocFiltro)
+      .map(s => {
+        const idx = docMap[s.doctor_id] ?? 0;
+        return {
+          title: s.paciente || "—",
+          start: s.fecha_inicio,
+          end: s.fecha_fin || null,
+          backgroundColor: DOC_COLORS[idx % DOC_COLORS.length],
+          borderColor: DOC_COLORS[idx % DOC_COLORS.length],
+          textColor: DOC_TEXT[idx % DOC_TEXT.length],
+          extendedProps: {
+            lead_id: s.lead_id,
+            doctor_nombre: s.doctor_nombre,
+            tipo: s.tipo,
+            estado: s.estado
+          }
+        };
+      });
+    successCB(events);
+  } catch(e) { failCB(e); }
+}
+
+function renderCalDocButtons() {
+  const container = document.getElementById("cal-doc-buttons");
+  container.innerHTML = doctoresCache.map((d,i) =>
+    `<button class="cal-doc-btn ${calDocFiltro==d.id?('active doc-color-'+i):''}" 
+     data-doc-id="${d.id}" onclick="calSetDoc(${d.id},this)"
+     style="${calDocFiltro==d.id?'':''}">${d.nombre}</button>`
+  ).join("");
+}
+
+function calSetDoc(id, btn) {
+  calDocFiltro = id;
+  document.querySelectorAll(".cal-doc-btn").forEach((b,i) => {
+    b.classList.remove("active");
+    DOC_COLORS.forEach((_,ci) => b.classList.remove("doc-color-"+ci));
+  });
+  btn.classList.add("active");
+  if (id !== "all") {
+    const idx = doctoresCache.findIndex(d=>d.id==id);
+    if (idx>=0) btn.classList.add("doc-color-"+idx);
+  }
+  if (calInstance) calInstance.refetchEvents();
+}
+
+// ══════════════════════════════════════════════
+// DISPONIBILIDAD
+// ══════════════════════════════════════════════
+const HORARIOS = ["07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30",
+                  "11:00","11:30","12:00","12:30","14:00","14:30","15:00","15:30",
+                  "16:00","16:30","17:00","17:30","18:00"];
+
+function initAvailability() {
+  const sel = document.getElementById("avail-doctor");
+  if (sel.options.length <= 1) {
+    doctoresCache.forEach(d => {
+      const o = document.createElement("option");
+      o.value = d.id; o.textContent = d.nombre;
+      sel.appendChild(o);
+    });
+  }
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const inp = document.getElementById("avail-date");
+  if (!inp.value) inp.value = tomorrow.toISOString().slice(0,10);
+  inp.min = new Date().toISOString().slice(0,10);
+}
+
+async function renderAvailability() {
+  const docId   = document.getElementById("avail-doctor").value;
+  const dateVal = document.getElementById("avail-date").value;
+  const mode    = document.getElementById("avail-week-mode").value;
+  const container = document.getElementById("avail-content");
+  document.getElementById("confirm-strip").classList.add("hidden");
+  availSelected = null;
+
+  if (!docId || !dateVal) {
+    container.innerHTML = `<p style="color:var(--text2);font-size:.85rem;text-align:center;padding:2rem">Selecciona un doctor y una fecha.</p>`;
+    return;
+  }
+
+  container.innerHTML = `<p style="color:var(--text2);font-size:.85rem;padding:1rem">Cargando disponibilidad...</p>`;
+
+  try {
+    const res  = await fetch(`${API}/agenda`,{headers:H});
+    const data = await res.json();
+    const slots = (data.slots || []).filter(s => String(s.doctor_id) === String(docId));
+
+    // Build busy set
+    const busyMap = {};
+    slots.forEach(s => {
+      const d = s.fecha_inicio ? s.fecha_inicio.slice(0,10) : "";
+      const t = s.fecha_inicio ? s.fecha_inicio.slice(11,16) : "";
+      if (!busyMap[d]) busyMap[d] = {};
+      busyMap[d][t] = s.paciente || "Ocupado";
+    });
+
+    const docNombre = doctoresCache.find(d=>String(d.id)===String(docId))?.nombre || "Doctor";
+
+    if (mode === "day") {
+      container.innerHTML = renderDaySlots(dateVal, busyMap, docNombre, docId);
+    } else {
+      // Week
+      const base = new Date(dateVal);
+      const dow = base.getDay();
+      const monday = new Date(base);
+      monday.setDate(base.getDate() - (dow === 0 ? 6 : dow - 1));
+      let html = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;">`;
+      for (let i=0; i<7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dStr = d.toISOString().slice(0,10);
+        const busy = busyMap[dStr] || {};
+        const freeCount = HORARIOS.filter(h => !busy[h]).length;
+        const label = d.toLocaleDateString('es-CO',{weekday:'short',day:'numeric'});
+        const color = freeCount > 5 ? "var(--green)" : freeCount > 0 ? "var(--yellow)" : "var(--red)";
+        html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem;text-align:center;cursor:pointer;" onclick="document.getElementById('avail-date').value='${dStr}';document.getElementById('avail-week-mode').value='day';renderAvailability()">
+          <div style="font-size:.78rem;color:var(--text2)">${label}</div>
+          <div style="font-size:1.1rem;font-weight:700;color:${color};margin-top:4px">${freeCount}</div>
+          <div style="font-size:.65rem;color:var(--text2)">libres</div>
+        </div>`;
+      }
+      html += `</div><p style="font-size:.75rem;color:var(--text2);margin-top:.8rem">Haz clic en un día para ver los horarios disponibles.</p>`;
+      container.innerHTML = html;
+    }
+  } catch(e) {
+    container.innerHTML = `<p style="color:var(--red);padding:1rem">Error cargando disponibilidad. Verifica la conexión.</p>`;
+  }
+}
+
+function renderDaySlots(dateVal, busyMap, docNombre, docId) {
+  const busy = busyMap[dateVal] || {};
+  const fecha = new Date(dateVal).toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+  let html = `<p style="font-size:.82rem;color:var(--text2);margin-bottom:.8rem">📅 <strong style="color:var(--text)">${docNombre}</strong> — ${fecha}</p>`;
+  html += `<div class="slots-grid">`;
+  HORARIOS.forEach(h => {
+    const busyInfo = busy[h];
+    const isSel = availSelected === h+"|"+docId+"|"+dateVal;
+    let cls, label;
+    if (busyInfo) { cls = "slot-busy"; label = `<div class="slot-time">${h}</div><div class="slot-who">${busyInfo}</div>`; }
+    else if (isSel) { cls = "slot-sel"; label = `<div class="slot-time">${h}</div><div class="slot-who">✓ Seleccionado</div>`; }
+    else { cls = "slot-free"; label = `<div class="slot-time">${h}</div><div class="slot-who">Disponible</div>`; }
+    const onclick = busyInfo ? "" : `onclick="selectAvailSlot('${h}','${docId}','${dateVal}','${docNombre}')"`;
+    html += `<div class="time-slot ${cls}" ${onclick}>${label}</div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function selectAvailSlot(hora, docId, fecha, docNombre) {
+  availSelected = hora+"|"+docId+"|"+fecha;
+  renderAvailability();
+  const strip = document.getElementById("confirm-strip");
+  strip.classList.remove("hidden");
+  const fechaFmt = new Date(fecha).toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById("confirm-details").textContent = `${docNombre} · ${fechaFmt} a las ${hora}`;
+}
+
+function usarHorarioSeleccionado() {
+  if (!availSelected) return;
+  const [hora, docId, fecha] = availSelected.split("|");
+  // Pre-fill in agenda and switch to leads view
+  toast(`✅ Horario ${hora} del ${fecha} reservado. Ahora selecciona el lead y agéndalo.`);
+  switchMainView("leads", document.querySelector(".main-tab"));
 }
 
 // ══════════════════════════════════════════════
 // MODAL DETALLE
 // ══════════════════════════════════════════════
 async function abrirModal(id) {
-  seleccionado = leads.find(l=>l.id===id);
+  seleccionado = leads.find(l=>l.id===id) || todosLeads.find(l=>l.id===id);
   if (!seleccionado) return;
   const l = seleccionado;
-  citaConfirmada = l.cita_confirmada || false;
+  _citaToggle = false;
 
   document.getElementById("m-nombre").textContent = l.nombre;
   document.getElementById("m-meta").textContent =
@@ -720,22 +1168,20 @@ async function abrirModal(id) {
   document.getElementById("m-comentarios").textContent = l.comentarios||"Sin comentarios";
   document.getElementById("m-comentario").value = "";
 
-  // ★ INFO GRID: semáforo, admisión, último contacto
   const sem = calcSemaforo(l);
-  const semLabel = {"🟢":"Al día","🟡":"2 días","🔴":"Sin contacto","🎉":"Ganado","?":"Sin fecha","":"Perdido"}[sem] || "";
-  const igEl = document.getElementById("m-info-grid");
-  igEl.innerHTML = `
+  const semLabel = {"🟢":"Al día","🟡":"2 días","🔴":"Sin contacto","🎉":"Ganado","?":"Sin fecha","":"Perdido"}[sem]||"";
+  document.getElementById("m-info-grid").innerHTML = `
     <div class="info-grid-item">
       <div class="ig-label">Semáforo</div>
       <div class="ig-val" style="font-size:1.2rem">${sem} <span style="font-size:.72rem;font-family:'DM Sans',sans-serif;color:var(--text2)">${semLabel}</span></div>
     </div>
     <div class="info-grid-item">
       <div class="ig-label">Fecha de Admisión</div>
-      <div class="ig-val">${fechaCorta(l.admission_date || l.fecha_creacion)}</div>
+      <div class="ig-val">${fechaCorta(l.admission_date||l.fecha_creacion)}</div>
     </div>
     <div class="info-grid-item">
       <div class="ig-label">Último Contacto</div>
-      <div class="ig-val">${fechaCorta(l.last_contact_date || l.fecha_actualizacion)}</div>
+      <div class="ig-val">${fechaCorta(l.last_contact_date||l.fecha_actualizacion)}</div>
     </div>
     <div class="info-grid-item">
       <div class="ig-label">Días sin contacto</div>
@@ -743,7 +1189,6 @@ async function abrirModal(id) {
     </div>
   `;
 
-  // Estados actuales
   const st = document.getElementById("m-states");
   st.innerHTML = `
     <div class="cs-item"><div class="cs-label">Ventas</div><div class="cs-val">${l.sales_status||"—"}</div></div>
@@ -761,32 +1206,28 @@ async function abrirModal(id) {
   cargarHistorial(id);
 }
 
-// ★ Helpers para días sin contacto
 function diasSinContacto(l) {
-  const raw = l.last_contact_date || l.fecha_actualizacion;
+  const raw = l.last_contact_date||l.fecha_actualizacion;
   if (!raw) return "—";
-  const dias = Math.floor((Date.now() - new Date(raw).getTime()) / 86400000);
-  return dias === 0 ? "Hoy" : dias === 1 ? "1 día" : `${dias} días`;
+  const dias = Math.floor((Date.now()-new Date(raw).getTime())/86400000);
+  return dias===0?"Hoy":dias===1?"1 día":`${dias} días`;
 }
 function diasColor(l) {
-  const raw = l.last_contact_date || l.fecha_actualizacion;
+  const raw = l.last_contact_date||l.fecha_actualizacion;
   if (!raw) return "var(--text2)";
-  const dias = Math.floor((Date.now() - new Date(raw).getTime()) / 86400000);
-  if (dias <= 1) return "var(--green)";
-  if (dias <= 2) return "var(--yellow)";
+  const dias = Math.floor((Date.now()-new Date(raw).getTime())/86400000);
+  if (dias<=1) return "var(--green)";
+  if (dias<=2) return "var(--yellow)";
   return "var(--red)";
 }
 
-// ══════════════════════════════════════════════
-// BUILD MODAL BODY (sin cambios — igual al original)
-// ══════════════════════════════════════════════
 function buildModalBody(l) {
-  const rol = usuario.rol;
-  if (rol==="asesor")  return buildAsesor(l);
-  if (rol==="doctor")  return buildDoctor(l);
+  if (usuario.rol==="asesor") return buildAsesor(l);
+  if (usuario.rol==="doctor") return buildDoctor(l);
   return buildSoporte(l);
 }
 
+// ══ ASESOR MODAL ══
 function buildAsesor(l) {
   const s = l.sales_status||"";
   let html = "";
@@ -809,15 +1250,14 @@ function buildAsesor(l) {
           ${doctoresCache.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("")}
         </select>
         <label class="lbl">Descripción</label>
-        <textarea id="a-control-desc" placeholder="Describe el control o procedimiento..."></textarea>
+        <textarea id="a-control-desc" placeholder="Describe el control..."></textarea>
       </div>`;
   }
 
   if (s==="Lost") return `<div class="info-box danger">❌ Lead perdido. No hay más acciones disponibles.</div>`;
 
   if (s==="Appointment Scheduled") {
-    const confirmado = l.cita_confirmada;
-    if (!confirmado) {
+    if (!l.cita_confirmada) {
       html += `<div class="info-box warning">⚠️ Cita agendada — pendiente de confirmar con el paciente.</div>
         <div class="toggle-wrap">
           <span class="toggle-label">Estado de confirmación:</span>
@@ -829,10 +1269,10 @@ function buildAsesor(l) {
           <label class="lbl">Seleccionar Doctor *</label>
           <select id="a-doctor-confirm">
             <option value="">Seleccionar doctor...</option>
-            ${doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id == d.id ? 'selected' : ''}>${d.nombre}</option>`).join("")}
+            ${doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id==d.id?'selected':''}>${d.nombre}</option>`).join("")}
           </select>
           <label class="lbl">Fecha/Hora de Consulta</label>
-          <input type="datetime-local" id="a-fecha-consulta" value="${l.treatment_date ? l.treatment_date.slice(0,16) : ''}">
+          <input type="datetime-local" id="a-fecha-consulta" value="${l.treatment_date?l.treatment_date.slice(0,16):''}">
         </div>
         <div id="block-reagendar" class="hidden">
           <label class="lbl">Nueva Fecha de Cita</label>
@@ -866,7 +1306,7 @@ function buildAsesor(l) {
   }
 
   if (s==="Treatment Proposal Sent") {
-    return `<div class="info-box info">📋 El médico envió la propuesta de tratamiento. Contacta al paciente para confirmar.</div>
+    return `<div class="info-box info">📋 El médico envió la propuesta. Contacta al paciente para confirmar.</div>
       <label class="lbl">Estado del Tratamiento</label>
       <select id="a-prop-accion" onchange="onPropAccion()">
         <option value="">— Sin cambio —</option>
@@ -876,7 +1316,7 @@ function buildAsesor(l) {
         <option value="lost">Marcar como Perdido</option>
       </select>
       <div id="a-trat-fecha-block" class="hidden">
-        <div class="info-box success" style="margin-top:.8rem">✅ Al confirmar, ingresa la fecha del tratamiento.</div>
+        <div class="info-box success" style="margin-top:.8rem">✅ Ingresa fecha del tratamiento.</div>
         <label class="lbl">Número de Paciente Medilink *</label>
         <input type="text" id="a-medilink" placeholder="Ej: ML-2024-001" value="${l.medilink_numero||''}">
         <label class="lbl">Fecha de Inicio del Tratamiento *</label>
@@ -916,13 +1356,13 @@ function buildAsesor(l) {
   }
 
   const transMap = {
-    "New Lead":       ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost"],
-    "First Contact":  ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost"],
-    "No Answer":      ["Follow Up","First Contact","Lost"],
-    "Follow Up":      ["Interested","Appointment Scheduled","Lost"],
-    "Interested":     ["Appointment Scheduled","Follow Up","Lost"],
+    "New Lead":["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost"],
+    "First Contact":["Follow Up","Interested","Appointment Scheduled","No Answer","Lost"],
+    "No Answer":["Follow Up","First Contact","Lost"],
+    "Follow Up":["Interested","Appointment Scheduled","Lost"],
+    "Interested":["Appointment Scheduled","Follow Up","Lost"],
   };
-  const trans = transMap[s] || [];
+  const trans = transMap[s]||[];
   if (!trans.length) return `<div class="info-box info">Estado: ${s}. Sin acciones disponibles.</div>`;
 
   html += `<label class="lbl">Cambiar Estado de Ventas</label>
@@ -947,24 +1387,21 @@ function buildAsesor(l) {
   return html;
 }
 
+// ══ DOCTOR MODAL ══
 function buildDoctor(l) {
   const m = l.medical_status||"";
   let html = "";
 
   if (m==="In Treatment") {
-    const hoy   = new Date();
-    const fin   = l.treatment_end_date ? new Date(l.treatment_end_date) : null;
-    const pasada = fin && fin < hoy;
+    const hoy=new Date(), fin=l.treatment_end_date?new Date(l.treatment_end_date):null;
+    const pasada=fin&&fin<hoy;
     if (pasada) {
-      html += `<div class="info-box danger">⚠️ La fecha de fin del tratamiento ya pasó (${fin.toLocaleDateString('es-CO')}). 
-        Por favor actualiza la fecha de finalización.</div>
+      html+=`<div class="info-box danger">⚠️ La fecha de fin ya pasó (${fin.toLocaleDateString('es-CO')}).</div>
         <label class="lbl">Actualizar Fecha de Fin del Tratamiento</label>
-        <input type="datetime-local" id="d-nueva-fecha-fin">
-        <div class="info-box warning" style="margin-top:.5rem">La nueva fecha debe ser hoy o posterior.</div>`;
+        <input type="datetime-local" id="d-nueva-fecha-fin">`;
       return html;
     }
-    html += `<div class="info-box info">🩺 Paciente en tratamiento activo.
-      ${fin?`Fecha fin estimada: <strong>${fin.toLocaleDateString('es-CO')}</strong>`:''}</div>
+    html+=`<div class="info-box info">🩺 Paciente en tratamiento activo.${fin?` Fin estimado: <strong>${fin.toLocaleDateString('es-CO')}</strong>`:''}</div>
       <label class="lbl">Acción</label>
       <select id="d-trat-accion" onchange="onTratAccion()">
         <option value="">— Seleccionar —</option>
@@ -1047,7 +1484,7 @@ function buildDoctor(l) {
       <label class="lbl">¿Enviar Propuesta de Tratamiento?</label>
       <select id="d-propuesta">
         <option value="">— Sin cambio —</option>
-        <option value="si">Sí — Enviar propuesta (vuelve al asesor)</option>
+        <option value="si">Sí — Enviar propuesta</option>
         <option value="no">No aún</option>
       </select>
       <label class="lbl" style="margin-top:.8rem">O marcar como rechazado</label>
@@ -1062,10 +1499,9 @@ function buildDoctor(l) {
   }
 
   if (m==="Treatment Scheduled") {
-    const inicio = l.treatment_start_date ? new Date(l.treatment_start_date).toLocaleString('es-CO') : "No definida";
-    const fin2   = l.treatment_end_date   ? new Date(l.treatment_end_date).toLocaleString('es-CO')   : "No definida";
-    return `<div class="info-box info">📅 Tratamiento agendado.<br>
-      Inicio: <strong>${inicio}</strong><br>Fin estimado: <strong>${fin2}</strong></div>
+    const inicio=l.treatment_start_date?new Date(l.treatment_start_date).toLocaleString('es-CO'):"No definida";
+    const fin2=l.treatment_end_date?new Date(l.treatment_end_date).toLocaleString('es-CO'):"No definida";
+    return `<div class="info-box info">📅 Tratamiento agendado.<br>Inicio: <strong>${inicio}</strong><br>Fin estimado: <strong>${fin2}</strong></div>
       <label class="lbl">Cuando el paciente llegue</label>
       <select id="d-trat-inicio-accion">
         <option value="">— Sin cambio —</option>
@@ -1092,6 +1528,7 @@ function buildDoctor(l) {
   return `<div class="info-box info">Estado médico: ${m||"—"}. Consulta con soporte si necesitas cambiar algo.</div>`;
 }
 
+// ══ SOPORTE MODAL ══
 function buildSoporte(l) {
   return `<div class="two-col">
     <div><label class="lbl">Estado Ventas</label>
@@ -1136,82 +1573,72 @@ function buildSoporte(l) {
 // ══════════════════════════════════════════════
 // EVENTOS DINÁMICOS MODAL
 // ══════════════════════════════════════════════
-let _citaToggle = false;
 function toggleConfirm() {
   _citaToggle = !_citaToggle;
-  const txt = document.getElementById("toggle-status-txt");
-  const btn = document.getElementById("btn-toggle-confirm");
-  const blockC = document.getElementById("block-confirmada");
-  const blockR = document.getElementById("block-reagendar");
-  txt.textContent = _citaToggle ? "Confirmada" : "Sin confirmar";
-  txt.className = "toggle-status " + (_citaToggle ? "confirmed" : "pending");
-  btn.textContent = _citaToggle ? "Quitar confirmación" : "Confirmar";
-  btn.className = "toggle-btn " + (_citaToggle ? "on" : "off");
-  blockC?.classList.toggle("hidden", !_citaToggle);
-  blockR?.classList.toggle("hidden", _citaToggle);
-  if (_citaToggle) document.getElementById("a-appt-accion").value = "";
+  const txt=document.getElementById("toggle-status-txt");
+  const btn=document.getElementById("btn-toggle-confirm");
+  const blockC=document.getElementById("block-confirmada");
+  txt.textContent=_citaToggle?"Confirmada":"Sin confirmar";
+  txt.className="toggle-status "+(_citaToggle?"confirmed":"pending");
+  btn.textContent=_citaToggle?"Quitar confirmación":"Confirmar";
+  btn.className="toggle-btn "+(_citaToggle?"on":"off");
+  blockC?.classList.toggle("hidden",!_citaToggle);
+  document.getElementById("block-reagendar")?.classList.toggle("hidden",_citaToggle);
+  if (_citaToggle) document.getElementById("a-appt-accion").value="";
 }
 
 function onApptAccion() {
-  const v = document.getElementById("a-appt-accion")?.value;
+  const v=document.getElementById("a-appt-accion")?.value;
   document.getElementById("block-confirmada")?.classList.add("hidden");
-  document.getElementById("block-reagendar")?.classList.toggle("hidden", v!=="reagendar");
-  document.getElementById("a-lost-block")?.classList.toggle("hidden", v!=="lost");
-  if (v) { _citaToggle = false; }
+  document.getElementById("block-reagendar")?.classList.toggle("hidden",v!=="reagendar");
+  document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
+  if (v) _citaToggle=false;
 }
-
 function onAsesorStatusChange() {
-  const v = document.getElementById("a-sales-status")?.value;
-  document.getElementById("a-agenda-block")?.classList.toggle("hidden", v!=="Appointment Scheduled");
-  document.getElementById("a-reject-block")?.classList.toggle("hidden", v!=="Lost");
+  const v=document.getElementById("a-sales-status")?.value;
+  document.getElementById("a-agenda-block")?.classList.toggle("hidden",v!=="Appointment Scheduled");
+  document.getElementById("a-reject-block")?.classList.toggle("hidden",v!=="Lost");
 }
-
 function onPropAccion() {
-  const v = document.getElementById("a-prop-accion")?.value;
-  document.getElementById("a-trat-fecha-block")?.classList.toggle("hidden", v!=="confirmado");
-  document.getElementById("a-lost-block")?.classList.toggle("hidden", v!=="lost");
+  const v=document.getElementById("a-prop-accion")?.value;
+  document.getElementById("a-trat-fecha-block")?.classList.toggle("hidden",v!=="confirmado");
+  document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
 }
-
 function onTratAccion() {
-  const v = document.getElementById("d-trat-accion")?.value;
-  document.getElementById("d-siguiente-block")?.classList.toggle("hidden", v!=="siguiente");
-  document.getElementById("d-abandono-block")?.classList.toggle("hidden", v!=="abandono");
+  const v=document.getElementById("d-trat-accion")?.value;
+  document.getElementById("d-siguiente-block")?.classList.toggle("hidden",v!=="siguiente");
+  document.getElementById("d-abandono-block")?.classList.toggle("hidden",v!=="abandono");
 }
-
 function onConsultaAccion() {
-  const v = document.getElementById("d-consulta-accion")?.value;
-  document.getElementById("d-candidato-block")?.classList.toggle("hidden", v!=="completada");
+  const v=document.getElementById("d-consulta-accion")?.value;
+  document.getElementById("d-candidato-block")?.classList.toggle("hidden",v!=="completada");
 }
-
 function onCandidatoChange() {
-  const v = document.getElementById("d-candidato")?.value;
-  document.getElementById("d-reject-reason-block")?.classList.toggle("hidden", v!=="rechazado");
-  document.getElementById("d-propuesta-block")?.classList.toggle("hidden", v!=="aprobado");
+  const v=document.getElementById("d-candidato")?.value;
+  document.getElementById("d-reject-reason-block")?.classList.toggle("hidden",v!=="rechazado");
+  document.getElementById("d-propuesta-block")?.classList.toggle("hidden",v!=="aprobado");
 }
-
 function onQuitReasonChange() {
-  const v = document.getElementById("d-quit-reason")?.value;
-  document.getElementById("d-quit-other")?.classList.toggle("hidden", v!=="Otros");
+  const v=document.getElementById("d-quit-reason")?.value;
+  document.getElementById("d-quit-other")?.classList.toggle("hidden",v!=="Otros");
 }
-
 function onDoctorControlChange() {
-  const v = document.getElementById("d-control-tipo")?.value;
-  document.getElementById("d-control-fecha-block")?.classList.toggle("hidden", !v);
+  const v=document.getElementById("d-control-tipo")?.value;
+  document.getElementById("d-control-fecha-block")?.classList.toggle("hidden",!v);
 }
-
 function onCancelAccion() {
-  const v = document.getElementById("a-cancel-accion")?.value;
-  document.getElementById("a-nueva-fecha-block")?.classList.toggle("hidden", !["reagendar_consulta","reagendar_trat"].includes(v));
-  document.getElementById("a-lost-block")?.classList.toggle("hidden", v!=="lost");
+  const v=document.getElementById("a-cancel-accion")?.value;
+  document.getElementById("a-nueva-fecha-block")?.classList.toggle("hidden",!["reagendar_consulta","reagendar_trat"].includes(v));
+  document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
 }
 
-document.addEventListener("change", e => {
-  if (e.target.id === "a-cancel-accion") onCancelAccion();
-  if (e.target.id === "d-candidato-override") {
-    document.getElementById("d-reject-reason-block")?.classList.toggle("hidden", e.target.value!=="rechazado");
+document.addEventListener("change",e=>{
+  if (e.target.id==="a-cancel-accion") onCancelAccion();
+  if (e.target.id==="d-candidato-override") {
+    document.getElementById("d-reject-reason-block")?.classList.toggle("hidden",e.target.value!=="rechazado");
   }
-  if (e.target.id === "a-control-tipo") {
-    document.getElementById("a-control-block")?.classList.toggle("hidden", !e.target.value);
+  if (e.target.id==="a-control-tipo") {
+    document.getElementById("a-control-block")?.classList.toggle("hidden",!e.target.value);
   }
 });
 
@@ -1220,208 +1647,94 @@ document.addEventListener("change", e => {
 // ══════════════════════════════════════════════
 async function guardarCambios() {
   if (!seleccionado) return;
-  const l = seleccionado;
-  const comentario = document.getElementById("m-comentario").value.trim();
-  const rol = usuario.rol;
-  let body = { lead_id:l.id, usuario_id:usuario.id, comentario };
+  const l=seleccionado;
+  const comentario=document.getElementById("m-comentario").value.trim();
+  const rol=usuario.rol;
+  let body={lead_id:l.id,usuario_id:usuario.id,comentario};
 
-  if (rol==="asesor")  { if (!buildBodyAsesor(body,l)) return; }
+  if (rol==="asesor") { if (!buildBodyAsesor(body,l)) return; }
   else if (rol==="doctor") { if (!buildBodyDoctor(body,l)) return; }
   else { buildBodySoporte(body); }
 
   await enviarCambios(body);
 }
 
-function buildBodyAsesor(body, l) {
-  const s = l.sales_status||"";
-
+function buildBodyAsesor(body,l) {
+  const s=l.sales_status||"";
   if (s==="Won") {
-    const tipo  = document.getElementById("a-control-tipo")?.value;
-    const fecha = document.getElementById("a-control-fecha")?.value;
-    const doc   = document.getElementById("a-control-doctor")?.value;
-    const desc  = document.getElementById("a-control-desc")?.value;
-    if (tipo) body.crear_control = { tipo, fecha_control:fecha, doctor_id:doc?parseInt(doc):null, descripcion:desc };
+    const tipo=document.getElementById("a-control-tipo")?.value;
+    const fecha=document.getElementById("a-control-fecha")?.value;
+    const doc=document.getElementById("a-control-doctor")?.value;
+    const desc=document.getElementById("a-control-desc")?.value;
+    if (tipo) body.crear_control={tipo,fecha_control:fecha,doctor_id:doc?parseInt(doc):null,descripcion:desc};
     return true;
   }
-
-  if (s==="Appointment Scheduled" && !l.cita_confirmada) {
-    const accion = document.getElementById("a-appt-accion")?.value;
-    if (accion==="cancelar") { body.sales_status="canceled treatment"; body.appointment_status="Canceled"; return true; }
-    if (accion==="lost") {
-      const reason = document.getElementById("a-lost-reason")?.value;
-      if (!reason) { toast("Selecciona razón de pérdida",true); return false; }
-      body.sales_status = "Lost"; body.rejection_reason = reason; return true;
-    }
-    if (accion==="reagendar") {
-      const fecha = document.getElementById("a-fecha-reagendar")?.value;
-      body.appointment_status = "Rescheduled";
-      if (fecha) body.treatment_date = fecha;
-      return true;
-    }
-    if (_citaToggle) {
-      const doc  = document.getElementById("a-doctor-confirm")?.value;
-      const fecha= document.getElementById("a-fecha-consulta")?.value;
-      if (!doc) { toast("Selecciona un doctor para confirmar",true); return false; }
-      body.appointment_status = "Confirmed";
-      body.doctor_id = parseInt(doc);
-      body.cita_confirmada = true;
-      if (fecha) body.treatment_date = fecha;
-      return true;
-    }
-    if (!body.comentario) { toast("Sin cambios para guardar",true); return false; }
+  if (s==="Appointment Scheduled"&&!l.cita_confirmada) {
+    const accion=document.getElementById("a-appt-accion")?.value;
+    if (accion==="cancelar"){body.sales_status="canceled treatment";body.appointment_status="Canceled";return true;}
+    if (accion==="lost"){const r=document.getElementById("a-lost-reason")?.value;if(!r){toast("Selecciona razón",true);return false;}body.sales_status="Lost";body.rejection_reason=r;return true;}
+    if (accion==="reagendar"){const f=document.getElementById("a-fecha-reagendar")?.value;body.appointment_status="Rescheduled";if(f)body.treatment_date=f;return true;}
+    if (_citaToggle){const doc=document.getElementById("a-doctor-confirm")?.value;const f=document.getElementById("a-fecha-consulta")?.value;if(!doc){toast("Selecciona un doctor",true);return false;}body.appointment_status="Confirmed";body.doctor_id=parseInt(doc);body.cita_confirmada=true;if(f)body.treatment_date=f;return true;}
+    if (!body.comentario){toast("Sin cambios para guardar",true);return false;}
     return true;
   }
-
   if (s==="Treatment Proposal Sent") {
-    const accion = document.getElementById("a-prop-accion")?.value;
-    if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
-    if (accion==="confirmado") {
-      const medilink = document.getElementById("a-medilink")?.value.trim();
-      const inicio   = document.getElementById("a-trat-fecha-inicio")?.value;
-      const fin      = document.getElementById("a-trat-fecha-fin")?.value;
-      if (!medilink) { toast("El número de Medilink es obligatorio",true); return false; }
-      if (!inicio)   { toast("Ingresa fecha de inicio del tratamiento",true); return false; }
-      if (!fin)      { toast("Ingresa fecha de fin del tratamiento",true); return false; }
-      if (new Date(fin) <= new Date(inicio)) { toast("La fecha de fin debe ser mayor al inicio",true); return false; }
-      body.sales_status="scheduled treatment"; body.medical_status="Treatment Scheduled";
-      body.medilink_numero=medilink; body.treatment_start_date=inicio; body.treatment_end_date=fin;
-      return true;
+    const accion=document.getElementById("a-prop-accion")?.value;
+    if (!accion&&!body.comentario){toast("Selecciona una acción",true);return false;}
+    if (accion==="confirmado"){
+      const ml=document.getElementById("a-medilink")?.value.trim();
+      const ini=document.getElementById("a-trat-fecha-inicio")?.value;
+      const fin=document.getElementById("a-trat-fecha-fin")?.value;
+      if(!ml){toast("El número Medilink es obligatorio",true);return false;}
+      if(!ini){toast("Ingresa fecha de inicio",true);return false;}
+      if(!fin){toast("Ingresa fecha de fin",true);return false;}
+      if(new Date(fin)<=new Date(ini)){toast("Fecha fin debe ser mayor al inicio",true);return false;}
+      body.sales_status="scheduled treatment";body.medical_status="Treatment Scheduled";
+      body.medilink_numero=ml;body.treatment_start_date=ini;body.treatment_end_date=fin;return true;
     }
-    if (accion==="cancelado") { body.sales_status="canceled treatment"; body.appointment_status="Canceled"; return true; }
-    if (accion==="no_show")   { body.sales_status="canceled treatment"; body.appointment_status="No Show"; return true; }
-    if (accion==="lost") {
-      const reason = document.getElementById("a-lost-reason")?.value;
-      if (!reason) { toast("Selecciona razón de pérdida",true); return false; }
-      body.sales_status="Lost"; body.rejection_reason=reason; return true;
-    }
+    if (accion==="cancelado"){body.sales_status="canceled treatment";body.appointment_status="Canceled";return true;}
+    if (accion==="no_show"){body.sales_status="canceled treatment";body.appointment_status="No Show";return true;}
+    if (accion==="lost"){const r=document.getElementById("a-lost-reason")?.value;if(!r){toast("Selecciona razón",true);return false;}body.sales_status="Lost";body.rejection_reason=r;return true;}
     return true;
   }
-
   if (s==="canceled treatment") {
-    const accion = document.getElementById("a-cancel-accion")?.value;
-    if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
-    if (accion==="reagendar_consulta") {
-      body.sales_status="Appointment Scheduled"; body.appointment_status="Scheduled"; body.cita_confirmada=false;
-      const fecha=document.getElementById("a-nueva-fecha")?.value;
-      const doc=document.getElementById("a-nueva-doctor")?.value;
-      if (fecha) body.treatment_date=fecha;
-      if (doc)   body.doctor_id=parseInt(doc);
-      return true;
-    }
-    if (accion==="reagendar_trat") {
-      body.sales_status="Treatment Proposal Sent";
-      const fecha=document.getElementById("a-nueva-fecha")?.value;
-      if (fecha) body.treatment_date=fecha;
-      return true;
-    }
-    if (accion==="follow_up") { body.sales_status="Follow Up"; return true; }
-    if (accion==="lost") {
-      const reason=document.getElementById("a-lost-reason")?.value;
-      if (!reason) { toast("Selecciona razón",true); return false; }
-      body.sales_status="Lost"; body.rejection_reason=reason; return true;
-    }
+    const accion=document.getElementById("a-cancel-accion")?.value;
+    if (!accion&&!body.comentario){toast("Selecciona una acción",true);return false;}
+    if (accion==="reagendar_consulta"){body.sales_status="Appointment Scheduled";body.appointment_status="Scheduled";body.cita_confirmada=false;const f=document.getElementById("a-nueva-fecha")?.value;const d=document.getElementById("a-nueva-doctor")?.value;if(f)body.treatment_date=f;if(d)body.doctor_id=parseInt(d);return true;}
+    if (accion==="reagendar_trat"){body.sales_status="Treatment Proposal Sent";const f=document.getElementById("a-nueva-fecha")?.value;if(f)body.treatment_date=f;return true;}
+    if (accion==="follow_up"){body.sales_status="Follow Up";return true;}
+    if (accion==="lost"){const r=document.getElementById("a-lost-reason")?.value;if(!r){toast("Selecciona razón",true);return false;}body.sales_status="Lost";body.rejection_reason=r;return true;}
     return true;
   }
-
-  const newStatus = document.getElementById("a-sales-status")?.value;
-  if (!newStatus && !body.comentario) { toast("Selecciona un estado o escribe un comentario",true); return false; }
+  const newStatus=document.getElementById("a-sales-status")?.value;
+  if (!newStatus&&!body.comentario){toast("Selecciona un estado o escribe un comentario",true);return false;}
   if (newStatus) {
-    body.sales_status = newStatus;
-    if (newStatus==="Appointment Scheduled") {
-      body.appointment_status="Scheduled"; body.cita_confirmada=false;
-      const doc=document.getElementById("a-doctor-agenda")?.value;
-      const fecha=document.getElementById("a-fecha-agenda")?.value;
-      if (doc)   body.doctor_id=parseInt(doc);
-      if (fecha) body.treatment_date=fecha;
-    }
-    if (newStatus==="Lost") {
-      const reason=document.getElementById("a-lost-reason")?.value;
-      if (!reason) { toast("Selecciona razón de pérdida",true); return false; }
-      body.rejection_reason=reason;
-    }
+    body.sales_status=newStatus;
+    if (newStatus==="Appointment Scheduled"){body.appointment_status="Scheduled";body.cita_confirmada=false;const d=document.getElementById("a-doctor-agenda")?.value;const f=document.getElementById("a-fecha-agenda")?.value;if(d)body.doctor_id=parseInt(d);if(f)body.treatment_date=f;}
+    if (newStatus==="Lost"){const r=document.getElementById("a-lost-reason")?.value;if(!r){toast("Selecciona razón de pérdida",true);return false;}body.rejection_reason=r;}
   }
   return true;
 }
 
-function buildBodyDoctor(body, l) {
-  const m = l.medical_status||"";
-
-  if (document.getElementById("d-nueva-fecha-fin")) {
-    const nf=document.getElementById("d-nueva-fecha-fin")?.value;
-    if (!nf) { toast("Ingresa la nueva fecha de fin",true); return false; }
-    if (new Date(nf) < new Date()) { toast("La fecha debe ser hoy o posterior",true); return false; }
-    body.treatment_end_date=nf; return true;
-  }
-
-  if (m==="In Treatment") {
-    const accion=document.getElementById("d-trat-accion")?.value;
-    if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
-    if (accion==="completado") { body.mark_treatment_completed=true; return true; }
-    if (accion==="siguiente") {
-      const nd=document.getElementById("d-next-date")?.value;
-      if (!nd) { toast("Ingresa fecha de próxima sesión",true); return false; }
-      body.next_treatment_date=nd; return true;
-    }
-    if (accion==="no_show") { body.appointment_status="No Show"; body.sales_status="canceled treatment"; return true; }
-    if (accion==="abandono") {
-      let motivo=document.getElementById("d-quit-reason")?.value;
-      if (motivo==="Otros") motivo=document.getElementById("d-quit-other")?.value||"No especificado";
-      if (!motivo) { toast("Indica el motivo de abandono",true); return false; }
-      body.quit_reason=motivo; body.sales_status="Lost"; return true;
-    }
-    return true;
-  }
-
-  if (m==="Pending Evaluation") {
-    const consulta=document.getElementById("d-consulta-accion")?.value;
-    if (!consulta && !body.comentario) { toast("Selecciona el estado de la consulta",true); return false; }
-    if (consulta==="cancelada") { body.medical_status=null; body.appointment_status="Canceled"; body.sales_status="canceled treatment"; return true; }
-    if (consulta==="completada") { body.medical_status="Consultation Completed"; body.appointment_status="Completed"; return _procesarCandidato(body); }
-    return true;
-  }
-
+function buildBodyDoctor(body,l) {
+  const m=l.medical_status||"";
+  if (document.getElementById("d-nueva-fecha-fin")){const nf=document.getElementById("d-nueva-fecha-fin")?.value;if(!nf){toast("Ingresa la nueva fecha de fin",true);return false;}if(new Date(nf)<new Date()){toast("La fecha debe ser hoy o posterior",true);return false;}body.treatment_end_date=nf;return true;}
+  if (m==="In Treatment"){const accion=document.getElementById("d-trat-accion")?.value;if(!accion&&!body.comentario){toast("Selecciona una acción",true);return false;}if(accion==="completado"){body.mark_treatment_completed=true;return true;}if(accion==="siguiente"){const nd=document.getElementById("d-next-date")?.value;if(!nd){toast("Ingresa fecha de próxima sesión",true);return false;}body.next_treatment_date=nd;return true;}if(accion==="no_show"){body.appointment_status="No Show";body.sales_status="canceled treatment";return true;}if(accion==="abandono"){let motivo=document.getElementById("d-quit-reason")?.value;if(motivo==="Otros")motivo=document.getElementById("d-quit-other")?.value||"No especificado";if(!motivo){toast("Indica el motivo",true);return false;}body.quit_reason=motivo;body.sales_status="Lost";return true;}return true;}
+  if (m==="Pending Evaluation"){const c=document.getElementById("d-consulta-accion")?.value;if(!c&&!body.comentario){toast("Selecciona el estado de la consulta",true);return false;}if(c==="cancelada"){body.medical_status=null;body.appointment_status="Canceled";body.sales_status="canceled treatment";return true;}if(c==="completada"){body.medical_status="Consultation Completed";body.appointment_status="Completed";return _procesarCandidato(body);}return true;}
   if (["Consultation Completed","Candidate Approved"].includes(m)) return _procesarCandidato(body);
-
-  if (m==="Treatment Scheduled") {
-    const accion=document.getElementById("d-trat-inicio-accion")?.value;
-    if (!accion && !body.comentario) { toast("Selecciona una acción",true); return false; }
-    if (accion==="iniciar") { body.medical_status="In Treatment"; body.appointment_status="Attended"; return true; }
-    if (accion==="no_show") { body.appointment_status="No Show"; body.sales_status="canceled treatment"; body.medical_status=null; return true; }
-    if (accion==="cancelar") { body.appointment_status="Canceled"; body.sales_status="canceled treatment"; body.medical_status=null; return true; }
-    return true;
-  }
-
-  if (m==="Treatment Completed") {
-    const tipo=document.getElementById("d-control-tipo")?.value;
-    const fecha=document.getElementById("d-control-fecha")?.value;
-    if (tipo) body.crear_control={tipo,fecha_control:fecha,doctor_id:usuario.id};
-    return true;
-  }
-
+  if (m==="Treatment Scheduled"){const accion=document.getElementById("d-trat-inicio-accion")?.value;if(!accion&&!body.comentario){toast("Selecciona una acción",true);return false;}if(accion==="iniciar"){body.medical_status="In Treatment";body.appointment_status="Attended";return true;}if(accion==="no_show"){body.appointment_status="No Show";body.sales_status="canceled treatment";body.medical_status=null;return true;}if(accion==="cancelar"){body.appointment_status="Canceled";body.sales_status="canceled treatment";body.medical_status=null;return true;}return true;}
+  if (m==="Treatment Completed"){const tipo=document.getElementById("d-control-tipo")?.value;const fecha=document.getElementById("d-control-fecha")?.value;if(tipo)body.crear_control={tipo,fecha_control:fecha,doctor_id:usuario.id};return true;}
   const override=document.getElementById("d-candidato-override")?.value;
-  if (override==="rechazado") {
-    const reason=document.getElementById("d-reject-reason")?.value;
-    if (!reason) { toast("Selecciona razón de rechazo",true); return false; }
-    body.medical_status="Candidate Rejected"; body.rejection_reason=reason; body.sales_status="Lost"; return true;
-  }
+  if (override==="rechazado"){const r=document.getElementById("d-reject-reason")?.value;if(!r){toast("Selecciona razón",true);return false;}body.medical_status="Candidate Rejected";body.rejection_reason=r;body.sales_status="Lost";return true;}
   return _procesarCandidato(body);
 }
 
 function _procesarCandidato(body) {
   const candidato=document.getElementById("d-candidato")?.value;
-  if (candidato==="rechazado") {
-    const reason=document.getElementById("d-reject-reason")?.value;
-    if (!reason) { toast("Selecciona razón de rechazo",true); return false; }
-    body.medical_status="Candidate Rejected"; body.rejection_reason=reason; body.sales_status="Lost"; return true;
-  }
-  if (candidato==="aprobado") {
-    body.medical_status="Candidate Approved";
-    const propuesta=document.getElementById("d-propuesta")?.value;
-    if (propuesta==="si") { body.medical_status="Treatment Proposal Sent"; body.sales_status="Treatment Proposal Sent"; body.appointment_status="Sent"; }
-    return true;
-  }
-  const propuesta=document.getElementById("d-propuesta")?.value;
-  if (propuesta==="si") { body.medical_status="Treatment Proposal Sent"; body.sales_status="Treatment Proposal Sent"; body.appointment_status="Sent"; return true; }
+  if (candidato==="rechazado"){const r=document.getElementById("d-reject-reason")?.value;if(!r){toast("Selecciona razón",true);return false;}body.medical_status="Candidate Rejected";body.rejection_reason=r;body.sales_status="Lost";return true;}
+  if (candidato==="aprobado"){body.medical_status="Candidate Approved";const p=document.getElementById("d-propuesta")?.value;if(p==="si"){body.medical_status="Treatment Proposal Sent";body.sales_status="Treatment Proposal Sent";body.appointment_status="Sent";}return true;}
+  const p=document.getElementById("d-propuesta")?.value;
+  if (p==="si"){body.medical_status="Treatment Proposal Sent";body.sales_status="Treatment Proposal Sent";body.appointment_status="Sent";return true;}
   return true;
 }
 
@@ -1434,14 +1747,14 @@ function buildBodySoporte(body) {
   const tfin=document.getElementById("sp-trat-fin")?.value;
   const medilink=document.getElementById("sp-medilink")?.value;
   const conf=document.getElementById("sp-confirmada")?.value;
-  if (sales)    body.sales_status=sales;
-  if (appt)     body.appointment_status=appt;
-  if (medical)  body.medical_status=medical;
-  if (doctor)   body.doctor_id=parseInt(doctor);
-  if (tini)     body.treatment_start_date=tini;
-  if (tfin)     body.treatment_end_date=tfin;
+  if (sales) body.sales_status=sales;
+  if (appt)  body.appointment_status=appt;
+  if (medical) body.medical_status=medical;
+  if (doctor) body.doctor_id=parseInt(doctor);
+  if (tini) body.treatment_start_date=tini;
+  if (tfin) body.treatment_end_date=tfin;
   if (medilink) body.medilink_numero=medilink;
-  if (conf==="true")  body.cita_confirmada=true;
+  if (conf==="true") body.cita_confirmada=true;
   if (conf==="false") body.cita_confirmada=false;
 }
 
@@ -1451,7 +1764,9 @@ async function enviarCambios(body) {
     if (res.ok) {
       const data=await res.json();
       toast("✅ "+(data.message||"Guardado"));
-      cerrarModal(); cargarLeads();
+      cerrarModal();
+      cargarLeads();
+      if (calInstance) calInstance.refetchEvents();
     } else {
       const err=await res.json();
       toast("❌ "+(err.detail||"Error al guardar"),true);
@@ -1459,8 +1774,11 @@ async function enviarCambios(body) {
   } catch(e) { toast("❌ Error de conexión",true); }
 }
 
-function cerrarModal() { document.getElementById("modal").classList.remove("open"); seleccionado=null; _citaToggle=false; }
-document.getElementById("modal").addEventListener("click",e=>{ if(e.target===document.getElementById("modal")) cerrarModal(); });
+function cerrarModal() {
+  document.getElementById("modal").classList.remove("open");
+  seleccionado=null; _citaToggle=false;
+}
+document.getElementById("modal").addEventListener("click",e=>{if(e.target===document.getElementById("modal"))cerrarModal();});
 
 // ══════════════════════════════════════════════
 // HISTORIAL
@@ -1471,14 +1789,14 @@ async function cargarHistorial(leadId) {
     const res=await fetch(`${API}/leads/${leadId}/historial`,{headers:H});
     const data=await res.json();
     const hist=data.historial||[];
-    if (!hist.length) { el.innerHTML='<div class="history-item" style="color:var(--text3)">Sin cambios</div>'; return; }
+    if (!hist.length){el.innerHTML='<div class="history-item" style="color:var(--text3)">Sin cambios</div>';return;}
     el.innerHTML=hist.map(h=>`
       <div class="history-item">
         <span class="history-who">${h.nombre||"Sistema"}</span> → <span>${h.estado_nuevo||"—"}</span>
         <span class="history-date"> · ${new Date(h.fecha).toLocaleString('es-CO')}</span>
         ${h.comentario?`<br><span style="color:var(--text3);font-size:.75rem">${h.comentario}</span>`:''}
       </div>`).join("");
-  } catch(e) { el.innerHTML='<div style="color:var(--red)">Error al cargar</div>'; }
+  } catch(e){el.innerHTML='<div style="color:var(--red)">Error al cargar</div>';}
 }
 
 // ══════════════════════════════════════════════
@@ -1488,6 +1806,7 @@ async function cargarDoctores() {
   try {
     const res=await fetch(`${API}/doctores`,{headers:H});
     doctoresCache=(await res.json()).usuarios||[];
+    renderCalDocButtons();
   } catch(e) {}
 }
 
@@ -1502,53 +1821,22 @@ async function cargarAsesoresParaForm() {
 }
 
 // ══════════════════════════════════════════════
-// AGENDA DOCTORES
-// ══════════════════════════════════════════════
-async function verAgendaDoctores() {
-  document.getElementById("modal-agenda").classList.add("open");
-  try {
-    const res=await fetch(`${API}/agenda`,{headers:H});
-    const data=await res.json();
-    const slots=data.slots||[];
-    const el=document.getElementById("agenda-body");
-    if (!slots.length) { el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3)">Sin citas agendadas</div>'; return; }
-    const byDoc={};
-    slots.forEach(s=>{ if (!byDoc[s.doctor_nombre]) byDoc[s.doctor_nombre]=[]; byDoc[s.doctor_nombre].push(s); });
-    el.innerHTML=Object.entries(byDoc).map(([doc,citas])=>`
-      <div style="margin-bottom:1.2rem">
-        <div style="font-weight:700;color:var(--accent);margin-bottom:.5rem;font-size:.9rem">🩺 ${doc}</div>
-        ${citas.map(c=>`
-          <div class="agenda-slot">
-            <span class="agenda-slot-time">${new Date(c.fecha_inicio).toLocaleString('es-CO')}</span>
-            <span class="agenda-slot-name">${c.paciente||"—"}</span>
-            <span class="agenda-slot-tipo">${c.tipo}</span>
-            <span class="badge b-sched">${c.estado}</span>
-          </div>`).join("")}
-      </div>`).join("");
-  } catch(e) {
-    document.getElementById("agenda-body").innerHTML='<div style="color:var(--text3);text-align:center;padding:2rem">No se pudo cargar la agenda.</div>';
-  }
-}
-document.getElementById("modal-agenda").addEventListener("click",e=>{ if(e.target===document.getElementById("modal-agenda")) document.getElementById("modal-agenda").classList.remove("open"); });
-
-// ══════════════════════════════════════════════
 // NUEVO LEAD
 // ══════════════════════════════════════════════
 async function abrirNuevoLead() {
   await cargarAsesoresParaForm();
-  ["nl-nombre","nl-telefono","nl-email","nl-ciudad","nl-categoria-custom","nl-notas"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-  ["nl-genero","nl-canal","nl-categoria","nl-asesor","nl-doctor","nl-estado-inicial"].forEach(id=>{ const el=document.getElementById(id); if(el) el.selectedIndex=0; });
+  ["nl-nombre","nl-telefono","nl-email","nl-ciudad","nl-categoria-custom","nl-notas"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  ["nl-genero","nl-canal","nl-categoria","nl-asesor","nl-doctor","nl-estado-inicial"].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   document.getElementById("nl-canal").value="Manual";
   document.getElementById("modal-nuevo").classList.add("open");
 }
-
-function cerrarModalNuevo() { document.getElementById("modal-nuevo").classList.remove("open"); }
+function cerrarModalNuevo(){document.getElementById("modal-nuevo").classList.remove("open");}
 
 async function crearLead() {
   const nombre=document.getElementById("nl-nombre").value.trim();
   const telefono=document.getElementById("nl-telefono").value.trim();
   const email=document.getElementById("nl-email").value.trim();
-  if (!nombre||!telefono) { toast("❌ Nombre y teléfono son obligatorios",true); return; }
+  if (!nombre||!telefono){toast("❌ Nombre y teléfono son obligatorios",true);return;}
   const catSelect=document.getElementById("nl-categoria").value;
   const catCustom=document.getElementById("nl-categoria-custom").value.trim();
   const categoria=catSelect==="Otro"&&catCustom?catCustom:catSelect;
@@ -1566,44 +1854,25 @@ async function crearLead() {
   };
   try {
     const res=await fetch(`${API}/leads`,{method:"POST",headers:H,body:JSON.stringify(body)});
-    if (res.ok) { const data=await res.json(); toast(`✅ Lead creado — ID #${data.id}`); cerrarModalNuevo(); cargarLeads(); }
-    else { const err=await res.json(); toast("❌ "+(err.detail||"Error al crear lead"),true); }
-  } catch(e) { toast("❌ Error de conexión",true); }
+    if (res.ok){const data=await res.json();toast(`✅ Lead creado — ID #${data.id}`);cerrarModalNuevo();cargarLeads();}
+    else{const err=await res.json();toast("❌ "+(err.detail||"Error al crear lead"),true);}
+  } catch(e){toast("❌ Error de conexión",true);}
 }
-document.getElementById("modal-nuevo").addEventListener("click",e=>{ if(e.target===document.getElementById("modal-nuevo")) cerrarModalNuevo(); });
-
-// ══════════════════════════════════════════════
-// BÚSQUEDA
-// ══════════════════════════════════════════════
-function buscarLeads(query) {
-  const q=query.toLowerCase().trim();
-  leads=!q?[...todosLeads]:todosLeads.filter(l=>(l.nombre||"").toLowerCase().includes(q)||(l.telefono||"").toLowerCase().includes(q)||(l.email||"").toLowerCase().includes(q));
-  renderLeads();
-  document.getElementById("s-total").textContent=leads.length;
-}
+document.getElementById("modal-nuevo").addEventListener("click",e=>{if(e.target===document.getElementById("modal-nuevo"))cerrarModalNuevo();});
 
 // ══════════════════════════════════════════════
 // USUARIOS
 // ══════════════════════════════════════════════
 let todosUsuarios=[],filtroUsuario="todos";
-
-async function abrirGestionUsuarios() {
-  document.getElementById("modal-usuarios").classList.add("open");
-  switchUserTab("lista"); await cargarTodosUsuarios();
+async function abrirGestionUsuarios(){document.getElementById("modal-usuarios").classList.add("open");switchUserTab("lista");await cargarTodosUsuarios();}
+async function cargarTodosUsuarios(){
+  try{const res=await fetch(`${API}/usuarios`,{headers:H});todosUsuarios=(await res.json()).usuarios||[];renderUsuarios();}
+  catch(e){document.getElementById("usuarios-list-body").innerHTML='<div style="color:var(--red);padding:2rem">Error</div>';}
 }
-
-async function cargarTodosUsuarios() {
-  try {
-    const res=await fetch(`${API}/usuarios`,{headers:H});
-    todosUsuarios=(await res.json()).usuarios||[];
-    renderUsuarios();
-  } catch(e) { document.getElementById("usuarios-list-body").innerHTML='<div style="color:var(--red);padding:2rem">Error</div>'; }
-}
-
-function renderUsuarios() {
+function renderUsuarios(){
   const container=document.getElementById("usuarios-list-body");
   let lista=filtroUsuario==="todos"?todosUsuarios:todosUsuarios.filter(u=>u.rol===filtroUsuario);
-  if (!lista.length) { container.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3)">Sin usuarios</div>'; return; }
+  if (!lista.length){container.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3)">Sin usuarios</div>';return;}
   const aC={"asesor":"ua-asesor","doctor":"ua-doctor","soporte":"ua-soporte"};
   const rC={"asesor":"ur-asesor","doctor":"ur-doctor","soporte":"ur-soporte"};
   const rL={"asesor":"Asesor","doctor":"Doctor","soporte":"Soporte"};
@@ -1618,113 +1887,68 @@ function renderUsuarios() {
       <span class="user-rol-badge ${rC[u.rol]||''}">${rL[u.rol]||u.rol}</span>
     </div>`).join("");
 }
-
-function filtrarUsuarios(rol) {
-  filtroUsuario=rol;
-  document.querySelectorAll("[id^='uf-']").forEach(b=>b.classList.remove("active"));
-  document.getElementById(`uf-${rol}`)?.classList.add("active");
-  renderUsuarios();
-}
-
-function switchUserTab(tab) {
-  document.getElementById("gu-lista").classList.toggle("hidden",tab!=="lista");
-  document.getElementById("gu-nuevo").classList.toggle("hidden",tab!=="nuevo");
-  document.getElementById("tab-lista").classList.toggle("active",tab==="lista");
-  document.getElementById("tab-nuevo").classList.toggle("active",tab==="nuevo");
-  if (tab==="lista") cargarTodosUsuarios();
-}
-
-async function crearUsuario() {
+function filtrarUsuarios(rol){filtroUsuario=rol;document.querySelectorAll("[id^='uf-']").forEach(b=>b.classList.remove("active"));document.getElementById(`uf-${rol}`)?.classList.add("active");renderUsuarios();}
+function switchUserTab(tab){document.getElementById("gu-lista").classList.toggle("hidden",tab!=="lista");document.getElementById("gu-nuevo").classList.toggle("hidden",tab!=="nuevo");document.getElementById("tab-lista").classList.toggle("active",tab==="lista");document.getElementById("tab-nuevo").classList.toggle("active",tab==="nuevo");if(tab==="lista")cargarTodosUsuarios();}
+async function crearUsuario(){
   const nombre=document.getElementById("nu-nombre").value.trim();
   const email=document.getElementById("nu-email").value.trim();
   const password=document.getElementById("nu-password").value;
   const rol=document.getElementById("nu-rol").value;
-  if (!nombre||!email||!password||!rol) { toast("❌ Completa todos los campos obligatorios",true); return; }
-  if (password.length<6) { toast("❌ Contraseña mínimo 6 caracteres",true); return; }
-  try {
+  if (!nombre||!email||!password||!rol){toast("❌ Completa todos los campos obligatorios",true);return;}
+  if (password.length<6){toast("❌ Contraseña mínimo 6 caracteres",true);return;}
+  try{
     const res=await fetch(`${API}/usuarios`,{method:"POST",headers:H,body:JSON.stringify({nombre,email,password,rol,telefono:document.getElementById("nu-telefono").value.trim(),idiomas:document.getElementById("nu-idiomas").value})});
-    if (res.ok) { toast("✅ Usuario creado"); ["nu-nombre","nu-email","nu-password","nu-telefono"].forEach(id=>document.getElementById(id).value=""); switchUserTab("lista"); }
-    else { const err=await res.json(); toast("❌ "+(err.detail||"Error"),true); }
-  } catch(e) { toast("❌ Error de conexión",true); }
+    if(res.ok){toast("✅ Usuario creado");["nu-nombre","nu-email","nu-password","nu-telefono"].forEach(id=>document.getElementById(id).value="");switchUserTab("lista");}
+    else{const err=await res.json();toast("❌ "+(err.detail||"Error"),true);}
+  }catch(e){toast("❌ Error de conexión",true);}
 }
-document.getElementById("modal-usuarios").addEventListener("click",e=>{ if(e.target===document.getElementById("modal-usuarios")) document.getElementById("modal-usuarios").classList.remove("open"); });
-
-// ══════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════
-function toast(msg,err=false) {
-  const t=document.createElement("div");
-  t.className="toast "+(err?"toast-err":"toast-ok");
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),4000);
-}
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape") {
-    cerrarModal(); cerrarModalNuevo();
-    document.getElementById("modal-usuarios").classList.remove("open");
-    document.getElementById("modal-agenda").classList.remove("open");
-    cerrarCambiarPassword();
-
-  }
-});
+document.getElementById("modal-usuarios").addEventListener("click",e=>{if(e.target===document.getElementById("modal-usuarios"))document.getElementById("modal-usuarios").classList.remove("open");});
 
 // ══════════════════════════════════════════════
 // CAMBIAR CONTRASEÑA
 // ══════════════════════════════════════════════
-function abrirCambiarPassword() {
-  document.getElementById("cp-nueva").value = "";
-  document.getElementById("cp-confirma").value = "";
-  document.getElementById("cp-match-msg").textContent = "";
-  const btn = document.getElementById("cp-btn-guardar");
-  btn.disabled = true; btn.style.opacity = ".4"; btn.style.cursor = "not-allowed";
-  document.getElementById("cp-usuario-info").textContent =
-    `${usuario.nombre} · ${usuario.email}`;
+function abrirCambiarPassword(){
+  document.getElementById("cp-nueva").value="";document.getElementById("cp-confirma").value="";
+  document.getElementById("cp-match-msg").textContent="";
+  const btn=document.getElementById("cp-btn-guardar");btn.disabled=true;btn.style.opacity=".4";btn.style.cursor="not-allowed";
+  document.getElementById("cp-usuario-info").textContent=`${usuario.nombre} · ${usuario.email}`;
   document.getElementById("modal-password").classList.add("open");
 }
-
-function cerrarCambiarPassword() {
-  document.getElementById("modal-password").classList.remove("open");
+function cerrarCambiarPassword(){document.getElementById("modal-password").classList.remove("open");}
+function validarPasswords(){
+  const nueva=document.getElementById("cp-nueva").value;
+  const confirma=document.getElementById("cp-confirma").value;
+  const msg=document.getElementById("cp-match-msg");
+  const btn=document.getElementById("cp-btn-guardar");
+  if (!nueva){msg.textContent="";btn.disabled=true;btn.style.opacity=".4";btn.style.cursor="not-allowed";return;}
+  if (nueva.length<6){msg.style.color="var(--red)";msg.textContent="Mínimo 6 caracteres.";btn.disabled=true;btn.style.opacity=".4";btn.style.cursor="not-allowed";return;}
+  if (!confirma){msg.textContent="";btn.disabled=true;btn.style.opacity=".4";btn.style.cursor="not-allowed";return;}
+  if (nueva!==confirma){msg.style.color="var(--red)";msg.textContent="❌ Las contraseñas no coinciden.";btn.disabled=true;btn.style.opacity=".4";btn.style.cursor="not-allowed";return;}
+  msg.style.color="var(--green)";msg.textContent="✅ Las contraseñas coinciden.";btn.disabled=false;btn.style.opacity="1";btn.style.cursor="pointer";
 }
+async function guardarPassword(){
+  const nueva=document.getElementById("cp-nueva").value;
+  try{
+    const res=await fetch(`${API}/usuarios/${usuario.id}/password`,{method:"PUT",headers:H,body:JSON.stringify({nueva_password:nueva})});
+    if(res.ok){toast("✅ Contraseña actualizada correctamente");cerrarCambiarPassword();}
+    else{const err=await res.json();toast("❌ "+(err.detail||"Error al actualizar"),true);}
+  }catch(e){toast("❌ Error de conexión",true);}
+}
+document.getElementById("modal-password").addEventListener("click",e=>{if(e.target===document.getElementById("modal-password"))cerrarCambiarPassword();});
 
-function validarPasswords() {
-  const nueva    = document.getElementById("cp-nueva").value;
-  const confirma = document.getElementById("cp-confirma").value;
-  const msg      = document.getElementById("cp-match-msg");
-  const btn      = document.getElementById("cp-btn-guardar");
-  if (!nueva) { msg.textContent = ""; btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return; }
-  if (nueva.length < 6) {
-    msg.style.color = "var(--red)"; msg.textContent = "Mínimo 6 caracteres.";
-    btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return;
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function toast(msg,err=false){
+  const t=document.createElement("div");t.className="toast "+(err?"toast-err":"toast-ok");t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),4000);
+}
+document.addEventListener("keydown",e=>{
+  if (e.key==="Escape"){
+    cerrarModal();cerrarModalNuevo();
+    document.getElementById("modal-usuarios").classList.remove("open");
+    cerrarCambiarPassword();
   }
-  if (!confirma) { msg.textContent = ""; btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return; }
-  if (nueva !== confirma) {
-    msg.style.color = "var(--red)"; msg.textContent = "❌ Las contraseñas no coinciden.";
-    btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return;
-  }
-  msg.style.color = "var(--green)"; msg.textContent = "✅ Las contraseñas coinciden.";
-  btn.disabled=false; btn.style.opacity="1"; btn.style.cursor="pointer";
-}
-
-async function guardarPassword() {
-  const nueva = document.getElementById("cp-nueva").value;
-  try {
-    const res = await fetch(`${API}/usuarios/${usuario.id}/password`, {
-      method: "PUT", headers: H,
-      body: JSON.stringify({ nueva_password: nueva })
-    });
-    if (res.ok) {
-      toast("✅ Contraseña actualizada correctamente");
-      cerrarCambiarPassword();
-    } else {
-      const err = await res.json();
-      toast("❌ " + (err.detail || "Error al actualizar"), true);
-    }
-  } catch(e) { toast("❌ Error de conexión", true); }
-}
-
-document.getElementById("modal-password").addEventListener("click", e => {
-  if (e.target === document.getElementById("modal-password")) cerrarCambiarPassword();
 });
 </script>
 </body>
