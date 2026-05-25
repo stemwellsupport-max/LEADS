@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stemwell CRM v7</title>
+<title>MATTHEW GOD</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -222,6 +222,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
         <button class="btn-header" onclick="verAgendaDoctores()">📅 Ver Agenda Doctores</button>
       </div>
       <span class="role-badge" id="user-info">—</span>
+      <button class="btn-logout" onclick="abrirCambiarPassword()" style="border-color:var(--border2)">🔑 Contraseña</button>
       <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
   </div>
@@ -417,6 +418,29 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
         <button class="btn-save" onclick="crearUsuario()">✅ Crear Usuario</button>
         <button class="btn-close" onclick="switchUserTab('lista')">Cancelar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CAMBIAR CONTRASEÑA ══ -->
+<div class="modal" id="modal-password">
+  <div class="modal-content" style="width:420px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem">
+      <div>
+        <h3>🔑 Cambiar Contraseña</h3>
+        <div class="modal-meta" id="cp-usuario-info">—</div>
+      </div>
+      <button class="btn-close" onclick="cerrarCambiarPassword()">✕</button>
+    </div>
+    <label class="lbl">Nueva Contraseña *</label>
+    <input type="password" id="cp-nueva" placeholder="Mínimo 6 caracteres" oninput="validarPasswords()">
+    <label class="lbl">Confirmar Contraseña *</label>
+    <input type="password" id="cp-confirma" placeholder="Repite la contraseña" oninput="validarPasswords()">
+    <div id="cp-match-msg" style="font-size:.78rem;margin-top:.5rem;min-height:1.2rem"></div>
+    <div class="modal-actions" style="margin-top:1rem">
+      <button class="btn-save" id="cp-btn-guardar" onclick="guardarPassword()" disabled
+        style="opacity:.4;cursor:not-allowed">💾 Guardar</button>
+      <button class="btn-close" onclick="cerrarCambiarPassword()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1640,7 +1664,67 @@ document.addEventListener("keydown",e=>{
     cerrarModal(); cerrarModalNuevo();
     document.getElementById("modal-usuarios").classList.remove("open");
     document.getElementById("modal-agenda").classList.remove("open");
+    cerrarCambiarPassword();
+
   }
+});
+
+// ══════════════════════════════════════════════
+// CAMBIAR CONTRASEÑA
+// ══════════════════════════════════════════════
+function abrirCambiarPassword() {
+  document.getElementById("cp-nueva").value = "";
+  document.getElementById("cp-confirma").value = "";
+  document.getElementById("cp-match-msg").textContent = "";
+  const btn = document.getElementById("cp-btn-guardar");
+  btn.disabled = true; btn.style.opacity = ".4"; btn.style.cursor = "not-allowed";
+  document.getElementById("cp-usuario-info").textContent =
+    `${usuario.nombre} · ${usuario.email}`;
+  document.getElementById("modal-password").classList.add("open");
+}
+
+function cerrarCambiarPassword() {
+  document.getElementById("modal-password").classList.remove("open");
+}
+
+function validarPasswords() {
+  const nueva    = document.getElementById("cp-nueva").value;
+  const confirma = document.getElementById("cp-confirma").value;
+  const msg      = document.getElementById("cp-match-msg");
+  const btn      = document.getElementById("cp-btn-guardar");
+  if (!nueva) { msg.textContent = ""; btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return; }
+  if (nueva.length < 6) {
+    msg.style.color = "var(--red)"; msg.textContent = "Mínimo 6 caracteres.";
+    btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return;
+  }
+  if (!confirma) { msg.textContent = ""; btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return; }
+  if (nueva !== confirma) {
+    msg.style.color = "var(--red)"; msg.textContent = "❌ Las contraseñas no coinciden.";
+    btn.disabled=true; btn.style.opacity=".4"; btn.style.cursor="not-allowed"; return;
+  }
+  msg.style.color = "var(--green)"; msg.textContent = "✅ Las contraseñas coinciden.";
+  btn.disabled=false; btn.style.opacity="1"; btn.style.cursor="pointer";
+}
+
+async function guardarPassword() {
+  const nueva = document.getElementById("cp-nueva").value;
+  try {
+    const res = await fetch(`${API}/usuarios/${usuario.id}/password`, {
+      method: "PUT", headers: H,
+      body: JSON.stringify({ nueva_password: nueva })
+    });
+    if (res.ok) {
+      toast("✅ Contraseña actualizada correctamente");
+      cerrarCambiarPassword();
+    } else {
+      const err = await res.json();
+      toast("❌ " + (err.detail || "Error al actualizar"), true);
+    }
+  } catch(e) { toast("❌ Error de conexión", true); }
+}
+
+document.getElementById("modal-password").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-password")) cerrarCambiarPassword();
 });
 </script>
 </body>

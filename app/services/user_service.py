@@ -28,3 +28,33 @@ def list_users(conn, rol: str = None):
     usuarios = cur.fetchall()
     cur.close()
     return {"usuarios": usuarios}
+
+def change_password(conn, usuario_id: int, nueva_password: str):
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT id, nombre, email FROM usuarios WHERE id=%s AND activo=true", (usuario_id,))
+    user = cur.fetchone()
+    if not user:
+        cur.close()
+        raise ValueError("Usuario no encontrado o inactivo")
+    cur.execute(
+        "UPDATE usuarios SET password=%s WHERE id=%s",
+        (hash_password(nueva_password), usuario_id)
+    )
+    conn.commit()
+    cur.close()
+    return {"message": "Contraseña actualizada", "usuario_id": user["id"], "nombre": user["nombre"]}
+
+def change_password_by_email(conn, email: str, nueva_password: str):
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT id, nombre, email FROM usuarios WHERE email=%s AND activo=true", (email,))
+    user = cur.fetchone()
+    if not user:
+        cur.close()
+        raise ValueError("Usuario no encontrado o inactivo")
+    cur.execute(
+        "UPDATE usuarios SET password=%s WHERE email=%s",
+        (hash_password(nueva_password), email)
+    )
+    conn.commit()
+    cur.close()
+    return {"message": "Contraseña actualizada", "usuario_id": user["id"], "nombre": user["nombre"]}

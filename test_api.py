@@ -7,7 +7,7 @@ from typing import Optional, Literal
 from datetime import datetime
 import hashlib
 
-app = FastAPI(title="CRM Stemwell API", version="7.0.0")
+app = FastAPI(title="Patient Tracking Sheet", version="7.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
