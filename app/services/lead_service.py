@@ -221,11 +221,11 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
         after_a = updates.get("appointment_status", appt)
         after_m = updates.get("medical_status", med)
         cur.execute(
-            "INSERT INTO historial_estados (lead_id,estado_anterior,estado_nuevo,cambiado_por,comentario) "
-            "VALUES (%s,%s,%s,%s,%s)",
-            (lead_id, f"S:{sales}|A:{appt}|M:{med}",
-             f"S:{after_s}|A:{after_a}|M:{after_m}", usuario_id, nota)
-        )
+        "INSERT INTO historial_estados (lead_id,estado_anterior,estado_nuevo) "
+        "VALUES (%s,%s,%s)",
+        (lead_id, f"S:{sales}|A:{appt}|M:{med}",
+        f"S:{after_s}|A:{after_a}|M:{after_m}")
+)
 
     # ─── ASESOR ───
     if rol == "asesor":
@@ -251,6 +251,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
             updates["sales_status"] = "canceled treatment"
             updates["appointment_status"] = "Canceled"
             updates["cita_confirmada"] = False
+            updates["medical_status"] = None
             nota = "Cita cancelada -> devuelto al asesor"
 
         elif data.sales_status == "scheduled treatment" and sales == "Treatment Proposal Sent":
@@ -432,7 +433,11 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
             updates["cita_confirmada"] = data.cita_confirmada
         if data.mark_treatment_completed is not None:
             updates["treatment_completed"] = data.mark_treatment_completed
-        nota = "Actualización manual por soporte"
+            # Si soporte cancela la cita, limpiar medical_status inconsistente
+        if data.appointment_status == "Canceled":
+            updates["medical_status"] = None
+            updates["cita_confirmada"] = False
+            nota = "Actualización manual por soporte"
     else:
         raise ValueError("Rol no autorizado")
 
@@ -494,11 +499,10 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data: UpdateStatus):
 def get_history(conn, lead_id: int):
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(
-        "SELECT h.*,u.nombre FROM historial_estados h "
-        "LEFT JOIN usuarios u ON h.cambiado_por=u.id "
-        "WHERE h.lead_id=%s ORDER BY h.fecha DESC",
-        (lead_id,)
-    )
+    "SELECT h.* FROM historial_estados h "
+    "WHERE h.lead_id=%s ORDER BY h.fecha DESC",
+    (lead_id,)
+)
     hist = cur.fetchall()
     cur.close()
     return {"historial": hist}

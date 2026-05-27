@@ -798,7 +798,11 @@ function calcSemaforo(l) {
 
 function fechaCorta(d) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  const fecha = new Date(d + (d.endsWith('Z') ? '' : 'Z')); // asegura UTC
+  return fecha.toLocaleString('es-CO', {
+    day: '2-digit', month: '2-digit', year: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
 }
 
 function buildRow(l) {
@@ -952,6 +956,7 @@ async function initCalendar() {
   calInstance = new FullCalendar.Calendar(el, {
     initialView: "dayGridMonth",
     locale: "es",
+    //timeZone: 'America/Bogota',   // ← NUEVA LÍNEA
     height: 580,
     headerToolbar: {
       left: "prev,next today",
@@ -979,10 +984,9 @@ async function initCalendar() {
 
 async function fetchCalendarEvents(info, successCB, failCB) {
   try {
-    const res  = await fetch(`${API}/agenda`,{headers:H});
+    const res  = await fetch(`${API}/agenda`, { headers: H });
     const data = await res.json();
     const slots = data.slots || [];
-    // Map doc names to indices for colors
     const docMap = {};
     let di = 0;
     doctoresCache.forEach(d => { docMap[d.id] = di++; });
@@ -992,7 +996,7 @@ async function fetchCalendarEvents(info, successCB, failCB) {
         const idx = docMap[s.doctor_id] ?? 0;
         return {
           title: s.paciente || "—",
-          start: s.fecha_inicio,
+          start: s.fecha_inicio,   // ahora incluye 'Z', FullCalendar lo convertirá
           end: s.fecha_fin || null,
           backgroundColor: DOC_COLORS[idx % DOC_COLORS.length],
           borderColor: DOC_COLORS[idx % DOC_COLORS.length],
@@ -1532,13 +1536,17 @@ function buildDoctor(l) {
 function buildSoporte(l) {
   return `<div class="two-col">
     <div><label class="lbl">Estado Ventas</label>
-      <select id="sp-sales">${SALES.map(s=>`<option value="${s}" ${l.sales_status===s?'selected':''}>${s}</option>`).join("")}</select>
+      <select id="sp-sales" onchange="onSoporteSalesChange()">${SALES.map(s=>`<option value="${s}" ${l.sales_status===s?'selected':''}>${s}</option>`).join("")}</select>
     </div>
     <div><label class="lbl">Estado Cita</label>
       <select id="sp-appt">
         <option value="">Sin cambio</option>${APPT.map(a=>`<option value="${a}" ${l.appointment_status===a?'selected':''}>${a}</option>`).join("")}
       </select>
     </div>
+  </div>
+  <div id="sp-fecha-cita-block" class="${l.sales_status==='Appointment Scheduled'?'':'hidden'}">
+    <label class="lbl">📅 Fecha de Cita (Consulta)</label>
+    <input type="datetime-local" id="sp-fecha-cita" value="${l.treatment_date?l.treatment_date.slice(0,16):''}">
   </div>
   <div class="two-col">
     <div><label class="lbl">Estado Médico</label>
@@ -1568,6 +1576,10 @@ function buildSoporte(l) {
     <option value="true" ${l.cita_confirmada?'selected':''}>Sí — Confirmada</option>
     <option value="false" ${l.cita_confirmada===false?'selected':''}>No — Sin confirmar</option>
   </select>`;
+}
+function onSoporteSalesChange() {
+  const v = document.getElementById("sp-sales")?.value;
+  document.getElementById("sp-fecha-cita-block")?.classList.toggle("hidden", v !== "Appointment Scheduled");
 }
 
 // ══════════════════════════════════════════════
@@ -1743,6 +1755,7 @@ function buildBodySoporte(body) {
   const appt=document.getElementById("sp-appt")?.value;
   const medical=document.getElementById("sp-medical")?.value;
   const doctor=document.getElementById("sp-doctor")?.value;
+  const fechaCita=document.getElementById("sp-fecha-cita")?.value;   // ← NUEVA
   const tini=document.getElementById("sp-trat-inicio")?.value;
   const tfin=document.getElementById("sp-trat-fin")?.value;
   const medilink=document.getElementById("sp-medilink")?.value;
@@ -1751,6 +1764,7 @@ function buildBodySoporte(body) {
   if (appt)  body.appointment_status=appt;
   if (medical) body.medical_status=medical;
   if (doctor) body.doctor_id=parseInt(doctor);
+  if (fechaCita) body.treatment_date=fechaCita;   // ← NUEVA
   if (tini) body.treatment_start_date=tini;
   if (tfin) body.treatment_end_date=tfin;
   if (medilink) body.medilink_numero=medilink;
@@ -1759,6 +1773,7 @@ function buildBodySoporte(body) {
 }
 
 async function enviarCambios(body) {
+  console.log("📤 Body enviado:", JSON.stringify(body, null, 2));  // ← VER QUÉ SE ENVÍA
   try {
     const res=await fetch(API+"/leads/estado",{method:"PUT",headers:H,body:JSON.stringify(body)});
     if (res.ok) {
@@ -1769,6 +1784,7 @@ async function enviarCambios(body) {
       if (calInstance) calInstance.refetchEvents();
     } else {
       const err=await res.json();
+      console.error("❌ Error del servidor:", err);  // ← VER EL ERROR COMPLETO
       toast("❌ "+(err.detail||"Error al guardar"),true);
     }
   } catch(e) { toast("❌ Error de conexión",true); }
