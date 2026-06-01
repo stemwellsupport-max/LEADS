@@ -280,7 +280,6 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
         <button class="btn-header" onclick="abrirGestionUsuarios()">👥 Usuarios</button>
       </div>
       <div class="header-actions" id="asesor-header-actions" style="display:none">
-        <!-- empty, actions are in tabs -->
       </div>
       <span class="role-badge" id="user-info">—</span>
       <button class="btn-logout" onclick="abrirCambiarPassword()" style="border-color:var(--border2)">🔑 Contraseña</button>
@@ -333,7 +332,6 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
         <div class="filters" id="filters-container"></div>
         <span class="result-count" id="result-count">0 resultados</span>
       </div>
-      <!-- Search + Column Filters -->
       <div class="search-container">
         <input class="search-bar" id="search-input" placeholder="🔍 Buscar por nombre, teléfono o email..." oninput="buscarLeads(this.value)">
         <button class="col-filter-btn active" onclick="setColFilter('all',this)" data-col="all">Todos los campos</button>
@@ -583,7 +581,6 @@ const REJECTION_REASONS = [
   "Evaluación de historial clínico e imágenes"
 ];
 
-// Colores por doctor (índice)
 const DOC_COLORS = ["#1e3a5f","#14532d","#4c1d95","#713f12","#0f3d3d","#2d1a4c"];
 const DOC_TEXT   = ["#60a5fa","#4ade80","#c084fc","#fbbf24","#2dd4bf","#c084fc"];
 
@@ -741,7 +738,6 @@ function sortTable(col) {
   if (sortCol === col) sortAsc = !sortAsc;
   else { sortCol = col; sortAsc = true; }
   applySort();
-  // Rebuild headers
   configurarUI();
   renderLeads();
 }
@@ -798,7 +794,7 @@ function calcSemaforo(l) {
 
 function fechaCorta(d) {
   if (!d) return "—";
-  const fecha = new Date(d + (d.endsWith('Z') ? '' : 'Z')); // asegura UTC
+  const fecha = new Date(d + (d.endsWith('Z') ? '' : 'Z'));
   return fecha.toLocaleString('es-CO', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false
@@ -951,12 +947,16 @@ function buscarLeads(query, doSort=true) {
 // CALENDARIO — FullCalendar
 // ══════════════════════════════════════════════
 async function initCalendar() {
-  if (calInstance) { calInstance.render(); return; }
+  if (calInstance) { 
+    calInstance.render(); 
+    calInstance.refetchEvents();
+    return; 
+  }
   const el = document.getElementById("stemwell-calendar");
   calInstance = new FullCalendar.Calendar(el, {
     initialView: "dayGridMonth",
+    initialDate: "2026-06-01",
     locale: "es",
-    //timeZone: 'America/Bogota',   // ← NUEVA LÍNEA
     height: 580,
     headerToolbar: {
       left: "prev,next today",
@@ -984,20 +984,48 @@ async function initCalendar() {
 
 async function fetchCalendarEvents(info, successCB, failCB) {
   try {
-    const res  = await fetch(`${API}/agenda`, { headers: H });
+    const res  = await fetch(`/agenda`, { headers: H });
     const data = await res.json();
     const slots = data.slots || [];
+    
     const docMap = {};
     let di = 0;
     doctoresCache.forEach(d => { docMap[d.id] = di++; });
+    
     const events = slots
-      .filter(s => calDocFiltro === "all" || s.doctor_id == calDocFiltro)
+      .filter(s => {
+        const slotDocId = Number(s.doctor_id);
+        const filtroDocId = Number(calDocFiltro);
+        return calDocFiltro === "all" || slotDocId === filtroDocId;
+      })
       .map(s => {
         const idx = docMap[s.doctor_id] ?? 0;
+        
+        let startDate = s.fecha_inicio;
+        if (startDate) {
+          if (startDate.endsWith('Z') && !startDate.includes('T')) {
+            startDate = startDate.replace('Z', 'T00:00:00');
+          }
+          if (!startDate.includes('T')) {
+            startDate = startDate + 'T00:00:00';
+          }
+        }
+        
+        let endDate = s.fecha_fin;
+        if (endDate) {
+          if (endDate.endsWith('Z') && !endDate.includes('T')) {
+            endDate = endDate.replace('Z', 'T00:00:00');
+          }
+          if (!endDate.includes('T')) {
+            endDate = endDate + 'T00:00:00';
+          }
+        }
+        
         return {
           title: s.paciente || "—",
-          start: s.fecha_inicio,   // ahora incluye 'Z', FullCalendar lo convertirá
-          end: s.fecha_fin || null,
+          start: startDate,
+          end: endDate || null,
+          allDay: false,
           backgroundColor: DOC_COLORS[idx % DOC_COLORS.length],
           borderColor: DOC_COLORS[idx % DOC_COLORS.length],
           textColor: DOC_TEXT[idx % DOC_TEXT.length],
@@ -1009,31 +1037,59 @@ async function fetchCalendarEvents(info, successCB, failCB) {
           }
         };
       });
+    
     successCB(events);
-  } catch(e) { failCB(e); }
+  } catch(e) { 
+    console.error('Error en fetchCalendarEvents:', e);
+    failCB(e); 
+  }
 }
 
 function renderCalDocButtons() {
   const container = document.getElementById("cal-doc-buttons");
-  container.innerHTML = doctoresCache.map((d,i) =>
-    `<button class="cal-doc-btn ${calDocFiltro==d.id?('active doc-color-'+i):''}" 
-     data-doc-id="${d.id}" onclick="calSetDoc(${d.id},this)"
-     style="${calDocFiltro==d.id?'':''}">${d.nombre}</button>`
-  ).join("");
+  if (!container) return;
+  
+  let html = '';
+  doctoresCache.forEach((d, i) => {
+    const isActive = Number(calDocFiltro) === Number(d.id);
+    const colorClass = 'doc-color-' + (i % DOC_COLORS.length);
+    html += `<button class="cal-doc-btn ${isActive ? 'active ' + colorClass : ''}" 
+              data-doc-id="${d.id}" 
+              onclick="calSetDoc(${d.id}, this)">
+              ${d.nombre}
+            </button>`;
+  });
+  container.innerHTML = html;
 }
 
 function calSetDoc(id, btn) {
-  calDocFiltro = id;
-  document.querySelectorAll(".cal-doc-btn").forEach((b,i) => {
+  calDocFiltro = id === "all" ? "all" : Number(id);
+  
+  document.querySelectorAll(".cal-doc-btn").forEach(b => {
     b.classList.remove("active");
-    DOC_COLORS.forEach((_,ci) => b.classList.remove("doc-color-"+ci));
+    for (let i = 0; i < DOC_COLORS.length; i++) {
+      b.classList.remove("doc-color-" + i);
+    }
   });
-  btn.classList.add("active");
-  if (id !== "all") {
-    const idx = doctoresCache.findIndex(d=>d.id==id);
-    if (idx>=0) btn.classList.add("doc-color-"+idx);
+  
+  if (btn) {
+    btn.classList.add("active");
+    if (id !== "all") {
+      const idx = doctoresCache.findIndex(d => Number(d.id) === Number(id));
+      if (idx >= 0) {
+        btn.classList.add("doc-color-" + (idx % DOC_COLORS.length));
+      }
+    }
   }
-  if (calInstance) calInstance.refetchEvents();
+  
+  const btnTodos = document.querySelector('.cal-doc-btn[data-doc-id="all"]');
+  if (id === "all" && btnTodos) {
+    btnTodos.classList.add("active");
+  }
+  
+  if (calInstance) {
+    calInstance.refetchEvents();
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1079,7 +1135,6 @@ async function renderAvailability() {
     const data = await res.json();
     const slots = (data.slots || []).filter(s => String(s.doctor_id) === String(docId));
 
-    // Build busy set
     const busyMap = {};
     slots.forEach(s => {
       const d = s.fecha_inicio ? s.fecha_inicio.slice(0,10) : "";
@@ -1093,7 +1148,6 @@ async function renderAvailability() {
     if (mode === "day") {
       container.innerHTML = renderDaySlots(dateVal, busyMap, docNombre, docId);
     } else {
-      // Week
       const base = new Date(dateVal);
       const dow = base.getDay();
       const monday = new Date(base);
@@ -1152,7 +1206,6 @@ function selectAvailSlot(hora, docId, fecha, docNombre) {
 function usarHorarioSeleccionado() {
   if (!availSelected) return;
   const [hora, docId, fecha] = availSelected.split("|");
-  // Pre-fill in agenda and switch to leads view
   toast(`✅ Horario ${hora} del ${fecha} reservado. Ahora selecciona el lead y agéndalo.`);
   switchMainView("leads", document.querySelector(".main-tab"));
 }
@@ -1231,7 +1284,6 @@ function buildModalBody(l) {
   return buildSoporte(l);
 }
 
-// ══ ASESOR MODAL ══
 function buildAsesor(l) {
   const s = l.sales_status||"";
   let html = "";
@@ -1261,8 +1313,14 @@ function buildAsesor(l) {
   if (s==="Lost") return `<div class="info-box danger">❌ Lead perdido. No hay más acciones disponibles.</div>`;
 
   if (s==="Appointment Scheduled") {
+    const fechaCita = l.treatment_date 
+      ? new Date(l.treatment_date + 'T00:00:00').toLocaleDateString('es-CO', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        })
+      : 'No definida';
+    
     if (!l.cita_confirmada) {
-      html += `<div class="info-box warning">⚠️ Cita agendada — pendiente de confirmar con el paciente.</div>
+      html += `<div class="info-box warning">⚠️ Cita agendada para <strong>${fechaCita}</strong> — pendiente de confirmar con el paciente.</div>
         <div class="toggle-wrap">
           <span class="toggle-label">Estado de confirmación:</span>
           <span class="toggle-status pending" id="toggle-status-txt">Sin confirmar</span>
@@ -1276,7 +1334,7 @@ function buildAsesor(l) {
             ${doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id==d.id?'selected':''}>${d.nombre}</option>`).join("")}
           </select>
           <label class="lbl">Fecha/Hora de Consulta</label>
-          <input type="datetime-local" id="a-fecha-consulta" value="${l.treatment_date?l.treatment_date.slice(0,16):''}">
+          <input type="datetime-local" id="a-fecha-consulta" value="${l.treatment_date ? l.treatment_date + 'T00:00' : ''}">
         </div>
         <div id="block-reagendar" class="hidden">
           <label class="lbl">Nueva Fecha de Cita</label>
@@ -1295,7 +1353,7 @@ function buildAsesor(l) {
         </div>`;
       return html;
     } else {
-      return `<div class="info-box success">✅ Cita confirmada — será asignada al médico.</div>
+      return `<div class="info-box success">✅ Cita confirmada para <strong>${fechaCita}</strong> — asignada al médico.</div>
         <label class="lbl">Otras acciones</label>
         <select id="a-appt-accion" onchange="onApptAccion()">
           <option value="">— Sin cambio —</option>
@@ -1391,7 +1449,6 @@ function buildAsesor(l) {
   return html;
 }
 
-// ══ DOCTOR MODAL ══
 function buildDoctor(l) {
   const m = l.medical_status||"";
   let html = "";
@@ -1532,7 +1589,6 @@ function buildDoctor(l) {
   return `<div class="info-box info">Estado médico: ${m||"—"}. Consulta con soporte si necesitas cambiar algo.</div>`;
 }
 
-// ══ SOPORTE MODAL ══
 function buildSoporte(l) {
   return `<div class="two-col">
     <div><label class="lbl">Estado Ventas</label>
@@ -1755,7 +1811,7 @@ function buildBodySoporte(body) {
   const appt=document.getElementById("sp-appt")?.value;
   const medical=document.getElementById("sp-medical")?.value;
   const doctor=document.getElementById("sp-doctor")?.value;
-  const fechaCita=document.getElementById("sp-fecha-cita")?.value;   // ← NUEVA
+  const fechaCita=document.getElementById("sp-fecha-cita")?.value;
   const tini=document.getElementById("sp-trat-inicio")?.value;
   const tfin=document.getElementById("sp-trat-fin")?.value;
   const medilink=document.getElementById("sp-medilink")?.value;
@@ -1764,7 +1820,7 @@ function buildBodySoporte(body) {
   if (appt)  body.appointment_status=appt;
   if (medical) body.medical_status=medical;
   if (doctor) body.doctor_id=parseInt(doctor);
-  if (fechaCita) body.treatment_date=fechaCita;   // ← NUEVA
+  if (fechaCita) body.treatment_date=fechaCita;
   if (tini) body.treatment_start_date=tini;
   if (tfin) body.treatment_end_date=tfin;
   if (medilink) body.medilink_numero=medilink;
@@ -1773,7 +1829,6 @@ function buildBodySoporte(body) {
 }
 
 async function enviarCambios(body) {
-  console.log("📤 Body enviado:", JSON.stringify(body, null, 2));  // ← VER QUÉ SE ENVÍA
   try {
     const res=await fetch(API+"/leads/estado",{method:"PUT",headers:H,body:JSON.stringify(body)});
     if (res.ok) {
@@ -1784,7 +1839,6 @@ async function enviarCambios(body) {
       if (calInstance) calInstance.refetchEvents();
     } else {
       const err=await res.json();
-      console.error("❌ Error del servidor:", err);  // ← VER EL ERROR COMPLETO
       toast("❌ "+(err.detail||"Error al guardar"),true);
     }
   } catch(e) { toast("❌ Error de conexión",true); }

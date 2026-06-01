@@ -47,3 +47,11 @@ def cambiar_password_por_email(data: CambiarPasswordPorEmail, conn = Depends(get
         return change_password_by_email(conn, data.email, data.nueva_password)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.delete("/usuarios/{usuario_id}")
+def eliminar_usuario(usuario_id: int, conn = Depends(get_connection)):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM usuarios WHERE id=%s", (usuario_id,))
+    conn.commit()
+    cur.close()
+    return {"message": "Usuario eliminado permanentemente"}

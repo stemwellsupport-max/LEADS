@@ -8,25 +8,25 @@ def get_agenda(conn, doctor_id=None):
     cur = conn.cursor(cursor_factory=RealDictCursor)
     query = """
         SELECT
-            a.id AS cita_id,
             l.id AS lead_id,
             l.nombre AS paciente,
-            a.fecha_inicio,
-            a.fecha_fin,
-            a.estado,
-            a.tipo,
+            l.treatment_date AS fecha_inicio,
+            NULL AS fecha_fin,
+            l.appointment_status AS estado,
+            'Consulta' AS tipo,
             d.nombre AS doctor_nombre,
             d.id AS doctor_id
-        FROM agenda_doctor a
-        JOIN leads l ON a.lead_id = l.id
-        LEFT JOIN usuarios d ON a.doctor_id = d.id
-        WHERE a.estado NOT IN ('Canceled', 'Completed')
+        FROM leads l
+        LEFT JOIN usuarios d ON l.doctor_id = d.id
+        WHERE l.sales_status = 'Appointment Scheduled'
+          AND l.cita_confirmada = True
+          AND l.treatment_date IS NOT NULL
     """
     params = []
     if doctor_id is not None:
-        query += " AND a.doctor_id = %s"
+        query += " AND l.doctor_id = %s"
         params.append(doctor_id)
-    query += " ORDER BY a.fecha_inicio ASC"
+    query += " ORDER BY l.treatment_date ASC"
 
     cur.execute(query, params)
     slots = cur.fetchall()
