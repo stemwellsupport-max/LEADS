@@ -2,16 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, Literal
 
 # ══════════════════════════════════════════════════════════════════
-#  TIPOS
+#  TIPOS (se elimina SalesStatus; ahora acepta cualquier string)
 # ══════════════════════════════════════════════════════════════════
-SalesStatus = Literal[
-    "New Lead", "First Contact", "No Answer", "Follow Up", "Interested",
-    "Appointment Scheduled",
-    "Treatment Proposal Sent",
-    "scheduled treatment",
-    "canceled treatment",
-    "Won", "Lost"
-]
 AppointmentStatus = Literal[
     "Scheduled", "Confirmed", "Sent", "Rescheduled",
     "Canceled", "Attended", "No Show", "Completed"
@@ -69,7 +61,8 @@ class UpdateStatus(BaseModel):
     lead_id: int
     usuario_id: int
     comentario: Optional[str] = ""
-    sales_status: Optional[SalesStatus] = None
+    # ✅ Ahora acepta cualquier texto (Google Sheets)
+    sales_status: Optional[str] = None
     appointment_status: Optional[AppointmentStatus] = None
     medical_status: Optional[MedicalStatus] = None
     doctor_id: Optional[int] = None
@@ -95,6 +88,6 @@ class LeadGoogle(BaseModel):
     comentario: Optional[str] = ""
     admission_date: Optional[str] = None
     last_contact_date: Optional[str] = None
-    first_contact: Optional[str] = None        # ← NOMBRE de quien contactó (TEXTO)
+    first_contact: Optional[str] = None
     sales_status: Optional[str] = None
     asesor_id: Optional[int] = None

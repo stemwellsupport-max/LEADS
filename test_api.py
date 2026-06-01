@@ -7,21 +7,13 @@ from typing import Optional, Literal
 from datetime import datetime
 import hashlib
 
-app = FastAPI(title="Patient Tracking Sheet", version="7.0.0")
+app = FastAPI(title="Patient Tracking Sheet", version="8.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
 # ══════════════════════════════════════════════════════════════════
 #  TIPOS
 # ══════════════════════════════════════════════════════════════════
-SalesStatus = Literal[
-    "New Lead", "First Contact", "No Answer", "Follow Up", "Interested",
-    "Appointment Scheduled",     # Asesor agenda consulta (pendiente confirmar)
-    "Treatment Proposal Sent",   # Médico envió propuesta → vuelve al asesor
-    "scheduled treatment",       # Asesor agendó fecha de tratamiento → pasa al médico
-    "canceled treatment",        # Cita/tratamiento cancelado → asesor reagenda
-    "Won", "Lost"
-]
 AppointmentStatus = Literal[
     "Scheduled", "Confirmed", "Sent", "Rescheduled",
     "Canceled", "Attended", "No Show", "Completed"
@@ -79,23 +71,19 @@ class UpdateStatus(BaseModel):
     lead_id: int
     usuario_id: int
     comentario: Optional[str] = ""
-    # Campos de estado
-    sales_status: Optional[SalesStatus] = None
+    sales_status: Optional[str] = None          # ✅ acepta cualquier texto
     appointment_status: Optional[AppointmentStatus] = None
     medical_status: Optional[MedicalStatus] = None
     doctor_id: Optional[int] = None
-    # Fechas
-    treatment_date: Optional[str] = None          # fecha de consulta (appointment)
-    treatment_start_date: Optional[str] = None    # inicio de tratamiento
-    treatment_end_date: Optional[str] = None      # fin estimado de tratamiento
-    next_treatment_date: Optional[str] = None     # próxima sesión
-    # Info adicional
+    treatment_date: Optional[str] = None
+    treatment_start_date: Optional[str] = None
+    treatment_end_date: Optional[str] = None
+    next_treatment_date: Optional[str] = None
     medilink_numero: Optional[str] = None
     cita_confirmada: Optional[bool] = None
     rejection_reason: Optional[RejectionReason] = None
     quit_reason: Optional[str] = None
     mark_treatment_completed: Optional[bool] = None
-    # Control/seguimiento
     crear_control: Optional[dict] = None
 
 # ══════════════════════════════════════════════════════════════════
@@ -179,7 +167,7 @@ def format_lead(l):
     }
 
 # ══════════════════════════════════════════════════════════════════
-#  LEADS — LISTAR
+#  LEADS — LISTAR (SIN FILTRO OCULTO PARA ASESORES)
 # ══════════════════════════════════════════════════════════════════
 @app.get("/leads/usuario/{usuario_id}")
 def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
@@ -195,15 +183,9 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
         LEFT JOIN usuarios a ON l.asesor_id = a.id
     """
     if rol == "asesor":
+        # ✅ El asesor ve todos sus leads, sin filtro oculto
         where = """
             WHERE l.asesor_id = %s
-            AND NOT (
-                (l.sales_status = 'Appointment Scheduled' AND l.cita_confirmada = true
-                 AND l.medical_status IN ('Pending Evaluation','Consultation Completed','Candidate Approved'))
-                OR
-                (l.sales_status = 'scheduled treatment'
-                 AND l.medical_status IN ('Treatment Scheduled','In Treatment'))
-            )
         """
         params = [usuario_id]
         if estado:
@@ -333,8 +315,15 @@ def cambiar_estado(data: UpdateStatus):
                 "Follow Up":     ["Interested","Appointment Scheduled","Lost"],
                 "Interested":    ["Appointment Scheduled","Follow Up","Lost"],
             }
-            if nuevo not in trans_validas.get(sales, []):
-                raise HTTPException(400, f"Transición no permitida: {sales} → {nuevo}")
+            # ✅ Si el estado actual no está en nuestro mapa, permitimos moverlo a los estados que maneja el CRM
+            if sales not in trans_validas:
+                permitidos = ["New Lead","First Contact","Follow Up","Interested","Lost",
+                              "Appointment Scheduled","No Answer","canceled treatment"]
+                if nuevo not in permitidos:
+                    raise HTTPException(400, f"No puedes mover este lead a '{nuevo}'. Estados permitidos: {', '.join(permitidos)}")
+            else:
+                if nuevo not in trans_validas[sales]:
+                    raise HTTPException(400, f"Transición no permitida: {sales} → {nuevo}")
             updates["sales_status"] = nuevo
             nota = f"Asesor: {sales} → {nuevo}"
             if nuevo == "Appointment Scheduled":
@@ -388,9 +377,6 @@ def cambiar_estado(data: UpdateStatus):
             elif not data.comentario:
                 raise HTTPException(400, "Indica acción para el tratamiento activo")
 
-        # ══════════════════════════════════════════════════════════
-        #  CORRECCIÓN: Pending Evaluation → Treatment Proposal Sent
-        # ══════════════════════════════════════════════════════════
         elif med == "Pending Evaluation":
             if data.appointment_status == "Canceled":
                 updates["appointment_status"] = "Canceled"
@@ -401,9 +387,6 @@ def cambiar_estado(data: UpdateStatus):
                 updates["medical_status"] = "Consultation Completed"
                 updates["appointment_status"] = "Completed"
                 nota = "Consulta completada"
-                if data.medical_status == "Candidate Approved":
-                    updates["medical_status"] = "Candidate Approved"
-            # ← NUEVO BLOQUE: envía propuesta directamente desde Pending Evaluation
             elif data.medical_status == "Treatment Proposal Sent":
                 updates["medical_status"] = "Treatment Proposal Sent"
                 updates["sales_status"] = "Treatment Proposal Sent"
@@ -484,9 +467,6 @@ def cambiar_estado(data: UpdateStatus):
     else:
         raise HTTPException(403, "Rol no autorizado")
 
-    # ─────────────────────────────────────────
-    #  Ejecutar UPDATE principal
-    # ─────────────────────────────────────────
     if not updates and not data.comentario and not data.crear_control:
         raise HTTPException(400, "No hay cambios para aplicar")
 
@@ -538,7 +518,7 @@ def cambiar_estado(data: UpdateStatus):
     }
 
 # ══════════════════════════════════════════════════════════════════
-#  CREAR LEAD — con validaciones unicidad
+#  CREAR LEAD
 # ══════════════════════════════════════════════════════════════════
 @app.post("/leads")
 def crear_lead(data: LeadCreate):
@@ -571,7 +551,7 @@ def crear_lead(data: LeadCreate):
     return {"id": lead_id, "message": "Lead creado"}
 
 # ══════════════════════════════════════════════════════════════════
-#  HISTORIAL
+#  HISTORIAL, AGENDA, CONTROLES, GOOGLE SHEETS, HEALTH
 # ══════════════════════════════════════════════════════════════════
 @app.get("/leads/{lead_id}/historial")
 def get_historial(lead_id: int):
@@ -585,9 +565,6 @@ def get_historial(lead_id: int):
     hist = cur.fetchall(); cur.close(); conn.close()
     return {"historial": hist}
 
-# ══════════════════════════════════════════════════════════════════
-#  AGENDA DOCTORES
-# ══════════════════════════════════════════════════════════════════
 @app.get("/agenda")
 def get_agenda():
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -615,9 +592,6 @@ def get_agenda():
     slots = cur.fetchall(); cur.close(); conn.close()
     return {"slots": slots}
 
-# ══════════════════════════════════════════════════════════════════
-#  CONTROLES / SEGUIMIENTOS
-# ══════════════════════════════════════════════════════════════════
 @app.get("/leads/{lead_id}/controles")
 def get_controles(lead_id: int):
     conn = get_db(); cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -630,9 +604,6 @@ def get_controles(lead_id: int):
     controles = cur.fetchall(); cur.close(); conn.close()
     return {"controles": controles}
 
-# ══════════════════════════════════════════════════════════════════
-#  GOOGLE SHEETS
-# ══════════════════════════════════════════════════════════════════
 class LeadGoogle(BaseModel):
     nombre: str
     phone: Optional[str] = ""
@@ -654,9 +625,6 @@ def recibir_lead_google(lead: LeadGoogle):
     result = cur.fetchone(); conn.commit(); cur.close(); conn.close()
     return {"id": result[0], "message": "Lead creado desde Google Sheets"}
 
-# ══════════════════════════════════════════════════════════════════
-#  HEALTH
-# ══════════════════════════════════════════════════════════════════
 @app.get("/health")
 def health():
     try: conn = get_db(); conn.close(); return {"status": "ok"}

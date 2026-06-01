@@ -479,7 +479,9 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
       <div><label class="lbl">Asesor</label><select id="nl-asesor"><option value="">Automático</option></select></div>
       <div><label class="lbl">Doctor (opcional)</label><select id="nl-doctor"><option value="">Sin asignar</option></select></div>
       <div><label class="lbl">Estado Inicial</label>
-        <select id="nl-estado-inicial"><option value="New Lead">New Lead</option><option value="First Contact">First Contact</option></select>
+        <select id="nl-estado-inicial">
+          <!-- Se llena dinámicamente en abrirNuevoLead -->
+        </select>
       </div>
     </div>
     <div class="nl-section-title" style="margin-top:1.2rem">📝 Notas</div>
@@ -565,9 +567,35 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 const API = "";
 const H   = {"Content-Type":"application/json","ngrok-skip-browser-warning":"1"};
 
-const SALES   = ["New Lead","First Contact","No Answer","Follow Up","Interested",
-                 "Appointment Scheduled","Treatment Proposal Sent","Treatment Confirmed",
-                 "scheduled treatment","canceled treatment","Won","Lost"];
+// ⚡ Estados completos del Google Sheet (sin duplicados)
+const SALES = [
+  "At reception",
+  "Booked Calls",
+  "Rescheduled",
+  "Cancelled Call",
+  "Does not answer",
+  "First contact",
+  "New Lead",
+  "Treatment proposal",
+  "Highly interested (Treatment Confirmed)",
+  "Won",
+  "Doctors",
+  "Sales",
+  "Lost / Not interested",
+  "International line",
+  // conservamos también los que ya estaban por si se usan en transiciones
+  "First Contact",
+  "No Answer",
+  "Follow Up",
+  "Interested",
+  "Appointment Scheduled",
+  "Treatment Proposal Sent",
+  "Treatment Confirmed",
+  "scheduled treatment",
+  "canceled treatment",
+  "Lost"
+];
+
 const APPT    = ["Scheduled","Confirmed","Sent","Rescheduled","Canceled","Attended","No Show","Completed"];
 const MEDICAL = ["Pending Evaluation","Consultation Completed","Candidate Approved",
                  "Candidate Rejected","Treatment Proposal Sent","Treatment Scheduled",
@@ -670,9 +698,8 @@ function configurarUI() {
 
   let filterStates = [];
   if (rol === "asesor") {
-    filterStates = ["New Lead","First Contact","No Answer","Follow Up","Interested",
-                    "Appointment Scheduled","Treatment Proposal Sent","Treatment Confirmed",
-                    "scheduled treatment","canceled treatment","Won","Lost"];
+    // Asesor ahora puede filtrar por todos los estados del Sheet
+    filterStates = [...new Set(SALES)];
     headersEl.innerHTML = buildHeaders([
       {key:"sem",label:"🚦",sort:false},
       {key:"nombre",label:"Nombre"},
@@ -701,7 +728,7 @@ function configurarUI() {
     ]);
     document.getElementById("table-title").childNodes[0].textContent = "🩺 Mis Pacientes ";
   } else {
-    filterStates = [...SALES];
+    filterStates = [...new Set(SALES)];
     headersEl.innerHTML = buildHeaders([
       {key:"sem",label:"🚦",sort:false},
       {key:"nombre",label:"Nombre"},
@@ -780,13 +807,27 @@ function renderLeads() {
 }
 
 function calcSemaforo(l) {
+  // Si ya viene calculado desde el backend, lo usamos
   if (l.semaforo !== undefined) return l.semaforo;
-  const sales = (l.sales_status||"").toLowerCase();
-  if (sales.includes("won")) return "🎉";
-  if (sales.includes("lost")) return "";
-  const raw = l.last_contact_date || l.fecha_actualizacion;
-  if (!raw) return "?";
-  const dias = Math.floor((Date.now() - new Date(raw).getTime()) / 86400000);
+
+  // Si no hay comentarios, no mostramos ningún semáforo
+  if (!l.comentarios) return "";
+
+  // Buscar todas las fechas de comentarios en formato [YYYY-MM-DD HH:MM]
+  const matches = l.comentarios.match(/\[(\d{4}-\d{2}-\d{2})\s\d{2}:\d{2}\]/g);
+  if (!matches) return "";   // si no se encuentra ninguna fecha, mismo caso
+
+  // Extraer la fecha del último comentario (el más reciente)
+  let ultimaFecha = null;
+  for (const m of matches) {
+    const fecha = m.slice(1, 11);  // extraer solo la parte YYYY-MM-DD
+    if (!ultimaFecha || fecha > ultimaFecha) {
+      ultimaFecha = fecha;
+    }
+  }
+
+  // Calcular días desde el último comentario
+  const dias = Math.floor((Date.now() - new Date(ultimaFecha + 'T00:00:00').getTime()) / 86400000);
   if (dias <= 1) return "🟢";
   if (dias <= 2) return "🟡";
   return "🔴";
@@ -1425,7 +1466,33 @@ function buildAsesor(l) {
     "Interested":["Appointment Scheduled","Follow Up","Lost"],
   };
   const trans = transMap[s]||[];
-  if (!trans.length) return `<div class="info-box info">Estado: ${s}. Sin acciones disponibles.</div>`;
+  
+  // ✅ Si no hay transiciones definidas, mostramos un selector con estados básicos
+  if (!trans.length) {
+    const basicStates = ["New Lead","First Contact","Follow Up","Interested","Lost",
+                         "Appointment Scheduled","No Answer","canceled treatment"];
+    let options = basicStates.map(st => `<option value="${st}">${st}</option>`).join("");
+    return `<div class="info-box warning">⚠️ Lead en estado <strong>${s}</strong>. Selecciona un nuevo estado:</div>
+      <label class="lbl">Cambiar Estado de Ventas</label>
+      <select id="a-sales-status" onchange="onAsesorStatusChange()">
+        <option value="">— Seleccionar —</option>
+        ${options}
+      </select>
+      <div id="a-agenda-block" class="hidden">
+        <div class="info-box info" style="margin-top:.8rem">📅 Al agendar cita, podrás confirmarla y asignar doctor después.</div>
+        <label class="lbl">Doctor (opcional, se puede asignar al confirmar)</label>
+        <select id="a-doctor-agenda">
+          <option value="">Sin asignar aún</option>
+          ${doctoresCache.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("")}
+        </select>
+        <label class="lbl">Fecha/Hora de Consulta</label>
+        <input type="datetime-local" id="a-fecha-agenda">
+      </div>
+      <div id="a-reject-block" class="hidden">
+        <label class="lbl">Razón de pérdida</label>
+        <select id="a-lost-reason"><option value="">Seleccionar...</option>${REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("")}</select>
+      </div>`;
+  }
 
   html += `<label class="lbl">Cambiar Estado de Ventas</label>
     <select id="a-sales-status" onchange="onAsesorStatusChange()">
@@ -1896,8 +1963,20 @@ async function cargarAsesoresParaForm() {
 async function abrirNuevoLead() {
   await cargarAsesoresParaForm();
   ["nl-nombre","nl-telefono","nl-email","nl-ciudad","nl-categoria-custom","nl-notas"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
-  ["nl-genero","nl-canal","nl-categoria","nl-asesor","nl-doctor","nl-estado-inicial"].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  ["nl-genero","nl-canal","nl-categoria","nl-asesor","nl-doctor"].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   document.getElementById("nl-canal").value="Manual";
+
+  // ⚡ Llenar estados iniciales con todos los del Sheet
+  const selEstado = document.getElementById("nl-estado-inicial");
+  selEstado.innerHTML = "";
+  SALES.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    selEstado.appendChild(opt);
+  });
+  selEstado.value = "New Lead";  // por defecto
+
   document.getElementById("modal-nuevo").classList.add("open");
 }
 function cerrarModalNuevo(){document.getElementById("modal-nuevo").classList.remove("open");}

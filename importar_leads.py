@@ -15,34 +15,34 @@ DB_CONFIG = {
 
 CSV_FILE = "LEADS.csv"
 
-# Índices exactos según tu cabecera
-COL = {
-    "NOMBRE": 0,
-    "GENERO": 1,
-    "CATEGORIA": 4,
-    "CANAL": 5,
-    "ADMISSION_DATE": 7,
-    "PHONE": 11,
-    "EMAIL": 13,
-    "STATUS": 15,
-    "APPOINTMENT_STATUS": 19,
-    "APPOINTMENT_SCHEDULE_DATE": 18,
-    "FIRST_CONTACT": 29,
-    "CONSULTATION_WITH": 30,
-    "ASSIGNED_TO": 31,
-    "LAST_CONTACT": 36,
-    "COMENTARIO": 38,
+# Mapeo de columnas del CSV a las columnas originales del CRM
+# Solo las que realmente necesita el sistema
+MAPA_ORIGINAL = {
+    "nombre":                   0,    # NOMBRE
+    "genero":                   1,    # GENDER
+    "categoria":                4,    # CATEGORY
+    "canal":                    5,    # CANALES
+    "admission_date":           7,    # ADMISSION DATE
+    "telefono":                11,    # PHONE  (lo guardamos en "telefono")
+    "email":                   13,    # EMAIL
+    "sales_status":            15,    # STATUS (lo mapeamos a sales_status)
+    "first_contact":           29,    # FIRST CONTACT
+    "consultation_with":       30,    # CONSULTATION WITH
+    "assigned_to":             31,    # ASSIGNED TO
+    "last_contact_date":       36,    # LAST CONTACT DATE
+    "comentarios":             38,    # Comment (lo guardamos en "comentarios")
+    "appointment_status":      19,    # APPOIMENT STATUS
+    "appointment_schedule_date":18,   # APPOINTMENT SCHEDULE (DATE)
+    # NOTA: no importamos "asesor_id" ni "doctor_id", se asignarán después
 }
 
 # ------------------------------------------------------------
-def limpiar_campo(valor, max_len=None):
-    if not valor:
+def limpiar_texto(valor, max_len=None):
+    if valor is None:
         return None
     texto = str(valor).strip()
     if not texto:
         return None
-    if ';' in texto:
-        texto = texto.split(';')[0].strip()
     if max_len and len(texto) > max_len:
         texto = texto[:max_len]
     return texto
@@ -51,8 +51,6 @@ def limpiar_telefono(valor):
     if not valor:
         return None
     texto = str(valor).strip()
-    if ';' in texto:
-        texto = texto.split(';')[0].strip()
     digitos = re.sub(r'\D', '', texto)
     if len(digitos) < 7:
         return None
@@ -62,8 +60,6 @@ def parse_fecha(valor):
     if not valor:
         return None
     valor = str(valor).strip()
-    if ';' in valor:
-        valor = valor.split(';')[0].strip()
     for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"):
         try:
             return datetime.strptime(valor, fmt).date()
@@ -72,7 +68,7 @@ def parse_fecha(valor):
     return None
 
 # ------------------------------------------------------------
-def leer_csv(path):
+def leer_csv_para_crm(path):
     leads = []
     delimitadores = ['\t', ',', ';', '|']
     filas = None
@@ -99,31 +95,30 @@ def leer_csv(path):
 
     filas_saltadas = 0
     for i, fila in enumerate(filas[1:], start=2):
-        if len(fila) <= max(COL.values()):
-            fila.extend([''] * (max(COL.values()) - len(fila) + 1))
+        if len(fila) < max(MAPA_ORIGINAL.values()):
+            fila.extend([''] * (max(MAPA_ORIGINAL.values()) - len(fila) + 1))
 
-        # Extraer y limpiar el nombre, y saltar si queda vacío
-        nombre = limpiar_campo(fila[COL["NOMBRE"]], 255)
+        nombre = limpiar_texto(fila[MAPA_ORIGINAL["nombre"]], 255)
         if not nombre:
             filas_saltadas += 1
-            continue   # <--- esta línea es la clave: no importamos filas sin nombre
+            continue
 
         lead = {
             "nombre": nombre,
-            "telefono": limpiar_telefono(fila[COL["PHONE"]]),
-            "email": limpiar_campo(fila[COL["EMAIL"]], 255),
-            "genero": limpiar_campo(fila[COL["GENERO"]], 10),
-            "categoria": limpiar_campo(fila[COL["CATEGORIA"]], 100),
-            "canal": limpiar_campo(fila[COL["CANAL"]], 100) or "Google Sheets",
-            "sales_status": limpiar_campo(fila[COL["STATUS"]], 100) or "New Lead",
-            "appointment_status": limpiar_campo(fila[COL["APPOINTMENT_STATUS"]], 100),
-            "appointment_schedule_date": parse_fecha(fila[COL["APPOINTMENT_SCHEDULE_DATE"]]),
-            "comentarios": limpiar_campo(fila[COL["COMENTARIO"]], None),
-            "first_contact": limpiar_campo(fila[COL["FIRST_CONTACT"]], None),
-            "consultation_with": limpiar_campo(fila[COL["CONSULTATION_WITH"]], 255),
-            "assigned_to": limpiar_campo(fila[COL["ASSIGNED_TO"]], 255),
-            "admission_date": parse_fecha(fila[COL["ADMISSION_DATE"]]),
-            "last_contact_date": parse_fecha(fila[COL["LAST_CONTACT"]]),
+            "genero": limpiar_texto(fila[MAPA_ORIGINAL["genero"]], 10),
+            "categoria": limpiar_texto(fila[MAPA_ORIGINAL["categoria"]], 100),
+            "canal": limpiar_texto(fila[MAPA_ORIGINAL["canal"]], 100) or "Google Sheets",
+            "admission_date": parse_fecha(fila[MAPA_ORIGINAL["admission_date"]]),
+            "telefono": limpiar_telefono(fila[MAPA_ORIGINAL["telefono"]]),
+            "email": limpiar_texto(fila[MAPA_ORIGINAL["email"]], 255),
+            "sales_status": limpiar_texto(fila[MAPA_ORIGINAL["sales_status"]], 100) or "New Lead",
+            "first_contact": limpiar_texto(fila[MAPA_ORIGINAL["first_contact"]], None),
+            "consultation_with": limpiar_texto(fila[MAPA_ORIGINAL["consultation_with"]], 255),
+            "assigned_to": limpiar_texto(fila[MAPA_ORIGINAL["assigned_to"]], 255),
+            "last_contact_date": parse_fecha(fila[MAPA_ORIGINAL["last_contact_date"]]),
+            "comentarios": limpiar_texto(fila[MAPA_ORIGINAL["comentarios"]], None),
+            "appointment_status": limpiar_texto(fila[MAPA_ORIGINAL["appointment_status"]], 100),
+            "appointment_schedule_date": parse_fecha(fila[MAPA_ORIGINAL["appointment_schedule_date"]]),
             "creado_por": "google_sheets",
         }
         leads.append(lead)
@@ -131,36 +126,81 @@ def leer_csv(path):
         if i % 500 == 0:
             print(f"  ... procesada fila {i}")
 
-    print(f"✓ Filas sin nombre saltadas: {filas_saltadas}")
-    print(f"📝 Primeros 5 nombres extraídos:")
-    for j in range(min(5, len(leads))):
-        print(f"   {j+1}. {leads[j]['nombre']}")
-    print(f"\n📊 Total leads con nombre: {len(leads)}")
+    print(f"✓ Filas sin nombre (saltadas): {filas_saltadas}")
+    print(f"📊 Total leads con nombre: {len(leads)}")
     return leads
+
+# ------------------------------------------------------------
+def crear_tabla_original(conn):
+    """Crea la tabla leads con las columnas exactas que tenía el CRM originalmente."""
+    cur = conn.cursor()
+    cur.execute("DROP TABLE IF EXISTS leads CASCADE")
+    cur.execute("""
+        CREATE TABLE leads (
+            id SERIAL PRIMARY KEY,
+            nombre VARCHAR(255),
+            telefono VARCHAR(20),
+            email VARCHAR(255),
+            genero VARCHAR(10),
+            categoria VARCHAR(100),
+            canal VARCHAR(100),
+            sales_status VARCHAR(100),
+            appointment_status VARCHAR(100),
+            medical_status VARCHAR(100),
+            asesor_id INTEGER,
+            doctor_id INTEGER,
+            creado_por VARCHAR(100),
+            comentarios TEXT,
+            rejection_reason VARCHAR(100),
+            quit_reason TEXT,
+            medilink_numero VARCHAR(50),
+            cita_confirmada BOOLEAN,
+            treatment_date DATE,
+            treatment_start_date DATE,
+            treatment_end_date DATE,
+            next_treatment_date DATE,
+            treatment_completed BOOLEAN,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            admission_date DATE,
+            last_contact_date DATE,
+            first_contact TEXT,
+            semaforo VARCHAR(10),
+            consultation_with VARCHAR(255),
+            assigned_to VARCHAR(255),
+            appointment_schedule_date DATE,
+            ciudad VARCHAR(100),
+            notas TEXT
+        )
+    """)
+    conn.commit()
+    cur.close()
+    print("✅ Tabla 'leads' recreada con la estructura original.")
 
 # ------------------------------------------------------------
 def importar_limpio(leads):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
 
-    print("\n🗑️  Eliminando todos los leads existentes...")
+    # Limpiar otras tablas dependientes
     cur.execute("DELETE FROM historial_estados")
     cur.execute("DELETE FROM controles")
-    cur.execute("DELETE FROM leads")
+    cur.execute("DELETE FROM agenda_doctor")
     conn.commit()
-    print("✅ Tablas limpias.")
 
     insert_sql = """
         INSERT INTO leads (
-            nombre, telefono, email, genero, categoria, canal,
-            sales_status, appointment_status, appointment_schedule_date,
-            comentarios, first_contact, consultation_with, assigned_to,
-            admission_date, last_contact_date, creado_por, fecha_creacion
+            nombre, genero, categoria, canal, admission_date,
+            telefono, email, sales_status, first_contact,
+            consultation_with, assigned_to, last_contact_date,
+            comentarios, appointment_status, appointment_schedule_date,
+            creado_por, fecha_creacion, fecha_actualizacion
         ) VALUES (
-            %(nombre)s, %(telefono)s, %(email)s, %(genero)s, %(categoria)s, %(canal)s,
-            %(sales_status)s, %(appointment_status)s, %(appointment_schedule_date)s,
-            %(comentarios)s, %(first_contact)s, %(consultation_with)s, %(assigned_to)s,
-            %(admission_date)s, %(last_contact_date)s, %(creado_por)s, NOW()
+            %(nombre)s, %(genero)s, %(categoria)s, %(canal)s, %(admission_date)s,
+            %(telefono)s, %(email)s, %(sales_status)s, %(first_contact)s,
+            %(consultation_with)s, %(assigned_to)s, %(last_contact_date)s,
+            %(comentarios)s, %(appointment_status)s, %(appointment_schedule_date)s,
+            %(creado_por)s, NOW(), NOW()
         )
     """
 
@@ -177,7 +217,7 @@ def importar_limpio(leads):
         except Exception as e:
             errores += 1
             if errores <= 10:
-                print(f"  ❌ Error con '{lead['nombre'][:30]}': {str(e)[:100]}")
+                print(f"  ❌ Error con '{lead.get('nombre','')[:30]}': {str(e)[:100]}")
             conn.rollback()
             cur = conn.cursor()
 
@@ -200,9 +240,21 @@ def importar_limpio(leads):
     conn.close()
 
 # ------------------------------------------------------------
+def asignar_asesores():
+    """Asigna asesor_id según first_contact"""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute("UPDATE leads SET asesor_id = 1 WHERE LOWER(TRIM(first_contact)) IN ('sofia', 'sofía')")
+    cur.execute("UPDATE leads SET asesor_id = 2 WHERE LOWER(TRIM(first_contact)) IN ('diana')")
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("✅ Asesores asignados (Sofía=1, Diana=2)")
+
+# ------------------------------------------------------------
 if __name__ == "__main__":
     print("="*60)
-    print("  STEMWELL CRM – SOLO FILAS CON NOMBRE")
+    print("  STEMWELL CRM – IMPORTACIÓN CORRECTA (SOLO COLUMNAS ORIGINALES)")
     print("="*60)
 
     csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), CSV_FILE)
@@ -210,14 +262,21 @@ if __name__ == "__main__":
         print(f"\n❌ Archivo no encontrado: {csv_path}")
         sys.exit(1)
 
-    leads = leer_csv(csv_path)
+    leads = leer_csv_para_crm(csv_path)
     if not leads:
         print("❌ No hay leads con nombre en el archivo.")
         sys.exit(1)
 
-    resp = input(f"\n⚠️  Se BORRARÁN todos los leads actuales y se importarán {len(leads)} leads con nombre. ¿Continuar? (escribe 'BORRAR'): ").strip()
+    resp = input(f"\n⚠️  Se ELIMINARÁ la tabla leads actual y se importarán {len(leads)} leads con la estructura original. ¿Continuar? (escribe 'BORRAR'): ").strip()
     if resp.upper() != "BORRAR":
         print("Cancelado")
         sys.exit(0)
 
+    conn = psycopg2.connect(**DB_CONFIG)
+    crear_tabla_original(conn)
+    conn.close()
+
     importar_limpio(leads)
+    asignar_asesores()
+
+    print("\n✅ Proceso completado. Reinicia el servidor y limpia el navegador.")
