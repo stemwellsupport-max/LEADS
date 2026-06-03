@@ -1,57 +1,56 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..dependencies import get_connection
 from ..models.schemas import UsuarioCreate
-from ..services.user_service import create_user, list_users
+import hashlib
+from psycopg2.extras import RealDictCursor
+from typing import Optional
 
-router = APIRouter(tags=["Usuarios"])
+router = APIRouter(prefix="/usuarios", tags=["Users"])
 
-@router.post("/usuarios")
-def crear_usuario(data: UsuarioCreate, conn = Depends(get_connection)):
-    result = create_user(conn, data)
-    if "message" in result and result["message"] == "Ya existe":
-        return result
-    return result
+def hash_password(p: str) -> str:
+    return hashlib.sha256(p.encode()).hexdigest()
 
-@router.get("/usuarios")
-def listar_usuarios(rol: str = None, conn = Depends(get_connection)):
-    return list_users(conn, rol)
-
-@router.get("/doctores")
-def listar_doctores(conn = Depends(get_connection)):
-    return list_users(conn, rol="doctor")
-
-@router.get("/asesores")
-def listar_asesores(conn = Depends(get_connection)):
-    return list_users(conn, rol="asesor")
-
-from pydantic import BaseModel
-from ..services.user_service import create_user, list_users, change_password, change_password_by_email
-
-class CambiarPassword(BaseModel):
-    nueva_password: str
-
-class CambiarPasswordPorEmail(BaseModel):
-    email: str
-    nueva_password: str
-
-@router.put("/usuarios/{usuario_id}/password")
-def cambiar_password(usuario_id: int, data: CambiarPassword, conn = Depends(get_connection)):
-    try:
-        return change_password(conn, usuario_id, data.nueva_password)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-@router.put("/usuarios/password/por-email")
-def cambiar_password_por_email(data: CambiarPasswordPorEmail, conn = Depends(get_connection)):
-    try:
-        return change_password_by_email(conn, data.email, data.nueva_password)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-@router.delete("/usuarios/{usuario_id}")
-def eliminar_usuario(usuario_id: int, conn = Depends(get_connection)):
+@router.post("")
+def crear_usuario(data: UsuarioCreate, conn=Depends(get_connection)):
     cur = conn.cursor()
-    cur.execute("DELETE FROM usuarios WHERE id=%s", (usuario_id,))
+    cur.execute(
+        "INSERT INTO usuarios (nombre,email,password,rol,telefono,idiomas) "
+        "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (email) DO NOTHING RETURNING id",
+        (data.nombre, data.email, hash_password(data.password), data.rol, data.telefono, data.idiomas)
+    )
+    res = cur.fetchone()
     conn.commit()
     cur.close()
-    return {"message": "Usuario eliminado permanentemente"}
+    if not res:
+        raise HTTPException(400, "El email ya existe")
+    return {"id": res[0]}
+
+@router.get("")
+def listar_usuarios(rol: Optional[str] = None, conn=Depends(get_connection)):
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    if rol:
+        cur.execute("SELECT id,nombre,email,rol,telefono FROM usuarios WHERE activo=true AND rol=%s", (rol,))
+    else:
+        cur.execute("SELECT id,nombre,email,rol,telefono FROM usuarios WHERE activo=true")
+    usuarios = cur.fetchall()
+    cur.close()
+    return {"usuarios": usuarios}
+
+@router.get("/doctores")
+def listar_doctores(conn=Depends(get_connection)):
+    return listar_usuarios(rol="doctor", conn=conn)
+
+@router.get("/asesores")
+def listar_asesores(conn=Depends(get_connection)):
+    return listar_usuarios(rol="asesor", conn=conn)
+
+@router.put("/{usuario_id}/password")
+def cambiar_password(usuario_id: int, data: dict, conn=Depends(get_connection)):
+    nueva = data.get("nueva_password", "")
+    if len(nueva) < 6:
+        raise HTTPException(400, "Contraseña mínimo 6 caracteres")
+    cur = conn.cursor()
+    cur.execute("UPDATE usuarios SET password=%s WHERE id=%s", (hash_password(nueva), usuario_id))
+    conn.commit()
+    cur.close()
+    return {"message": "Contraseña actualizada"}

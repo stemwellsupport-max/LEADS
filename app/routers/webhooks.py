@@ -14,7 +14,6 @@ from ..services.calendly_service import (
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
 async def verificar_firma(request: Request):
-    """Verifica que el webhook venga realmente de Calendly."""
     signature = request.headers.get("Calendly-Webhook-Signature")
     if not signature:
         raise HTTPException(401, "Firma no presente")
@@ -26,27 +25,23 @@ async def verificar_firma(request: Request):
     return json.loads(body)
 
 @router.post("/calendly")
-async def calendly_webhook(request: Request, conn = Depends(get_connection)):
-    # --- Descomenta la siguiente línea cuando quieras activar la verificación ---
+async def calendly_webhook(request: Request, conn=Depends(get_connection)):
+    # En producción descomentar la siguiente línea y comentar las dos de abajo
     # payload = await verificar_firma(request)
-    # --- Mientras tanto, usamos esta versión (solo para pruebas) ---
     body = await request.body()
     payload = json.loads(body)
 
-    # Puedes dejar este print para depurar, luego lo quitas
     print("=== PAYLOAD RECIBIDO ===")
     print(json.dumps(payload, indent=2))
     print("========================")
 
     event = payload.get("event")
-
     if event == "invitee.created":
         invitee = payload["payload"]
         email = invitee.get("email", "")
         name = invitee.get("name", "")
         start_time = invitee["scheduled_event"]["start_time"]
         end_time = invitee["scheduled_event"]["end_time"]
-        # Obtenemos el nombre del tipo de evento directamente del campo "name"
         event_name = invitee["scheduled_event"]["name"]
         event_id = invitee["scheduled_event"]["uri"].split("/")[-1]
 
