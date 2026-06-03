@@ -750,25 +750,51 @@ function renderLeads() {
 }
 
 function calcSemaforo(l) {
-  if (!l.comentarios) return "";
-  if (l.semaforo) return l.semaforo;
-  const matches = l.comentarios.match(/\[(\d{4}-\d{2}-\d{2})\s\d{2}:\d{2}\]/g);
-  if (!matches) return "";
-  let ultimaFecha = null;
-  for (const m of matches) {
-    const fecha = m.slice(1,11);
-    if (!ultimaFecha || fecha > ultimaFecha) ultimaFecha = fecha;
-  }
-  const dias = Math.floor((Date.now()-new Date(ultimaFecha+'T00:00:00').getTime())/86400000);
-  if (dias <= 1) return "🟢";
-  if (dias <= 2) return "🟡";
+  if (l.sales_status === "Won") return "🎉";
+  if (l.sales_status === "Lost") return "";
+  
+  const fechas = [
+    l.last_contact_date,
+    l.fecha_actualizacion,
+    l.fecha_creacion
+  ].filter(Boolean).map(d => new Date(d));
+  
+  if (!fechas.length) return "?";
+  
+  const ultimaFecha = new Date(Math.max(...fechas));
+  const hoy = new Date();
+  const diffTime = hoy - ultimaFecha;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 1) return "🟢";
+  if (diffDays <= 2) return "🟡";
   return "🔴";
 }
 
 function fechaCorta(d) {
   if (!d) return "—";
-  const fecha = new Date(d + (d.endsWith('Z') ? '' : 'Z'));
-  return fecha.toLocaleString('es-CO',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+  const fecha = new Date(d);
+  if (isNaN(fecha.getTime())) return d; // si no es fecha válida, mostrar el original
+  const dia = fecha.getDate().toString().padStart(2, '0');
+  const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+  const anio = fecha.getFullYear();
+  const horas = fecha.getHours().toString().padStart(2, '0');
+  const minutos = fecha.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
+}
+
+function obtenerFechaMasReciente(l) {
+  const fechas = [
+    l.last_contact_date,
+    l.fecha_actualizacion,
+    l.fecha_creacion
+  ].filter(Boolean).map(d => new Date(d));
+  
+  if (!fechas.length) return null;
+  
+  // Devolver la fecha más reciente
+  const masReciente = new Date(Math.max(...fechas));
+  return masReciente;
 }
 
 function buildRow(l) {
@@ -778,33 +804,44 @@ function buildRow(l) {
   const badgeClass = rol === "doctor" ? badgeForMedical(l.medical_status) : badgeForSales(l.sales_status);
   const citaBadge = badgeForAppt(l.appointment_status);
   const admision = fechaCorta(l.admission_date||l.fecha_creacion);
-  const ultimoContacto = fechaCorta(l.last_contact_date||l.fecha_actualizacion);
+  const ultimoContacto = fechaCorta(l.last_contact_date || l.fecha_actualizacion);
   const fechaTrat = l.treatment_start_date ? fechaCorta(l.treatment_start_date) : "—";
 
-  if (rol === "soporte") return `<tr onclick="abrirModal(${l.id})">
-    <tr><span class="semaforo">${sem}</span></tr>
-    <td class="td-name">${l.nombre}</td><td class="td-muted">${l.telefono||"—"}</td>
+  if (rol === "soporte") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
+    <td><span class="semaforo">${sem}</span></td>
+    <td class="td-name">${l.nombre}</td>
+    <td class="td-muted">${l.telefono||"—"}</td>
     <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
     <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
     <td><span class="badge ${badgeForMedical(l.medical_status)}">${l.medical_status||"—"}</span></td>
-    <td>${citaBadge}</td><td class="td-muted">${l.doctor_nombre||l.asesor_nombre||"—"}</td>
-    <td class="td-muted">${admision}</td></tr>`;
+    <td>${citaBadge}</td>
+    <td class="td-muted">${l.doctor_nombre||l.asesor_nombre||"—"}</td>
+    <td class="td-muted">${admision}</td>
+  </tr>`;
 
-  if (rol === "doctor") return `<tr onclick="abrirModal(${l.id})">
+  if (rol === "doctor") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
     <td><span class="semaforo">${sem}</span></td>
-    <td class="td-name">${l.nombre}</td><td class="td-muted">${l.telefono||"—"}</td>
+    <td class="td-name">${l.nombre}</td>
+    <td class="td-muted">${l.telefono||"—"}</td>
     <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
     <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
-    <td>${citaBadge}</td><td class="td-muted">${l.asesor_nombre||"—"}</td>
-    <td class="td-muted">${admision}</td><td class="td-muted">${fechaTrat}</td></tr>`;
+    <td>${citaBadge}</td>
+    <td class="td-muted">${l.asesor_nombre||"—"}</td>
+    <td class="td-muted">${admision}</td>
+    <td class="td-muted">${fechaTrat}</td>
+  </tr>`;
 
-  return `<tr onclick="abrirModal(${l.id})">
+  return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
     <td><span class="semaforo">${sem}</span></td>
-    <td class="td-name">${l.nombre}</td><td class="td-muted">${l.telefono||"—"}</td>
+    <td class="td-name">${l.nombre}</td>
+    <td class="td-muted">${l.telefono||"—"}</td>
     <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
     <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
-    <td>${citaBadge}</td><td class="td-muted">${l.doctor_nombre||"—"}</td>
-    <td class="td-muted">${admision}</td><td class="td-muted">${ultimoContacto}</td></tr>`;
+    <td>${citaBadge}</td>
+    <td class="td-muted">${l.doctor_nombre||"—"}</td>
+    <td class="td-muted">${admision}</td>
+    <td class="td-muted">${ultimoContacto}</td>
+  </tr>`;
 }
 
 function badgeForSales(s) {
@@ -1147,10 +1184,14 @@ async function abrirModal(id) {
   const btnTransferir = document.getElementById("btn-transferir");
   if (usuario.rol === "soporte" || usuario.rol === "asesor") { btnTransferir.classList.remove("hidden"); } else { btnTransferir.classList.add("hidden"); }
   const sem = calcSemaforo(l);
+  
+  // Calcular la fecha más reciente para "Último Contacto"
+  const ultimoContacto = obtenerFechaMasReciente(l);
+  
   document.getElementById("m-info-grid").innerHTML = `
     <div class="info-grid-item"><div class="ig-label">Semáforo</div><div class="ig-val" style="font-size:1.2rem">${sem}</div></div>
     <div class="info-grid-item"><div class="ig-label">Admisión</div><div class="ig-val">${fechaCorta(l.admission_date||l.fecha_creacion)}</div></div>
-    <div class="info-grid-item"><div class="ig-label">Último Contacto</div><div class="ig-val">${fechaCorta(l.last_contact_date||l.fecha_actualizacion)}</div></div>
+    <div class="info-grid-item"><div class="ig-label">Última Actividad</div><div class="ig-val">${fechaCorta(ultimoContacto)}</div></div>
     <div class="info-grid-item"><div class="ig-label">Días sin contacto</div><div class="ig-val" style="color:${diasColor(l)}">${diasSinContacto(l)}</div></div>`;
   document.getElementById("m-states").innerHTML = `
     <div class="cs-item"><div class="cs-label">Ventas</div><div class="cs-val">${l.sales_status||"—"}</div></div>
@@ -1165,14 +1206,20 @@ async function abrirModal(id) {
   cargarHistorial(id);
 }
 function diasSinContacto(l) {
-  const raw=l.last_contact_date||l.fecha_actualizacion;if(!raw)return"—";
-  const dias=Math.floor((Date.now()-new Date(raw).getTime())/86400000);
-  return dias===0?"Hoy":dias===1?"1 día":`${dias} días`;
+  const ultima = obtenerFechaMasReciente(l);
+  if (!ultima) return "—";
+  
+  const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
+  return dias === 0 ? "Hoy" : dias === 1 ? "1 día" : `${dias} días`;
 }
 function diasColor(l) {
-  const raw=l.last_contact_date||l.fecha_actualizacion;if(!raw)return"var(--text2)";
-  const dias=Math.floor((Date.now()-new Date(raw).getTime())/86400000);
-  if(dias<=1)return"var(--green)";if(dias<=2)return"var(--yellow)";return"var(--red)";
+  const ultima = obtenerFechaMasReciente(l);
+  if (!ultima) return "var(--text2)";
+  
+  const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
+  if (dias <= 1) return "var(--green)";
+  if (dias <= 2) return "var(--yellow)";
+  return "var(--red)";
 }
 function buildModalBody(l) {
   if (usuario.rol==="asesor") return buildAsesor(l);

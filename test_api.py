@@ -20,9 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ════════════════════════════════════════════════════════════
-#  CONNECTION POOL
-# ════════════════════════════════════════════════════════════
+# ========== CONNECTION POOL ==========
 _pool = pool.ThreadedConnectionPool(
     minconn=2, maxconn=10,
     host="localhost", port=5432,
@@ -38,14 +36,11 @@ def release_db(conn):
 def hash_password(p: str) -> str:
     return hashlib.sha256(p.encode()).hexdigest()
 
-# ════════════════════════════════════════════════════════════
-#  SETUP (agrega la columna treatment_confirmed si no existe)
-# ════════════════════════════════════════════════════════════
+# ========== SETUP TABLAS ==========
 def ensure_tables():
     conn = get_db()
     try:
         cur = conn.cursor()
-        # Verificar/crear tablas (ya las tienes, pero aseguramos)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS booked_calls (
                 id SERIAL PRIMARY KEY,
@@ -85,7 +80,6 @@ def ensure_tables():
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        # Agregar columna treatment_confirmed si no existe
         cur.execute("""
             DO $$ 
             BEGIN 
@@ -114,9 +108,7 @@ def ensure_tables():
 
 ensure_tables()
 
-# ════════════════════════════════════════════════════════════
-#  AUXILIARES AGENDA
-# ════════════════════════════════════════════════════════════
+# ========== AUXILIARES AGENDA ==========
 def _parse_fecha(v):
     if not v: return None
     s = str(v)
@@ -161,9 +153,7 @@ def update_agenda_fecha(conn, lead_id, treatment_date, estado='Rescheduled'):
         WHERE lead_id=%s""", (fecha, fecha, estado, lead_id))
     cur.close()
 
-# ════════════════════════════════════════════════════════════
-#  FORMAT LEAD
-# ════════════════════════════════════════════════════════════
+# ========== FORMAT LEAD ==========
 def dt(v):
     if not v: return None
     s = str(v)
@@ -195,7 +185,7 @@ def format_lead(l):
         "semaforo": l.get("semaforo") or "",
     }
 
-# ==================== AUTH ====================
+# ========== AUTH ==========
 @app.post("/login")
 def login(data: UsuarioLogin):
     conn = get_db()
@@ -210,7 +200,7 @@ def login(data: UsuarioLogin):
     finally:
         release_db(conn)
 
-# ==================== USUARIOS ====================
+# ========== USUARIOS ==========
 @app.post("/usuarios")
 def crear_usuario(data: UsuarioCreate):
     conn = get_db()
@@ -261,7 +251,7 @@ def cambiar_password(usuario_id: int, data: dict):
     finally:
         release_db(conn)
 
-# ==================== TRANSFERIR LEAD ====================
+# ========== TRANSFERIR LEAD ==========
 @app.put("/leads/{lead_id}/transferir")
 def transferir_lead(lead_id: int, data: dict):
     nuevo_asesor_id = data.get("nuevo_asesor_id")
@@ -300,7 +290,7 @@ def transferir_lead(lead_id: int, data: dict):
     finally:
         release_db(conn)
 
-# ==================== BOOKED CALLS ====================
+# ========== BOOKED CALLS ==========
 @app.post("/booked-calls")
 def crear_booked_call(data: BookedCallCreate):
     conn = get_db()
@@ -419,7 +409,7 @@ def get_booked_calls_lead(lead_id: int):
     finally:
         release_db(conn)
 
-# ==================== LEADS - GET ====================
+# ========== LEADS - GET ==========
 @app.get("/leads/usuario/{usuario_id}")
 def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
     conn = get_db()
@@ -456,7 +446,7 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
     finally:
         release_db(conn)
 
-# ==================== LEADS - UPDATE STATUS (CORREGIDO con todo el flujo) ====================
+# ========== LEADS - UPDATE STATUS (CON actualización de last_contact_date) ==========
 @app.put("/leads/estado")
 def cambiar_estado(data: UpdateStatus):
     conn = get_db()
@@ -625,7 +615,7 @@ def cambiar_estado(data: UpdateStatus):
             elif not data.comentario:
                 raise HTTPException(400, "No hay cambios válidos para el asesor")
 
-        # ========== DOCTOR (CORREGIDO: asistió a consulta, consulta completada, propuesta, reagendar, fechas) ==========
+        # ========== DOCTOR ==========
         elif rol == "doctor":
             if data.treatment_end_date and med == "In Treatment":
                 updates["treatment_end_date"] = data.treatment_end_date
@@ -645,7 +635,6 @@ def cambiar_estado(data: UpdateStatus):
                 nota = "No Show marcado por doctor"
                 delete_from_agenda(conn, data.lead_id)
             elif data.appointment_status == "Attended" and sales == "Appointment Scheduled":
-                # PACIENTE ASISTIÓ A CONSULTA
                 updates["appointment_status"] = "Attended"
                 if not med:
                     updates["medical_status"] = "Pending Evaluation"
@@ -826,12 +815,17 @@ def cambiar_estado(data: UpdateStatus):
         if not updates and not data.comentario and not data.crear_control:
             raise HTTPException(400, "No hay cambios para aplicar")
 
+        # Aplicar updates (incluyendo last_contact_date)
         if updates:
             updates["fecha_actualizacion"] = "now"
+            updates["last_contact_date"] = "now"   # ← SE AGREGA AQUÍ
             set_parts, values = [], []
             for k, v in updates.items():
-                if v == "now": set_parts.append(f"{k}=CURRENT_TIMESTAMP")
-                else: set_parts.append(f"{k}=%s"); values.append(v)
+                if v == "now":
+                    set_parts.append(f"{k}=CURRENT_TIMESTAMP")
+                else:
+                    set_parts.append(f"{k}=%s")
+                    values.append(v)
             values.append(data.lead_id)
             cur.execute(f"UPDATE leads SET {', '.join(set_parts)} WHERE id=%s RETURNING *", values)
             updated = cur.fetchone()
@@ -839,11 +833,12 @@ def cambiar_estado(data: UpdateStatus):
         else:
             updated = lead
 
+        # Comentario sin cambios de estado (también actualiza last_contact_date)
         if data.comentario:
             ts = now.strftime("[%Y-%m-%d %H:%M]")
             nuevo_com = f"{ts} [{rol.upper()}] {data.comentario}"
             prev = lead.get("comentarios") or ""
-            cur.execute("UPDATE leads SET comentarios=%s WHERE id=%s",
+            cur.execute("UPDATE leads SET comentarios=%s, last_contact_date = CURRENT_DATE WHERE id=%s",
                         ((prev + "\n" + nuevo_com).strip(), data.lead_id))
 
         if data.crear_control:
@@ -874,7 +869,7 @@ def cambiar_estado(data: UpdateStatus):
     finally:
         release_db(conn)
 
-# ==================== CREAR LEAD ====================
+# ========== CREAR LEAD ==========
 @app.post("/leads")
 def crear_lead(data: LeadCreate):
     conn = get_db()
@@ -896,8 +891,8 @@ def crear_lead(data: LeadCreate):
             if row: asesor_id = row[0]
         cur2.execute(
             "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,notas,"
-            "sales_status,asesor_id,doctor_id,creado_por) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+            "sales_status,asesor_id,doctor_id,creado_por,last_contact_date,admission_date) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
             (data.nombre, data.telefono, data.email, data.categoria, data.canal,
              data.genero, data.ciudad, data.notas,
              data.sales_status_inicial or "New Lead",
@@ -909,7 +904,7 @@ def crear_lead(data: LeadCreate):
     finally:
         release_db(conn)
 
-# ==================== HISTORIAL, AGENDA, CONTROLES ====================
+# ========== HISTORIAL, AGENDA, CONTROLES ==========
 @app.get("/leads/{lead_id}/historial")
 def get_historial(lead_id: int):
     conn = get_db()
@@ -969,7 +964,7 @@ def get_controles(lead_id: int):
     finally:
         release_db(conn)
 
-# ==================== GOOGLE SHEETS ====================
+# ========== GOOGLE SHEETS ==========
 @app.post("/google/lead")
 def recibir_lead_google(lead: LeadGoogle):
     conn = get_db()
@@ -979,8 +974,8 @@ def recibir_lead_google(lead: LeadGoogle):
         row = cur.fetchone()
         asesor_id = row[0] if row else None
         cur.execute(
-            "INSERT INTO leads (nombre,telefono,email,categoria,canal,sales_status,asesor_id,creado_por) "
-            "VALUES (%s,%s,%s,%s,%s,'New Lead',%s,%s) RETURNING id",
+            "INSERT INTO leads (nombre,telefono,email,categoria,canal,sales_status,asesor_id,creado_por,last_contact_date,admission_date) "
+            "VALUES (%s,%s,%s,%s,%s,'New Lead',%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
             (lead.nombre, lead.phone, lead.email, lead.categoria, lead.canal, asesor_id, lead.source)
         )
         result = cur.fetchone()
@@ -989,7 +984,7 @@ def recibir_lead_google(lead: LeadGoogle):
     finally:
         release_db(conn)
 
-# ==================== HEALTH ====================
+# ========== HEALTH ==========
 @app.get("/health")
 def health():
     conn = get_db()
