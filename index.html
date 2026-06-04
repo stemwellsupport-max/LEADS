@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Patient Tracking Sheet</title>
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ========== ESTILOS (sin cambios, solo asegurar compatibilidad) ========== */
@@ -750,99 +750,114 @@ function renderLeads() {
 }
 
 function calcSemaforo(l) {
-  if (l.sales_status === "Won") return "🎉";
-  if (l.sales_status === "Lost") return "";
-  
-  const fechas = [
-    l.last_contact_date,
-    l.fecha_actualizacion,
-    l.fecha_creacion
-  ].filter(Boolean).map(d => new Date(d));
-  
-  if (!fechas.length) return "?";
-  
-  const ultimaFecha = new Date(Math.max(...fechas));
-  const hoy = new Date();
-  const diffTime = hoy - ultimaFecha;
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays <= 1) return "🟢";
-  if (diffDays <= 2) return "🟡";
-  return "🔴";
+    if (l.sales_status === "Won") return "🎉";
+    if (l.sales_status === "Lost") return "❌";
+    if (l.sales_status === "New Lead") return "🚩";
+
+    let ultimaFecha = null;
+    if (l.last_contact_date) {
+        ultimaFecha = new Date(l.last_contact_date);
+    } else if (l.fecha_actualizacion) {
+        ultimaFecha = new Date(l.fecha_actualizacion);
+    } else if (l.fecha_creacion) {
+        ultimaFecha = new Date(l.fecha_creacion);
+    }
+    
+    if (!ultimaFecha) return "🟡";
+    
+    const diffDays = Math.floor((new Date() - ultimaFecha) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 1) return "🟢";
+    if (diffDays <= 2) return "🟡";
+    return "🔴";
 }
 
 function fechaCorta(d) {
   if (!d) return "—";
-  const fecha = new Date(d);
-  if (isNaN(fecha.getTime())) return d; // si no es fecha válida, mostrar el original
-  const dia = fecha.getDate().toString().padStart(2, '0');
-  const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-  const anio = fecha.getFullYear();
-  const horas = fecha.getHours().toString().padStart(2, '0');
-  const minutos = fecha.getMinutes().toString().padStart(2, '0');
-  return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
+  // Extraer partes directamente del string para evitar conversión de timezone
+  // PostgreSQL manda: "2026-05-23T19:00:00" o "2026-05-23" o "2026-05-23T19:00:00+00:00"
+  const s = String(d);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+  if (!m) return d;
+  const [, anio, mes, dia, hh = "00", mm = "00"] = m;
+  return `${mes}/${dia}/${anio} ${hh}:${mm}`;
 }
 
 function obtenerFechaMasReciente(l) {
-  const fechas = [
-    l.last_contact_date,
-    l.fecha_actualizacion,
-    l.fecha_creacion
-  ].filter(Boolean).map(d => new Date(d));
+  // Priorizar last_contact_date si existe
+  if (l.last_contact_date) {
+    return new Date(l.last_contact_date);
+  }
   
-  if (!fechas.length) return null;
+  // Fallback a fecha_actualizacion
+  if (l.fecha_actualizacion) {
+    return new Date(l.fecha_actualizacion);
+  }
   
-  // Devolver la fecha más reciente
-  const masReciente = new Date(Math.max(...fechas));
-  return masReciente;
+  // Último recurso
+  if (l.fecha_creacion) {
+    return new Date(l.fecha_creacion);
+  }
+  
+  return null;
 }
 
 function buildRow(l) {
-  const rol = usuario.rol;
-  const sem = calcSemaforo(l);
-  const estadoPrincipal = rol === "doctor" ? (l.medical_status||"—") : (l.sales_status||"—");
-  const badgeClass = rol === "doctor" ? badgeForMedical(l.medical_status) : badgeForSales(l.sales_status);
-  const citaBadge = badgeForAppt(l.appointment_status);
-  const admision = fechaCorta(l.admission_date||l.fecha_creacion);
-  const ultimoContacto = fechaCorta(l.last_contact_date || l.fecha_actualizacion);
-  const fechaTrat = l.treatment_start_date ? fechaCorta(l.treatment_start_date) : "—";
+    const rol = usuario.rol;
+    const sem = calcSemaforo(l);
+    const estadoPrincipal = rol === "doctor" ? (l.medical_status||"—") : (l.sales_status||"—");
+    const badgeClass = rol === "doctor" ? badgeForMedical(l.medical_status) : badgeForSales(l.sales_status);
+    const citaBadge = badgeForAppt(l.appointment_status);
+    const admision = fechaCorta(l.admission_date||l.fecha_creacion);
+    
+    // USAR last_contact_date prioritariamente
+    let ultimoContacto = "—";
+    if (l.last_contact_date) {
+        ultimoContacto = fechaCorta(l.last_contact_date);
+    } else if (l.fecha_actualizacion) {
+        ultimoContacto = fechaCorta(l.fecha_actualizacion);
+    } else if (l.fecha_creacion) {
+        ultimoContacto = fechaCorta(l.fecha_creacion);
+    }
+    
+    const fechaTrat = l.treatment_start_date ? fechaCorta(l.treatment_start_date) : "—";
 
-  if (rol === "soporte") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
-    <td><span class="semaforo">${sem}</span></td>
-    <td class="td-name">${l.nombre}</td>
-    <td class="td-muted">${l.telefono||"—"}</td>
-    <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
-    <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
-    <td><span class="badge ${badgeForMedical(l.medical_status)}">${l.medical_status||"—"}</span></td>
-    <td>${citaBadge}</td>
-    <td class="td-muted">${l.doctor_nombre||l.asesor_nombre||"—"}</td>
-    <td class="td-muted">${admision}</td>
-  </tr>`;
+    if (rol === "soporte") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
+        <td><span class="semaforo">${sem}</span></td>
+        <td class="td-name">${l.nombre}</td>
+        <td class="td-muted">${l.telefono||"—"}</td>
+        <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
+        <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
+        <td><span class="badge ${badgeForMedical(l.medical_status)}">${l.medical_status||"—"}</span></td>
+        <td>${citaBadge}</td>
+        <td class="td-muted">${l.doctor_nombre||l.asesor_nombre||"—"}</td>
+        <td class="td-muted">${admision}</td>
+    </tr>`;
 
-  if (rol === "doctor") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
-    <td><span class="semaforo">${sem}</span></td>
-    <td class="td-name">${l.nombre}</td>
-    <td class="td-muted">${l.telefono||"—"}</td>
-    <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
-    <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
-    <td>${citaBadge}</td>
-    <td class="td-muted">${l.asesor_nombre||"—"}</td>
-    <td class="td-muted">${admision}</td>
-    <td class="td-muted">${fechaTrat}</td>
-  </tr>`;
+    if (rol === "doctor") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
+        <td><span class="semaforo">${sem}</span></td>
+        <td class="td-name">${l.nombre}</td>
+        <td class="td-muted">${l.telefono||"—"}</td>
+        <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
+        <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
+        <td>${citaBadge}</td>
+        <td class="td-muted">${l.asesor_nombre||"—"}</td>
+        <td class="td-muted">${admision}</td>
+        <td class="td-muted">${fechaTrat}</td>
+    </tr>`;
 
-  return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
-    <td><span class="semaforo">${sem}</span></td>
-    <td class="td-name">${l.nombre}</td>
-    <td class="td-muted">${l.telefono||"—"}</td>
-    <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
-    <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
-    <td>${citaBadge}</td>
-    <td class="td-muted">${l.doctor_nombre||"—"}</td>
-    <td class="td-muted">${admision}</td>
-    <td class="td-muted">${ultimoContacto}</td>
-  </tr>`;
+    return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
+        <td><span class="semaforo">${sem}</span></td>
+        <td class="td-name">${l.nombre}</td>
+        <td class="td-muted">${l.telefono||"—"}</td>
+        <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
+        <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
+        <td>${citaBadge}</td>
+        <td class="td-muted">${l.doctor_nombre||"—"}</td>
+        <td class="td-muted">${admision}</td>
+        <td class="td-muted">${ultimoContacto}</td>
+    </tr>`;
 }
+
 
 function badgeForSales(s) {
   if (!s) return "b-gray";
@@ -1073,21 +1088,57 @@ async function initCalendar() {
 }
 async function fetchCalendarEvents(info, successCB, failCB) {
   try {
-    const res=await fetch(`${API}/agenda`,{headers:H}),data=await res.json(),slots=data.slots||[];
-    const docMap={};let di=0;doctoresCache.forEach(d=>{docMap[d.id]=di++;});
-    const events=slots.filter(s=>calDocFiltro==="all"||Number(s.doctor_id)===Number(calDocFiltro)).map(s=>{
-      const idx=docMap[s.doctor_id]??0;
-      let startDate=s.fecha_inicio;
-      if(startDate&&!startDate.includes('T'))startDate=startDate+'T00:00:00';
-      let endDate=s.fecha_fin;
-      if(endDate&&!endDate.includes('T'))endDate=endDate+'T00:00:00';
-      return{title:s.paciente||"—",start:startDate,end:endDate||null,allDay:false,
-        backgroundColor:DOC_COLORS[idx%DOC_COLORS.length],borderColor:DOC_COLORS[idx%DOC_COLORS.length],
-        textColor:DOC_TEXT[idx%DOC_TEXT.length],
-        extendedProps:{lead_id:s.lead_id,doctor_nombre:s.doctor_nombre,tipo:s.tipo,estado:s.estado}};
-    });
+    const res = await fetch(`${API}/agenda`, { headers: H });
+    const data = await res.json();
+    const slots = data.slots || [];
+
+    const docMap = {};
+    let di = 0;
+    doctoresCache.forEach(d => { docMap[d.id] = di++; });
+
+    const events = slots
+      .filter(s => calDocFiltro === "all" || Number(s.doctor_id) === Number(calDocFiltro))
+      .map(s => {
+        const idx = docMap[s.doctor_id] ?? 0;
+
+        // Normalizar fecha inicio
+        let start = s.fecha_inicio || s.fecha || s.date || null;
+        if (start && !start.includes('T')) start = start + 'T08:00:00';
+
+        // Normalizar fecha fin
+        let end = s.fecha_fin || s.fecha_end || null;
+        if (end && !end.includes('T')) end = end + 'T09:00:00';
+        if (!end && start) {
+          // Si no hay fin, duración de 1 hora
+          const d = new Date(start);
+          d.setHours(d.getHours() + 1);
+          end = d.toISOString().slice(0, 19);
+        }
+
+        return {
+          title: s.paciente || s.nombre || "—",
+          start,
+          end,
+          allDay: false,
+          backgroundColor: DOC_COLORS[idx % DOC_COLORS.length],
+          borderColor:     DOC_COLORS[idx % DOC_COLORS.length],
+          textColor:       DOC_TEXT[idx % DOC_TEXT.length],
+          extendedProps: {
+            lead_id:      s.lead_id,
+            doctor_nombre: s.doctor_nombre,
+            tipo:  s.tipo,
+            estado: s.estado
+          }
+        };
+      })
+      .filter(e => e.start); // descartar eventos sin fecha
+
+    console.log("📅 Eventos calendario:", events); // para debug en consola
     successCB(events);
-  } catch(e) { failCB(e); }
+  } catch (e) {
+    console.error("Error fetchCalendarEvents:", e);
+    failCB(e);
+  }
 }
 function renderCalDocButtons() {
   const container=document.getElementById("cal-doc-buttons");
@@ -1173,53 +1224,106 @@ function usarHorarioSeleccionado() {
 // MODAL DETALLE
 // ══════════════════════════════════════════════
 async function abrirModal(id) {
-  seleccionado = leads.find(l=>l.id===id) || todosLeads.find(l=>l.id===id);
-  if (!seleccionado) return;
-  const l = seleccionado;
-  _citaToggle = false;
-  document.getElementById("m-nombre").textContent = l.nombre;
-  document.getElementById("m-meta").textContent = `${l.telefono||"Sin tel"} · ${l.email||"Sin email"} · ${l.canal||""} · ${l.categoria||""}`;
-  document.getElementById("m-comentarios").textContent = l.comentarios||"Sin comentarios";
-  document.getElementById("m-comentario").value = "";
-  const btnTransferir = document.getElementById("btn-transferir");
-  if (usuario.rol === "soporte" || usuario.rol === "asesor") { btnTransferir.classList.remove("hidden"); } else { btnTransferir.classList.add("hidden"); }
-  const sem = calcSemaforo(l);
-  
-  // Calcular la fecha más reciente para "Último Contacto"
-  const ultimoContacto = obtenerFechaMasReciente(l);
-  
-  document.getElementById("m-info-grid").innerHTML = `
-    <div class="info-grid-item"><div class="ig-label">Semáforo</div><div class="ig-val" style="font-size:1.2rem">${sem}</div></div>
-    <div class="info-grid-item"><div class="ig-label">Admisión</div><div class="ig-val">${fechaCorta(l.admission_date||l.fecha_creacion)}</div></div>
-    <div class="info-grid-item"><div class="ig-label">Última Actividad</div><div class="ig-val">${fechaCorta(ultimoContacto)}</div></div>
-    <div class="info-grid-item"><div class="ig-label">Días sin contacto</div><div class="ig-val" style="color:${diasColor(l)}">${diasSinContacto(l)}</div></div>`;
-  document.getElementById("m-states").innerHTML = `
-    <div class="cs-item"><div class="cs-label">Ventas</div><div class="cs-val">${l.sales_status||"—"}</div></div>
-    <div class="cs-item"><div class="cs-label">Cita</div><div class="cs-val">${l.appointment_status||"—"}</div></div>
-    <div class="cs-item"><div class="cs-label">Médico</div><div class="cs-val">${l.medical_status||"—"}</div></div>
-    ${l.cita_confirmada?'<div class="cs-item"><div class="cs-label">Confirmada</div><div class="cs-val" style="color:var(--green)">✅ Sí</div></div>':''}
-    ${l.treatment_start_date?`<div class="cs-item"><div class="cs-label">Inicio Trat.</div><div class="cs-val" style="color:var(--teal)">${l.treatment_start_date}</div></div>`:''}
-    ${l.treatment_end_date?`<div class="cs-item"><div class="cs-label">Fin Trat.</div><div class="cs-val" style="color:var(--teal)">${l.treatment_end_date}</div></div>`:''}
-    ${l.medilink_numero?`<div class="cs-item"><div class="cs-label">Medilink #</div><div class="cs-val">${l.medilink_numero}</div></div>`:''}`;
-  document.getElementById("m-body").innerHTML = buildModalBody(l);
-  document.getElementById("modal").classList.add("open");
-  cargarHistorial(id);
+    seleccionado = leads.find(l=>l.id===id) || todosLeads.find(l=>l.id===id);
+    if (!seleccionado) return;
+    const l = seleccionado;
+    _citaToggle = false;
+    document.getElementById("m-nombre").textContent = l.nombre;
+    document.getElementById("m-meta").textContent = `${l.telefono||"Sin tel"} · ${l.email||"Sin email"} · ${l.canal||""} · ${l.categoria||""}`;
+    document.getElementById("m-comentarios").textContent = l.comentarios||"Sin comentarios";
+    document.getElementById("m-comentario").value = "";
+    const btnTransferir = document.getElementById("btn-transferir");
+    if (usuario.rol === "soporte" || usuario.rol === "asesor") { btnTransferir.classList.remove("hidden"); } else { btnTransferir.classList.add("hidden"); }
+    const sem = calcSemaforo(l);
+    
+    // Obtener la fecha más reciente (priorizando last_contact_date)
+    let ultimoContacto = null;
+    let ultimoContactoStr = "—";
+    let fechaParaDias = null;
+    
+    if (l.last_contact_date) {
+        ultimoContacto = new Date(l.last_contact_date);
+        ultimoContactoStr = fechaCorta(l.last_contact_date);
+        fechaParaDias = ultimoContacto;
+    } else if (l.fecha_actualizacion) {
+        ultimoContacto = new Date(l.fecha_actualizacion);
+        ultimoContactoStr = fechaCorta(l.fecha_actualizacion);
+        fechaParaDias = ultimoContacto;
+    } else if (l.fecha_creacion) {
+        ultimoContacto = new Date(l.fecha_creacion);
+        ultimoContactoStr = fechaCorta(l.fecha_creacion);
+        fechaParaDias = ultimoContacto;
+    }
+    
+    // Calcular días sin contacto
+    let diasSinContactoStr = "—";
+    let colorDias = "var(--text2)";
+    if (fechaParaDias) {
+        const dias = Math.floor((Date.now() - fechaParaDias.getTime()) / 86400000);
+        if (dias === 0) diasSinContactoStr = "Hoy";
+        else if (dias === 1) diasSinContactoStr = "1 día";
+        else diasSinContactoStr = `${dias} días`;
+        
+        if (dias <= 1) colorDias = "var(--green)";
+        else if (dias <= 2) colorDias = "var(--yellow)";
+        else colorDias = "var(--red)";
+    }
+    
+    document.getElementById("m-info-grid").innerHTML = `
+        <div class="info-grid-item"><div class="ig-label">Semáforo</div><div class="ig-val" style="font-size:1.2rem">${sem}</div></div>
+        <div class="info-grid-item"><div class="ig-label">Admisión</div><div class="ig-val">${fechaCorta(l.admission_date||l.fecha_creacion)}</div></div>
+        <div class="info-grid-item"><div class="ig-label">Última Actividad</div><div class="ig-val">${ultimoContactoStr}</div></div>
+        <div class="info-grid-item"><div class="ig-label">Días sin contacto</div><div class="ig-val" style="color:${colorDias}">${diasSinContactoStr}</div></div>`;
+    
+    document.getElementById("m-states").innerHTML = `
+        <div class="cs-item"><div class="cs-label">Ventas</div><div class="cs-val">${l.sales_status||"—"}</div></div>
+        <div class="cs-item"><div class="cs-label">Cita</div><div class="cs-val">${l.appointment_status||"—"}</div></div>
+        <div class="cs-item"><div class="cs-label">Médico</div><div class="cs-val">${l.medical_status||"—"}</div></div>
+        ${l.cita_confirmada?'<div class="cs-item"><div class="cs-label">Confirmada</div><div class="cs-val" style="color:var(--green)">✅ Sí</div></div>':''}
+        ${l.treatment_start_date?`<div class="cs-item"><div class="cs-label">Inicio Trat.</div><div class="cs-val" style="color:var(--teal)">${l.treatment_start_date}</div></div>`:''}
+        ${l.treatment_end_date?`<div class="cs-item"><div class="cs-label">Fin Trat.</div><div class="cs-val" style="color:var(--teal)">${l.treatment_end_date}</div></div>`:''}
+        ${l.medilink_numero?`<div class="cs-item"><div class="cs-label">Medilink #</div><div class="cs-val">${l.medilink_numero}</div></div>`:''}`;
+    
+    document.getElementById("m-body").innerHTML = buildModalBody(l);
+    document.getElementById("modal").classList.add("open");
+    cargarHistorial(id);
 }
 function diasSinContacto(l) {
-  const ultima = obtenerFechaMasReciente(l);
-  if (!ultima) return "—";
-  
-  const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
-  return dias === 0 ? "Hoy" : dias === 1 ? "1 día" : `${dias} días`;
+    // Priorizar last_contact_date
+    let ultimaFecha = null;
+    
+    if (l.last_contact_date) {
+        ultimaFecha = new Date(l.last_contact_date);
+    } else if (l.fecha_actualizacion) {
+        ultimaFecha = new Date(l.fecha_actualizacion);
+    } else if (l.fecha_creacion) {
+        ultimaFecha = new Date(l.fecha_creacion);
+    }
+    
+    if (!ultimaFecha) return "—";
+    
+    const dias = Math.floor((Date.now() - ultimaFecha.getTime()) / 86400000);
+    if (dias === 0) return "Hoy";
+    if (dias === 1) return "1 día";
+    return `${dias} días`;
 }
 function diasColor(l) {
-  const ultima = obtenerFechaMasReciente(l);
-  if (!ultima) return "var(--text2)";
-  
-  const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
-  if (dias <= 1) return "var(--green)";
-  if (dias <= 2) return "var(--yellow)";
-  return "var(--red)";
+    let ultimaFecha = null;
+    
+    if (l.last_contact_date) {
+        ultimaFecha = new Date(l.last_contact_date);
+    } else if (l.fecha_actualizacion) {
+        ultimaFecha = new Date(l.fecha_actualizacion);
+    } else if (l.fecha_creacion) {
+        ultimaFecha = new Date(l.fecha_creacion);
+    }
+    
+    if (!ultimaFecha) return "var(--text2)";
+    
+    const dias = Math.floor((Date.now() - ultimaFecha.getTime()) / 86400000);
+    if (dias <= 1) return "var(--green)";
+    if (dias <= 2) return "var(--yellow)";
+    return "var(--red)";
 }
 function buildModalBody(l) {
   if (usuario.rol==="asesor") return buildAsesor(l);
@@ -1229,7 +1333,6 @@ function buildModalBody(l) {
 
 // ══════════════════════════════════════════════
 // MODAL ASESOR — CORREGIDO
-// ══════════════════════════════════════════════
 function buildAsesor(l) {
   const s = l.sales_status||"";
   const doctoresOpts = doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id==d.id?'selected':''}>${d.nombre}</option>`).join("");
@@ -1249,7 +1352,7 @@ function buildAsesor(l) {
 
   if (s==="Lost") return `<div class="info-box danger">❌ Lead perdido.</div>`;
 
-  // ── APPOINTMENT SCHEDULED ──
+  // ── APPOINTMENT SCHEDULED con MEDILINK ──
   if (s==="Appointment Scheduled") {
     const fechaCita = l.treatment_date ? new Date(l.treatment_date+'T00:00:00').toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : 'No definida';
 
@@ -1262,6 +1365,8 @@ function buildAsesor(l) {
         </div>
         <div id="block-confirmada" class="hidden">
           <div class="info-box success" style="margin-top:.8rem">✅ Al guardar pasará al médico.</div>
+          <label class="lbl">Número Medilink</label>
+          <input type="text" id="a-medilink-confirm" placeholder="ML-2024-001" value="${l.medilink_numero || ''}">
           <label class="lbl">Doctor *</label>
           <select id="a-doctor-confirm"><option value="">Seleccionar...</option>${doctoresOpts}</select>
           <label class="lbl">Fecha/Hora de Consulta</label>
@@ -1285,6 +1390,8 @@ function buildAsesor(l) {
         </div>`;
     } else {
       return `<div class="info-box success">✅ Cita confirmada para <strong>${fechaCita}</strong>.</div>
+        <label class="lbl">Número Medilink</label>
+        <input type="text" id="a-medilink-confirm" placeholder="ML-2024-001" value="${l.medilink_numero || ''}">
         <label class="lbl">Acciones</label>
         <select id="a-appt-accion" onchange="onApptAccion()">
           <option value="">— Sin cambio —</option>
@@ -1381,6 +1488,8 @@ function buildAsesor(l) {
     </select>
     <div id="a-agenda-block" class="hidden">
       <div class="info-box info" style="margin-top:.8rem">📅 Podrás confirmar y asignar doctor después.</div>
+      <label class="lbl">Número Medilink (opcional)</label>
+      <input type="text" id="a-medilink-agenda" placeholder="ML-2024-001" value="${l.medilink_numero || ''}">
       <label class="lbl">Doctor (opcional)</label>
       <select id="a-doctor-agenda"><option value="">Sin asignar</option>${doctoresOpts}</select>
       <label class="lbl">Fecha/Hora de Consulta</label><input type="datetime-local" id="a-fecha-agenda">
@@ -1642,13 +1751,18 @@ function onDoctorControlChange() { document.getElementById("d-control-fecha-bloc
 // GUARDAR CAMBIOS
 // ══════════════════════════════════════════════
 async function guardarCambios() {
-  if (!seleccionado) return;
-  const l=seleccionado, comentario=document.getElementById("m-comentario").value.trim(), rol=usuario.rol;
-  let body={lead_id:l.id, usuario_id:usuario.id, comentario};
-  if (rol==="asesor") { if (!buildBodyAsesor(body,l)) return; }
-  else if (rol==="doctor") { if (!buildBodyDoctor(body,l)) return; }
-  else { buildBodySoporte(body); }
-  await enviarCambios(body);
+    if (!seleccionado) return;
+    const l = seleccionado, comentario = document.getElementById("m-comentario").value.trim(), rol = usuario.rol;
+    let body = { lead_id: l.id, usuario_id: usuario.id, comentario };
+    
+    if (rol === "asesor") { 
+        if (!buildBodyAsesor(body, l)) return; 
+    } else if (rol === "doctor") { 
+        if (!buildBodyDoctor(body, l)) return; 
+    } else { 
+        buildBodySoporte(body); 
+    }
+    await enviarCambios(body);
 }
 
 function buildBodyAsesor(body,l) {
@@ -1661,6 +1775,10 @@ function buildBodyAsesor(body,l) {
   }
 
   if (s==="Appointment Scheduled") {
+    // ✅ AGREGADO: Guardar Medilink cuando se confirma cita
+    const medilink = document.getElementById("a-medilink-confirm")?.value.trim();
+    if(medilink) body.medilink_numero = medilink;
+    
     const accion=document.getElementById("a-appt-accion")?.value;
     if (_citaToggle) {
       const doc=document.getElementById("a-doctor-confirm")?.value, f=document.getElementById("a-fecha-consulta")?.value;
@@ -1724,6 +1842,13 @@ function buildBodyAsesor(body,l) {
   }
 
   const newStatus=document.getElementById("a-sales-status")?.value;
+  
+  // ✅ AGREGADO: Guardar Medilink cuando se programa cita desde el selector general
+  if (newStatus === "Appointment Scheduled") {
+    const medilinkAgenda = document.getElementById("a-medilink-agenda")?.value.trim();
+    if(medilinkAgenda) body.medilink_numero = medilinkAgenda;
+  }
+  
   if (newStatus==="Booked Calls") {
     const f=document.getElementById("a-bc-fecha")?.value, t=document.getElementById("a-bc-tipo")?.value, n=document.getElementById("a-bc-notas")?.value;
     if(!f){toast("Selecciona fecha y hora",true);return false;}
@@ -1871,23 +1996,40 @@ function buildBodySoporte(body) {
 }
 
 async function enviarCambios(body) {
-  try {
-    const res = await fetch(API + "/leads/estado", { method: "PUT", headers: H, body: JSON.stringify(body) });
-    if (res.ok) {
-      const data = await res.json();
-      toast("✅ " + (data.message || "Guardado"));
-      cerrarModal();
-      await cargarLeads();
-      if (calInstance) calInstance.refetchEvents();
-      if (usuario.rol === "doctor" && body.appointment_status === "Attended") {
-        setTimeout(() => abrirModal(body.lead_id), 200);
-      }
-    } else {
-      const err = await res.json();
-      toast("❌ " + (err.detail || "Error al guardar"), true);
+    try {
+        // 🔥 IMPORTANTE: Si hay comentario, actualizar last_contact_date
+        if (body.comentario && body.comentario.trim() !== "") {
+            const ahora = new Date();
+            const año = ahora.getFullYear();
+            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+            const dia = String(ahora.getDate()).padStart(2, '0');
+            body.last_contact_date = `${año}-${mes}-${dia}`;
+        }
+        
+        const res = await fetch(API + "/leads/estado", { 
+            method: "PUT", 
+            headers: H, 
+            body: JSON.stringify(body) 
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            toast("✅ " + (data.message || "Guardado"));
+            cerrarModal();
+            await cargarLeads();
+            if (calInstance) calInstance.refetchEvents();
+            if (usuario.rol === "doctor" && body.appointment_status === "Attended") {
+                setTimeout(() => abrirModal(body.lead_id), 200);
+            }
+        } else {
+            const err = await res.json();
+            toast("❌ " + (err.detail || "Error al guardar"), true);
+        }
+    } catch(e) { 
+        toast("❌ Error de conexión", true); 
     }
-  } catch (e) { toast("❌ Error de conexión", true); }
 }
+
 
 function cerrarModal() { document.getElementById("modal").classList.remove("open"); seleccionado=null; _citaToggle=false; }
 document.getElementById("modal").addEventListener("click",e=>{if(e.target===document.getElementById("modal"))cerrarModal();});
