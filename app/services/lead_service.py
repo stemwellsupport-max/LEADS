@@ -462,7 +462,6 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _delete_from_agenda(conn, lead_id)
 
         # --- PACIENTE ASISTIÓ A CONSULTA (desde Appointment Scheduled) ---
-        # Esta es la acción clave: cuando el doctor marca "asistió a consulta"
         elif data.appointment_status == "Attended" and sales == "Appointment Scheduled":
             updates["appointment_status"] = "Attended"
             if not med:
@@ -560,7 +559,6 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 updates["treatment_confirmed"] = False
                 nota = "Propuesta enviada al paciente"
             elif data.medical_status == "Highly Interested":
-                # Doctor marca que el paciente está muy interesado → asesor hace seguimiento
                 updates["medical_status"] = "Highly Interested"
                 updates["sales_status"] = "Follow Up"
                 nota = "Paciente muy interesado -> asesor para seguimiento"
@@ -668,8 +666,12 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
         raise ValueError("Rol no autorizado")
 
     # ================================================================
-    #  EJECUTAR CAMBIOS
+    #  EJECUTAR CAMBIOS (CORREGIDO para siempre actualizar last_contact_date)
     # ================================================================
+    # Forzar que last_contact_date se incluya si viene en la petición
+    if hasattr(data, 'last_contact_date') and data.last_contact_date:
+        updates["last_contact_date"] = data.last_contact_date
+
     if not updates and not data.comentario and not data.crear_control:
         raise ValueError("No hay cambios para aplicar")
 

@@ -54,6 +54,8 @@ class UpdateStatus(BaseModel):
     treatment_start_date: Optional[str] = None
     treatment_end_date: Optional[str] = None
     next_treatment_date: Optional[str] = None
+    last_contact_date: Optional[str] = None      # NUEVO
+
 
     # Datos adicionales
     medilink_numero: Optional[str] = None

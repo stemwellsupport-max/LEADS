@@ -730,12 +730,35 @@ async function agendarInicioTratamiento(leadId) {
 // ══════════════════════════════════════════════
 // LEADS
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// LEADS - VERSIÓN CORREGIDA
+// ══════════════════════════════════════════════
 async function cargarLeads() {
   try {
     const params = filtroActual !== "all" ? `?estado=${encodeURIComponent(filtroActual)}` : "";
     const res  = await fetch(`${API}/leads/usuario/${usuario.id}${params}`,{headers:H});
     const data = await res.json();
-    todosLeads = data.leads || [];
+    
+    // 🔧 CORRECCIÓN CLAVE: Preservar last_contact_date más reciente
+    const nuevosLeads = data.leads || [];
+    
+    nuevosLeads.forEach(nuevoLead => {
+      // Buscar si ya teníamos este lead en la caché local
+      const existente = todosLeads.find(l => l.id === nuevoLead.id);
+      if (existente && existente.last_contact_date) {
+        // Si teníamos una fecha más reciente localmente, mantenerla
+        const fechaExistente = new Date(existente.last_contact_date);
+        const fechaNueva = nuevoLead.last_contact_date ? new Date(nuevoLead.last_contact_date) : null;
+        
+        if (!fechaNueva || fechaExistente > fechaNueva) {
+          console.log(`🔧 Manteniendo last_contact_date local para lead #${nuevoLead.id}: ${existente.last_contact_date} (servidor tenía: ${nuevoLead.last_contact_date || 'null'})`);
+          nuevoLead.last_contact_date = existente.last_contact_date;
+          nuevoLead.fecha_actualizacion = existente.last_contact_date; // También actualizar este campo
+        }
+      }
+    });
+    
+    todosLeads = nuevosLeads;
     leads = [...todosLeads];
     const q = document.getElementById("search-input")?.value;
     if (q) buscarLeads(q, false); else { applySort(); renderLeads(); renderStats(); }
@@ -754,21 +777,33 @@ function calcSemaforo(l) {
     if (l.sales_status === "Lost") return "❌";
     if (l.sales_status === "New Lead") return "🚩";
 
-    let ultimaFecha = null;
-    if (l.last_contact_date) {
-        ultimaFecha = new Date(l.last_contact_date);
-    } else if (l.fecha_actualizacion) {
-        ultimaFecha = new Date(l.fecha_actualizacion);
-    } else if (l.fecha_creacion) {
-        ultimaFecha = new Date(l.fecha_creacion);
-    }
-    
-    if (!ultimaFecha) return "🟡";
-    
-    const diffDays = Math.floor((new Date() - ultimaFecha) / (1000 * 60 * 60 * 24));
-    if (diffDays <= 1) return "🟢";
-    if (diffDays <= 2) return "🟡";
-    return "🔴";
+    // Reunir todas las fechas que pudieran indicar actividad
+    const fechas = [
+        l.last_contact_date,
+        l.fecha_actualizacion,
+        l.fecha_creacion
+    ].filter(Boolean).map(f => {
+        // Tomar solo la parte YYYY-MM-DD y crear fecha local (sin UTC)
+        const solo = String(f).slice(0, 10);
+        const [anio, mes, dia] = solo.split("-").map(Number);
+        return new Date(anio, mes - 1, dia).getTime();
+    });
+
+    if (fechas.length === 0) return "🟡"; // sin información → amarillo
+
+    // La fecha más reciente (mayor timestamp)
+    const maxTimestamp = Math.max(...fechas);
+    const fechaReciente = new Date(maxTimestamp);
+
+    const hoy = new Date();
+    const hoyLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    const diffMs = hoyLocal - fechaReciente;
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays <= 0) return "🟢";   // hoy o futuro
+    if (diffDays <= 2) return "🟡";   // 1-2 días
+    return "🔴";                      // 3 o más días
 }
 
 function fechaCorta(d) {
@@ -1997,26 +2032,35 @@ function buildBodySoporte(body) {
 
 async function enviarCambios(body) {
     try {
-        // 🔥 IMPORTANTE: Si hay comentario, actualizar last_contact_date
-        if (body.comentario && body.comentario.trim() !== "") {
-            const ahora = new Date();
-            const año = ahora.getFullYear();
-            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-            const dia = String(ahora.getDate()).padStart(2, '0');
-            body.last_contact_date = `${año}-${mes}-${dia}`;
+        // Siempre actualizar last_contact_date — tanto con comentario como con cambio de estado
+        const hoy = new Date();
+        const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+        body.last_contact_date = hoyStr;
+
+        // Actualización optimista: modificar array local ANTES de la respuesta del servidor
+        // para que el semáforo cambie de inmediato sin esperar el round-trip
+        const idx = todosLeads.findIndex(l => l.id === body.lead_id);
+        if (idx >= 0) {
+            todosLeads[idx].last_contact_date = hoyStr;
+            if (body.sales_status)       todosLeads[idx].sales_status       = body.sales_status;
+            if (body.medical_status)     todosLeads[idx].medical_status     = body.medical_status;
+            if (body.appointment_status) todosLeads[idx].appointment_status = body.appointment_status;
+            const li = leads.findIndex(l => l.id === body.lead_id);
+            if (li >= 0) leads[li] = { ...todosLeads[idx] };
         }
-        
-        const res = await fetch(API + "/leads/estado", { 
-            method: "PUT", 
-            headers: H, 
-            body: JSON.stringify(body) 
+        renderLeads();
+
+        const res = await fetch(API + "/leads/estado", {
+            method: "PUT",
+            headers: H,
+            body: JSON.stringify(body)
         });
-        
+
         if (res.ok) {
             const data = await res.json();
             toast("✅ " + (data.message || "Guardado"));
             cerrarModal();
-            await cargarLeads();
+            await cargarLeads(); // sincronizar con servidor
             if (calInstance) calInstance.refetchEvents();
             if (usuario.rol === "doctor" && body.appointment_status === "Attended") {
                 setTimeout(() => abrirModal(body.lead_id), 200);
@@ -2024,9 +2068,11 @@ async function enviarCambios(body) {
         } else {
             const err = await res.json();
             toast("❌ " + (err.detail || "Error al guardar"), true);
+            await cargarLeads(); // revertir optimismo si falló
         }
-    } catch(e) { 
-        toast("❌ Error de conexión", true); 
+    } catch(e) {
+        toast("❌ Error de conexión", true);
+        await cargarLeads();
     }
 }
 
