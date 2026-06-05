@@ -95,6 +95,8 @@ def format_lead(l):
         "fecha_actualizacion": _dt(l.get("fecha_actualizacion")),
         "admission_date": _dt(l.get("admission_date") or l.get("fecha_creacion")),
         "last_contact_date": _dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
+        "pipeline": l.get("pipeline") or "",
+
     }
 
 # ===========================================================

@@ -183,6 +183,7 @@ def format_lead(l):
         "admission_date": dt(l.get("admission_date") or l.get("fecha_creacion")),
         "last_contact_date": dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
         "semaforo": l.get("semaforo") or "",
+        "pipeline": l.get("pipeline") or "",
     }
 
 # ========== AUTH ==========

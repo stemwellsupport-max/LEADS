@@ -618,7 +618,8 @@ function configurarUI() {
       {key:"sem",label:"🚦",sort:false},{key:"nombre",label:"Nombre"},{key:"telefono",label:"Teléfono"},
       {key:"categoria",label:"Categoría"},{key:"sales_status",label:"Estado Ventas"},
       {key:"appointment_status",label:"Cita"},{key:"doctor_nombre",label:"Doctor"},
-      {key:"admission_date",label:"Admisión"},{key:"last_contact_date",label:"Últ. Contacto"}
+      {key:"admission_date",label:"Admisión"},{key:"last_contact_date",label:"Últ. Contacto"},
+      {key:"pipeline",label:"Pipeline"}
     ]);
     document.getElementById("table-title").childNodes[0].textContent = "📋 Mis Leads ";
   } else if (rol === "doctor") {
@@ -626,7 +627,8 @@ function configurarUI() {
       {key:"sem",label:"🚦",sort:false},{key:"nombre",label:"Nombre"},{key:"telefono",label:"Teléfono"},
       {key:"categoria",label:"Categoría"},{key:"medical_status",label:"Estado Médico"},
       {key:"appointment_status",label:"Cita"},{key:"asesor_nombre",label:"Asesor"},
-      {key:"admission_date",label:"Admisión"},{key:"treatment_start_date",label:"Fecha Trat."}
+      {key:"admission_date",label:"Admisión"},{key:"treatment_start_date",label:"Fecha Trat."},
+      {key:"pipeline",label:"Pipeline"}
     ]);
     document.getElementById("table-title").childNodes[0].textContent = "🩺 Mis Pacientes ";
   } else {
@@ -634,7 +636,8 @@ function configurarUI() {
       {key:"sem",label:"🚦",sort:false},{key:"nombre",label:"Nombre"},{key:"telefono",label:"Teléfono"},
       {key:"categoria",label:"Categoría"},{key:"sales_status",label:"Ventas"},
       {key:"medical_status",label:"Médico"},{key:"appointment_status",label:"Cita"},
-      {key:"doctor_nombre",label:"Doctor/Asesor"},{key:"admission_date",label:"Admisión"}
+      {key:"doctor_nombre",label:"Doctor/Asesor"},{key:"admission_date",label:"Admisión"},
+      {key:"pipeline",label:"Pipeline"}
     ]);
     document.getElementById("table-title").childNodes[0].textContent = "📋 Todos los Leads ";
   }
@@ -775,35 +778,23 @@ function renderLeads() {
 function calcSemaforo(l) {
     if (l.sales_status === "Won") return "🎉";
     if (l.sales_status === "Lost") return "❌";
-    if (l.sales_status === "New Lead") return "🚩";
 
-    // Reunir todas las fechas que pudieran indicar actividad
-    const fechas = [
-        l.last_contact_date,
-        l.fecha_actualizacion,
-        l.fecha_creacion
-    ].filter(Boolean).map(f => {
-        // Tomar solo la parte YYYY-MM-DD y crear fecha local (sin UTC)
-        const solo = String(f).slice(0, 10);
-        const [anio, mes, dia] = solo.split("-").map(Number);
-        return new Date(anio, mes - 1, dia).getTime();
-    });
+    // Misma prioridad que diasSinContacto / abrirModal
+    const fechaStr = l.last_contact_date || l.fecha_actualizacion || l.fecha_creacion;
+    if (!fechaStr) return "🟡";
 
-    if (fechas.length === 0) return "🟡"; // sin información → amarillo
-
-    // La fecha más reciente (mayor timestamp)
-    const maxTimestamp = Math.max(...fechas);
-    const fechaReciente = new Date(maxTimestamp);
+    const solo = String(fechaStr).slice(0, 10);
+    const [anio, mes, dia] = solo.split("-").map(Number);
+    const fechaLocal = new Date(anio, mes - 1, dia);
 
     const hoy = new Date();
     const hoyLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
 
-    const diffMs = hoyLocal - fechaReciente;
-    const diffDays = Math.floor(diffMs / 86400000);
+    const diffDays = Math.floor((hoyLocal - fechaLocal) / 86400000);
 
-    if (diffDays <= 0) return "🟢";   // hoy o futuro
-    if (diffDays <= 2) return "🟡";   // 1-2 días
-    return "🔴";                      // 3 o más días
+    if (diffDays <= 1) return "🟢";   // hoy o ayer
+    if (diffDays <= 3) return "🟡";   // 2-3 días
+    return "🔴";                       // 4+ días
 }
 
 function fechaCorta(d) {
@@ -866,6 +857,8 @@ function buildRow(l) {
         <td>${citaBadge}</td>
         <td class="td-muted">${l.doctor_nombre||l.asesor_nombre||"—"}</td>
         <td class="td-muted">${admision}</td>
+        <td class="td-muted">${l.pipeline||"—"}</td>   <!-- ← NUEVA CELDA -->
+
     </tr>`;
 
     if (rol === "doctor") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
@@ -878,6 +871,8 @@ function buildRow(l) {
         <td class="td-muted">${l.asesor_nombre||"—"}</td>
         <td class="td-muted">${admision}</td>
         <td class="td-muted">${fechaTrat}</td>
+        <td class="td-muted">${l.pipeline||"—"}</td>   <!-- ← NUEVA CELDA -->
+
     </tr>`;
 
     return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
@@ -890,6 +885,8 @@ function buildRow(l) {
         <td class="td-muted">${l.doctor_nombre||"—"}</td>
         <td class="td-muted">${admision}</td>
         <td class="td-muted">${ultimoContacto}</td>
+        <td class="td-muted">${l.pipeline||"—"}</td>   <!-- ← NUEVA CELDA -->
+
     </tr>`;
 }
 
@@ -1725,10 +1722,16 @@ function buildSoporte(l) {
     <option value="">Sin cambio</option>
     <option value="true" ${l.cita_confirmada?'selected':''}>Sí — Confirmada</option>
     <option value="false" ${l.cita_confirmada===false?'selected':''}>No</option>
+  </select>
+  <label class="lbl">Idioma / Pipeline</label>
+  <select id="sp-pipeline">
+    <option value="">Sin cambio</option>
+    <option value="spanish" ${l.pipeline==='spanish'?'selected':''}>🇨🇴 Español</option>
+    <option value="english" ${l.pipeline==='english'?'selected':''}>🇺🇸 Inglés</option>
+    <option value="spanish,english" ${l.pipeline==='spanish,english'?'selected':''}>🌎 Español e Inglés</option>
   </select>`;
 }
 function onSoporteSalesChange() { const v=document.getElementById("sp-sales")?.value; document.getElementById("sp-fecha-cita-block")?.classList.toggle("hidden",v!=="Appointment Scheduled"); }
-
 // ══════════════════════════════════════════════
 // EVENTOS DINÁMICOS MODAL
 // ══════════════════════════════════════════════
