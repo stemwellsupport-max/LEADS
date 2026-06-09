@@ -776,25 +776,28 @@ function renderLeads() {
 }
 
 function calcSemaforo(l) {
-    if (l.sales_status === "Won") return "🎉";
-    if (l.sales_status === "Lost") return "❌";
+    // Forzamos la verificación sin importar mayúsculas/minúsculas
+    const status = String(l.sales_status || l.estado || l.status || "").toLowerCase().trim();
+    
+    // Verificamos cualquier variación de "new_lead"
+    if (status === "new_lead" || status === "new lead") return "🏳️";
+    if (status === "won" || status === "ganado") return "🎉";
+    if (status === "lost" || status === "perdido") return "❌";
 
-    // Misma prioridad que diasSinContacto / abrirModal
+    // Si no es ninguno de los anteriores, calculamos días
     const fechaStr = l.last_contact_date || l.fecha_actualizacion || l.fecha_creacion;
     if (!fechaStr) return "🟡";
 
     const solo = String(fechaStr).slice(0, 10);
     const [anio, mes, dia] = solo.split("-").map(Number);
     const fechaLocal = new Date(anio, mes - 1, dia);
-
     const hoy = new Date();
     const hoyLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-
     const diffDays = Math.floor((hoyLocal - fechaLocal) / 86400000);
 
-    if (diffDays <= 1) return "🟢";   // hoy o ayer
-    if (diffDays <= 3) return "🟡";   // 2-3 días
-    return "🔴";                       // 4+ días
+    if (diffDays <= 1) return "🟢";
+    if (diffDays <= 3) return "🟡";
+    return "🔴";
 }
 
 function fechaCorta(d) {
