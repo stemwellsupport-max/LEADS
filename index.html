@@ -645,9 +645,9 @@ function configurarUI() {
   }
 
   const filterStates = rol === "doctor"
-    ? ["Pending Evaluation","Consultation Completed","Candidate Approved","Treatment Scheduled","In Treatment","Treatment Completed"]
+    ? ["Pending Evaluation","Consultation Completed","Candidate Approved","Treatment Scheduled","In Treatment","Treatment Completed","Rescheduled"]
     : rol === "visitas"
-    ? ["Appointment Scheduled","Treatment Proposal Sent","scheduled treatment","canceled treatment","Won","International line"]
+    ? ["Appointment Scheduled","Treatment Proposal Sent","scheduled treatment","canceled treatment","Won","International line","Rescheduled","canceled call","treatment_confirmed"]
     : [...new Set(SALES)];
 
   filtersEl.innerHTML = `<button class="filter-btn active" onclick="filtrar('all',this)">Todos</button>`;

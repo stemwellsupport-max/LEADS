@@ -442,7 +442,10 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
                 'scheduled treatment',
                 'canceled treatment',
                 'Won',
-                'International line'
+                'International line',
+                'Rescheduled',
+                'canceled call',
+                'treatment_confirmed'
             )"""
             params = []
             if estado:
