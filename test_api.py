@@ -435,6 +435,19 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
             if estado:
                 where = "WHERE l.doctor_id=%s AND l.medical_status=%s"
                 params = [usuario_id, estado]
+        elif rol == "visitas":
+            where = """WHERE l.sales_status IN (
+                'Appointment Scheduled',
+                'Treatment Proposal Sent',
+                'scheduled treatment',
+                'canceled treatment',
+                'Won',
+                'International line'
+            )"""
+            params = []
+            if estado:
+                where += " AND l.sales_status=%s"
+                params.append(estado)
         else:
             where = "WHERE 1=1"
             params = []
@@ -806,6 +819,7 @@ def cambiar_estado(data: UpdateStatus):
             if data.medilink_numero: updates["medilink_numero"] = data.medilink_numero
             if data.cita_confirmada is not None: updates["cita_confirmada"] = data.cita_confirmada
             if data.treatment_confirmed is not None: updates["treatment_confirmed"] = data.treatment_confirmed
+            if data.pipeline: updates["pipeline"] = data.pipeline
             if data.mark_treatment_completed is not None: updates["treatment_completed"] = data.mark_treatment_completed
             nota = "Actualización por soporte"
             if data.treatment_date and data.doctor_id and updates.get("sales_status") == "Appointment Scheduled":
@@ -890,14 +904,19 @@ def crear_lead(data: LeadCreate):
             cur2.execute("SELECT id FROM usuarios WHERE rol='asesor' AND activo=true ORDER BY RANDOM() LIMIT 1")
             row = cur2.fetchone()
             if row: asesor_id = row[0]
+
+        print("📦 data.pipeline:", repr(data.pipeline))
+        print("📦 data completo:", data.dict())
+
+
         cur2.execute(
             "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,notas,"
-            "sales_status,asesor_id,doctor_id,creado_por,last_contact_date,admission_date) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
+            "sales_status,asesor_id,doctor_id,creado_por,pipeline,last_contact_date,admission_date) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
             (data.nombre, data.telefono, data.email, data.categoria, data.canal,
-             data.genero, data.ciudad, data.notas,
-             data.sales_status_inicial or "New Lead",
-             asesor_id, data.doctor_id, data.creado_por)
+            data.genero, data.ciudad, data.notas,
+            data.sales_status_inicial or "New Lead",
+            asesor_id, data.doctor_id, data.creado_por, data.pipeline)
         )
         lead_id = cur2.fetchone()[0]
         conn.commit(); cur.close(); cur2.close()

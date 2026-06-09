@@ -169,12 +169,12 @@ def create_lead(conn, data):
 
     cur2.execute(
         "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,notas,"
-        "sales_status,asesor_id,doctor_id,creado_por) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+        "sales_status,asesor_id,doctor_id,creado_por,pipeline,last_contact_date,admission_date) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
         (data.nombre, data.telefono, data.email, data.categoria, data.canal,
          data.genero, data.ciudad, data.notas,
          data.sales_status_inicial or "New Lead",
-         asesor_id, data.doctor_id, data.creado_por)
+         asesor_id, data.doctor_id, data.creado_por, data.pipeline)
     )
     lead_id = cur2.fetchone()[0]
     conn.commit()

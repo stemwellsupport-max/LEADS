@@ -441,6 +441,7 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
       <div><label class="lbl">Canal *</label><select id="nl-canal"><option value="Manual">Manual</option><option value="Walk-in">Walk-in</option><option value="Referido">Referido</option><option value="Instagram">Instagram</option><option value="Facebook">Facebook</option><option value="WhatsApp">WhatsApp</option><option value="Página Web">Página Web</option><option value="Google Ads">Google Ads</option><option value="Llamada">Llamada</option><option value="Evento">Evento</option><option value="Email">Email Marketing</option><option value="Email">Social Media</option><option value="Otro">Otro</option></select></div>
       <div><label class="lbl">Categoría</label><select id="nl-categoria"><option value="">Sin especificar</option><option value="Knee">Rodilla (Knee)</option><option value="Hip">Cadera (Hip)</option><option value="Spine">Columna (Spine)</option><option value="Shoulder">Hombro (Shoulder)</option><option value="Elbow">Codo (Elbow)</option><option value="Ankle">Tobillo (Ankle)</option><option value="Anti-aging">Anti-aging</option><option value="Neurológico">Neurológico</option><option value="Walk-in">Walk-in</option><option value="Otro">Otro</option></select></div>
       <div><label class="lbl">Categoría Personalizada</label><input type="text" id="nl-categoria-custom" placeholder="Si eligió Otro..."></div>
+      <div><label class="lbl">Pipeline</label><select id="nl-pipeline"><option value="Spanish - Local">Spanish - Local</option><option value="Spanish - International">Spanish - International</option><option value="English - Local">English - Local</option><option value="English - International">English - International</option></select></div>
     </div>
     <div class="nl-section-title" style="margin-top:1.2rem">🗂️ Asignación</div>
     <div class="three-col">
@@ -474,13 +475,14 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
         <button class="filter-btn" onclick="filtrarUsuarios('asesor')" id="uf-asesor">Asesores</button>
         <button class="filter-btn" onclick="filtrarUsuarios('doctor')" id="uf-doctor">Doctores</button>
         <button class="filter-btn" onclick="filtrarUsuarios('soporte')" id="uf-soporte">Soporte</button>
+        <button class="filter-btn" onclick="filtrarUsuarios('visitas')" id="uf-visitas">Visitas</button>
       </div>
       <div id="usuarios-list-body"><div style="text-align:center;padding:2rem;color:var(--text3)">Cargando...</div></div>
     </div>
     <div id="gu-nuevo" class="hidden">
       <div class="two-col">
         <div><label class="lbl">Nombre *</label><input type="text" id="nu-nombre"></div>
-        <div><label class="lbl">Rol *</label><select id="nu-rol"><option value="asesor">Asesor</option><option value="doctor">Doctor</option><option value="soporte">Soporte</option></select></div>
+        <div><label class="lbl">Rol *</label><select id="nu-rol"><option value="asesor">Asesor</option><option value="doctor">Doctor</option><option value="soporte">Soporte</option><option value="visitas">Visitas</option></select></div>
       </div>
       <div class="two-col">
         <div><label class="lbl">Email *</label><input type="email" id="nu-email"></div>
@@ -644,6 +646,8 @@ function configurarUI() {
 
   const filterStates = rol === "doctor"
     ? ["Pending Evaluation","Consultation Completed","Candidate Approved","Treatment Scheduled","In Treatment","Treatment Completed"]
+    : rol === "visitas"
+    ? ["Appointment Scheduled","Treatment Proposal Sent","scheduled treatment","canceled treatment","Won","International line"]
     : [...new Set(SALES)];
 
   filtersEl.innerHTML = `<button class="filter-btn active" onclick="filtrar('all',this)">Todos</button>`;
@@ -849,6 +853,19 @@ function buildRow(l) {
     }
     
     const fechaTrat = l.treatment_start_date ? fechaCorta(l.treatment_start_date) : "—";
+
+    if (rol === "visitas") return `<tr>
+        <td><span class="semaforo">${sem}</span></td>
+        <td class="td-name">${l.nombre}</td>
+        <td class="td-muted">${l.telefono||"—"}</td>
+        <td><span class="badge b-gray">${l.categoria||"—"}</span></td>
+        <td><span class="badge ${badgeClass}">${estadoPrincipal}</span></td>
+        <td><span class="badge ${badgeForMedical(l.medical_status)}">${l.medical_status||"—"}</span></td>
+        <td>${citaBadge}</td>
+        <td class="td-muted">${l.doctor_nombre||l.asesor_nombre||"—"}</td>
+        <td class="td-muted">${admision}</td>
+        <td class="td-muted">${l.pipeline||"—"}</td>
+    </tr>`;
 
     if (rol === "soporte") return `<tr onclick="abrirModal(${l.id})" style="cursor:pointer">
         <td><span class="semaforo">${sem}</span></td>
@@ -1259,6 +1276,10 @@ function usarHorarioSeleccionado() {
 // MODAL DETALLE
 // ══════════════════════════════════════════════
 async function abrirModal(id) {
+    if (usuario.rol === "visitas") {
+        toast("🔒 No tienes permisos para modificar leads", true);
+        return;
+    }
     seleccionado = leads.find(l=>l.id===id) || todosLeads.find(l=>l.id===id);
     if (!seleccionado) return;
     const l = seleccionado;
@@ -1289,6 +1310,7 @@ async function abrirModal(id) {
         ultimoContactoStr = fechaCorta(l.fecha_creacion);
         fechaParaDias = ultimoContacto;
     }
+    // ... sigue el resto igual
     
     // Calcular días sin contacto
     let diasSinContactoStr = "—";
@@ -1726,13 +1748,14 @@ function buildSoporte(l) {
     <option value="true" ${l.cita_confirmada?'selected':''}>Sí — Confirmada</option>
     <option value="false" ${l.cita_confirmada===false?'selected':''}>No</option>
   </select>
-  <label class="lbl">Idioma / Pipeline</label>
-  <select id="sp-pipeline">
+  <label class="lbl">Pipeline</label>
+<select id="sp-pipeline">
     <option value="">Sin cambio</option>
-    <option value="spanish" ${l.pipeline==='spanish'?'selected':''}>🇨🇴 Español</option>
-    <option value="english" ${l.pipeline==='english'?'selected':''}>🇺🇸 Inglés</option>
-    <option value="spanish,english" ${l.pipeline==='spanish,english'?'selected':''}>🌎 Español e Inglés</option>
-  </select>`;
+    <option value="Spanish - Local" ${l.pipeline==='Spanish - Local'?'selected':''}>Spanish - Local</option>
+    <option value="Spanish - International" ${l.pipeline==='Spanish - International'?'selected':''}>Spanish - International</option>
+    <option value="English - Local" ${l.pipeline==='English - Local'?'selected':''}>English - Local</option>
+    <option value="English - International" ${l.pipeline==='English - International'?'selected':''}>English - International</option>
+</select>`;
 }
 function onSoporteSalesChange() { const v=document.getElementById("sp-sales")?.value; document.getElementById("sp-fecha-cita-block")?.classList.toggle("hidden",v!=="Appointment Scheduled"); }
 // ══════════════════════════════════════════════
@@ -2023,7 +2046,7 @@ function _procesarCandidato(body) {
 }
 
 function buildBodySoporte(body) {
-  const sales=document.getElementById("sp-sales")?.value, appt=document.getElementById("sp-appt")?.value, medical=document.getElementById("sp-medical")?.value, doctor=document.getElementById("sp-doctor")?.value, fechaCita=document.getElementById("sp-fecha-cita")?.value, tini=document.getElementById("sp-trat-inicio")?.value, tfin=document.getElementById("sp-trat-fin")?.value, medilink=document.getElementById("sp-medilink")?.value, conf=document.getElementById("sp-confirmada")?.value;
+  const sales=document.getElementById("sp-sales")?.value, appt=document.getElementById("sp-appt")?.value, medical=document.getElementById("sp-medical")?.value, doctor=document.getElementById("sp-doctor")?.value, fechaCita=document.getElementById("sp-fecha-cita")?.value, tini=document.getElementById("sp-trat-inicio")?.value, tfin=document.getElementById("sp-trat-fin")?.value, medilink=document.getElementById("sp-medilink")?.value, conf=document.getElementById("sp-confirmada")?.value, pipeline=document.getElementById("sp-pipeline")?.value;
   if(sales) body.sales_status=sales;
   if(appt) body.appointment_status=appt;
   if(medical) body.medical_status=medical;
@@ -2034,6 +2057,7 @@ function buildBodySoporte(body) {
   if(medilink) body.medilink_numero=medilink;
   if(conf==="true") body.cita_confirmada=true;
   if(conf==="false") body.cita_confirmada=false;
+  if(pipeline) body.pipeline=pipeline;
 }
 
 async function enviarCambios(body) {
@@ -2113,7 +2137,7 @@ async function cargarAsesoresParaForm() {
 // ========== NUEVO LEAD ==========
 async function abrirNuevoLead() {
   await cargarAsesoresParaForm();
-  ["nl-nombre","nl-telefono","nl-email","nl-ciudad","nl-categoria-custom","nl-notas"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  ["nl-nombre","nl-telefono","nl-email","nl-ciudad","nl-categoria-custom","nl-notas","nl-pipeline"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   ["nl-genero","nl-canal","nl-categoria","nl-asesor","nl-doctor"].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   document.getElementById("nl-canal").value="Manual";
   const sel=document.getElementById("nl-estado-inicial");
@@ -2127,7 +2151,14 @@ async function crearLead() {
   if(!nombre||!telefono){toast("❌ Nombre y teléfono son obligatorios",true);return;}
   const catSelect=document.getElementById("nl-categoria").value, catCustom=document.getElementById("nl-categoria-custom").value.trim();
   const categoria=catSelect==="Otro"&&catCustom?catCustom:catSelect;
-  const body={nombre,telefono,email,genero:document.getElementById("nl-genero").value,ciudad:document.getElementById("nl-ciudad").value.trim(),canal:document.getElementById("nl-canal").value,categoria,asesor_id:document.getElementById("nl-asesor").value?parseInt(document.getElementById("nl-asesor").value):null,doctor_id:document.getElementById("nl-doctor").value?parseInt(document.getElementById("nl-doctor").value):null,sales_status_inicial:document.getElementById("nl-estado-inicial").value||"New Lead",notas:document.getElementById("nl-notas").value.trim(),creado_por:"soporte"};
+  const body={nombre,telefono,email,genero:document.getElementById("nl-genero").value,
+  ciudad:document.getElementById("nl-ciudad").value.trim(),
+  canal:document.getElementById("nl-canal").value,
+  categoria,
+  pipeline: document.getElementById("nl-pipeline").value,
+  asesor_id:document.getElementById("nl-asesor").value?parseInt(document.getElementById("nl-asesor").value):null,
+  doctor_id:document.getElementById("nl-doctor").value?parseInt(document.getElementById("nl-doctor").value):null,
+  sales_status_inicial:document.getElementById("nl-estado-inicial").value||"New Lead",notas:document.getElementById("nl-notas").value.trim(),creado_por:"soporte"};
   try {
     const res=await fetch(`${API}/leads`,{method:"POST",headers:H,body:JSON.stringify(body)});
     if(res.ok){const data=await res.json();toast(`✅ Lead creado — ID #${data.id}`);cerrarModalNuevo();cargarLeads();}
@@ -2146,9 +2177,9 @@ function renderUsuarios(){
   const container=document.getElementById("usuarios-list-body");
   let lista=filtroUsuario==="todos"?todosUsuarios:todosUsuarios.filter(u=>u.rol===filtroUsuario);
   if(!lista.length){container.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3)">Sin usuarios</div>';return;}
-  const aC={"asesor":"ua-asesor","doctor":"ua-doctor","soporte":"ua-soporte"};
-  const rC={"asesor":"ur-asesor","doctor":"ur-doctor","soporte":"ur-soporte"};
-  const rL={"asesor":"Asesor","doctor":"Doctor","soporte":"Soporte"};
+  const aC={"asesor":"ua-asesor","doctor":"ua-doctor","soporte":"ua-soporte","visitas":"ua-visitas"};
+  const rC={"asesor":"ur-asesor","doctor":"ur-doctor","soporte":"ur-soporte","visitas":"ur-visitas"};
+  const rL={"asesor":"Asesor","doctor":"Doctor","soporte":"Soporte","visitas":"Visitas"};
   const ini=n=>n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
   container.innerHTML=lista.map(u=>`<div class="user-card"><div class="user-avatar ${aC[u.rol]||'ua-soporte'}">${ini(u.nombre)}</div><div class="user-info"><div class="user-name">${u.nombre}</div><div class="user-email">${u.email}${u.telefono?' · '+u.telefono:''}</div></div><span class="user-rol-badge ${rC[u.rol]||''}">${rL[u.rol]||u.rol}</span></div>`).join("");
 }

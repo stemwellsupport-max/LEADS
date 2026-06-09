@@ -23,6 +23,7 @@ class LeadCreate(BaseModel):
     genero: Optional[str] = ""
     ciudad: Optional[str] = ""
     notas: Optional[str] = ""
+    pipeline: Optional[str] = ""           # ← ¿ESTÁ ESTA LÍNEA?
     sales_status_inicial: Optional[str] = "New Lead"
     asesor_id: Optional[int] = None
     doctor_id: Optional[int] = None
@@ -46,6 +47,9 @@ class UpdateStatus(BaseModel):
     appointment_status: Optional[str] = None
     medical_status: Optional[str] = None
 
+    # Pipeline
+    pipeline: Optional[str] = None         # ← NUEVO
+
     # Asignaciones
     doctor_id: Optional[int] = None
 
@@ -54,8 +58,7 @@ class UpdateStatus(BaseModel):
     treatment_start_date: Optional[str] = None
     treatment_end_date: Optional[str] = None
     next_treatment_date: Optional[str] = None
-    last_contact_date: Optional[str] = None      # NUEVO
-
+    last_contact_date: Optional[str] = None
 
     # Datos adicionales
     medilink_numero: Optional[str] = None
@@ -73,7 +76,7 @@ class UpdateStatus(BaseModel):
     booked_call_tipo: Optional[str] = "Llamada"
     booked_call_notas: Optional[str] = ""
 
-    # Control embebido (dict o modelo)
+    # Control embebido
     crear_control: Optional[Any] = None
 
 class BookedCallCreate(BaseModel):
