@@ -645,7 +645,7 @@ function configurarUI() {
   }
 
   const filterStates = rol === "doctor"
-    ? ["Pending Evaluation","Consultation Completed","Candidate Approved","Treatment Scheduled","In Treatment","Treatment Completed","Rescheduled"]
+    ? ["Pending Evaluation","Consultation Completed","Candidate Approved","Treatment Scheduled","In Treatment","Treatment Completed","Rescheduled","Treatment Proposal Sent"]
     : rol === "visitas"
     ? ["Appointment Scheduled","Treatment Proposal Sent","scheduled treatment","canceled treatment","Won","International line","Rescheduled","canceled call","treatment_confirmed"]
     : [...new Set(SALES)];
@@ -1450,9 +1450,9 @@ function buildAsesor(l) {
   const transMap = {
     "New Lead":      ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost","Booked Calls"],
     "First Contact": ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost","Booked Calls"],
-    "No Answer":     ["Follow Up","First Contact","Lost","Booked Calls"],
-    "Follow Up":     ["Interested","Appointment Scheduled","Lost","Booked Calls"],
-    "Interested":    ["Appointment Scheduled","Follow Up","Lost","Booked Calls"],
+    "No Answer":     ["Follow Up","First Contact","Lost","Booked Calls","Interested"],
+    "Follow Up":     ["Interested","Appointment Scheduled","Lost","Booked Calls","No Answer"],
+    "Interested":    ["Appointment Scheduled","Follow Up","Lost","Booked Calls","No Answer"],
     "Booked Calls":  ["First Contact","Follow Up","Interested","Appointment Scheduled","Lost","No Answer"],
   };
   const trans = transMap[s] || ["New Lead","First Contact","Follow Up","Interested","Lost","Appointment Scheduled","No Answer","canceled treatment","Booked Calls"];
