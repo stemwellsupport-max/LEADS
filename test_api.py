@@ -10,7 +10,7 @@ from schemas import (
     UpdateStatus, BookedCallCreate, BookedCallUpdate, LeadGoogle
 )
 
-app = FastAPI(title="Patient Tracking Sheet", version="9.6.0")
+app = FastAPI(title="Patient Tracking Sheet", version="9.7.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -98,6 +98,16 @@ def ensure_tables():
                 END IF;
             END $$;
         """)
+        # ← NUEVO: columna pais
+        cur.execute("""
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name='leads' AND column_name='pais') THEN
+                    ALTER TABLE leads ADD COLUMN pais VARCHAR(100) DEFAULT '';
+                END IF;
+            END $$;
+        """)
         conn.commit()
         cur.close()
         print("✅ Tablas y columnas verificadas")
@@ -164,6 +174,7 @@ def format_lead(l):
         "id": l["id"], "nombre": l["nombre"], "telefono": l["telefono"], "email": l["email"],
         "categoria": l.get("categoria") or "", "canal": l.get("canal") or "",
         "genero": l.get("genero") or "", "ciudad": l.get("ciudad") or "",
+        "pais": l.get("pais") or "",  # ← NUEVO
         "sales_status": l.get("sales_status"), "appointment_status": l.get("appointment_status"),
         "medical_status": l.get("medical_status"),
         "asesor_id": l.get("asesor_id"), "asesor_nombre": l.get("asesor_nombre"),
@@ -463,7 +474,7 @@ def leads_por_usuario(usuario_id: int, estado: Optional[str] = None):
     finally:
         release_db(conn)
 
-# ========== LEADS - UPDATE STATUS (CON actualización de last_contact_date) ==========
+# ========== LEADS - UPDATE STATUS ==========
 @app.put("/leads/estado")
 def cambiar_estado(data: UpdateStatus):
     conn = get_db()
@@ -593,10 +604,11 @@ def cambiar_estado(data: UpdateStatus):
                 nota = f"Tratamiento {data.appointment_status}"
             elif data.sales_status:
                 nuevo = data.sales_status
+                # ← "No Answer" ahora incluye "Appointment Scheduled"
                 trans_validas = {
                     "New Lead":      ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost","Booked Calls","At reception","International line"],
                     "First Contact": ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost","Booked Calls","At reception"],
-                    "No Answer":     ["Follow Up","First Contact","Lost","Booked Calls","At reception"],
+                    "No Answer":     ["Follow Up","First Contact","Lost","Booked Calls","At reception","Appointment Scheduled"],
                     "Follow Up":     ["Interested","Appointment Scheduled","Lost","Booked Calls","At reception"],
                     "Interested":    ["Appointment Scheduled","Follow Up","Lost","Booked Calls","At reception"],
                     "Booked Calls":  ["First Contact","Follow Up","Interested","Appointment Scheduled","Lost","No Answer","At reception"],
@@ -809,21 +821,23 @@ def cambiar_estado(data: UpdateStatus):
 
         # ========== SOPORTE ==========
         elif rol == "soporte":
-            if data.sales_status: updates["sales_status"] = data.sales_status
-            if data.appointment_status: updates["appointment_status"] = data.appointment_status
-            if data.medical_status: updates["medical_status"] = data.medical_status
-            if data.doctor_id is not None: updates["doctor_id"] = data.doctor_id
-            if data.treatment_date: updates["treatment_date"] = data.treatment_date
-            if data.treatment_start_date: updates["treatment_start_date"] = data.treatment_start_date
-            if data.treatment_end_date: updates["treatment_end_date"] = data.treatment_end_date
-            if data.rejection_reason: updates["rejection_reason"] = data.rejection_reason
-            if data.next_treatment_date: updates["next_treatment_date"] = data.next_treatment_date
-            if data.quit_reason: updates["quit_reason"] = data.quit_reason
-            if data.medilink_numero: updates["medilink_numero"] = data.medilink_numero
-            if data.cita_confirmada is not None: updates["cita_confirmada"] = data.cita_confirmada
-            if data.treatment_confirmed is not None: updates["treatment_confirmed"] = data.treatment_confirmed
-            if data.pipeline: updates["pipeline"] = data.pipeline
-            if data.mark_treatment_completed is not None: updates["treatment_completed"] = data.mark_treatment_completed
+            if data.sales_status:                    updates["sales_status"]         = data.sales_status
+            if data.appointment_status:              updates["appointment_status"]   = data.appointment_status
+            if data.medical_status:                  updates["medical_status"]       = data.medical_status
+            if data.doctor_id is not None:           updates["doctor_id"]            = data.doctor_id
+            if data.treatment_date:                  updates["treatment_date"]       = data.treatment_date
+            if data.treatment_start_date:            updates["treatment_start_date"] = data.treatment_start_date
+            if data.treatment_end_date:              updates["treatment_end_date"]   = data.treatment_end_date
+            if data.rejection_reason:                updates["rejection_reason"]     = data.rejection_reason
+            if data.next_treatment_date:             updates["next_treatment_date"]  = data.next_treatment_date
+            if data.quit_reason:                     updates["quit_reason"]          = data.quit_reason
+            if data.medilink_numero:                 updates["medilink_numero"]      = data.medilink_numero
+            if data.cita_confirmada is not None:     updates["cita_confirmada"]      = data.cita_confirmada
+            if data.treatment_confirmed is not None: updates["treatment_confirmed"]  = data.treatment_confirmed
+            if data.pipeline:                        updates["pipeline"]             = data.pipeline
+            if data.pais:                            updates["pais"]                 = data.pais   # ← NUEVO
+            if data.mark_treatment_completed is not None:
+                updates["treatment_completed"] = data.mark_treatment_completed
             nota = "Actualización por soporte"
             if data.treatment_date and data.doctor_id and updates.get("sales_status") == "Appointment Scheduled":
                 sync_agenda(conn, data.lead_id, data.treatment_date, data.doctor_id, 'Scheduled')
@@ -833,10 +847,10 @@ def cambiar_estado(data: UpdateStatus):
         if not updates and not data.comentario and not data.crear_control:
             raise HTTPException(400, "No hay cambios para aplicar")
 
-        # Aplicar updates (incluyendo last_contact_date)
+        # Aplicar updates
         if updates:
             updates["fecha_actualizacion"] = "now"
-            updates["last_contact_date"] = "now"   # ← SE AGREGA AQUÍ
+            updates["last_contact_date"] = "now"
             set_parts, values = [], []
             for k, v in updates.items():
                 if v == "now":
@@ -851,20 +865,19 @@ def cambiar_estado(data: UpdateStatus):
         else:
             updated = lead
 
-        # Comentario sin cambios de estado (también actualiza last_contact_date)
         if data.comentario:
             ts = now.strftime("[%Y-%m-%d %H:%M]")
             nuevo_com = f"{ts} [{rol.upper()}] {data.comentario}"
             prev = lead.get("comentarios") or ""
-            cur.execute("UPDATE leads SET comentarios=%s, last_contact_date = CURRENT_DATE WHERE id=%s",
+            cur.execute("UPDATE leads SET comentarios=%s, last_contact_date=CURRENT_DATE WHERE id=%s",
                         ((prev + "\n" + nuevo_com).strip(), data.lead_id))
 
         if data.crear_control:
             c = data.crear_control
             fecha_ctrl = c.fecha_control if hasattr(c, 'fecha_control') else None
-            tipo_ctrl = c.tipo if hasattr(c, 'tipo') else "Control"
-            desc_ctrl = c.descripcion if hasattr(c, 'descripcion') else ""
-            doc_ctrl = c.doctor_id if hasattr(c, 'doctor_id') else None
+            tipo_ctrl  = c.tipo if hasattr(c, 'tipo') else "Control"
+            desc_ctrl  = c.descripcion if hasattr(c, 'descripcion') else ""
+            doc_ctrl   = c.doctor_id if hasattr(c, 'doctor_id') else None
             cur.execute(
                 "INSERT INTO controles (lead_id,tipo,descripcion,fecha_control,doctor_id,asesor_id,estado) "
                 "VALUES (%s,%s,%s,%s,%s,%s,'Agendado') RETURNING id",
@@ -908,18 +921,14 @@ def crear_lead(data: LeadCreate):
             row = cur2.fetchone()
             if row: asesor_id = row[0]
 
-        print("📦 data.pipeline:", repr(data.pipeline))
-        print("📦 data completo:", data.dict())
-
-
         cur2.execute(
-            "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,notas,"
+            "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,pais,notas,"
             "sales_status,asesor_id,doctor_id,creado_por,pipeline,last_contact_date,admission_date) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
             (data.nombre, data.telefono, data.email, data.categoria, data.canal,
-            data.genero, data.ciudad, data.notas,
-            data.sales_status_inicial or "New Lead",
-            asesor_id, data.doctor_id, data.creado_por, data.pipeline)
+             data.genero, data.ciudad, data.pais or "", data.notas,
+             data.sales_status_inicial or "New Lead",
+             asesor_id, data.doctor_id, data.creado_por, data.pipeline)
         )
         lead_id = cur2.fetchone()[0]
         conn.commit(); cur.close(); cur2.close()
@@ -1013,6 +1022,6 @@ def health():
     conn = get_db()
     try:
         release_db(conn)
-        return {"status": "ok", "version": "9.6.0"}
+        return {"status": "ok", "version": "9.7.0"}
     except:
         return {"status": "error"}

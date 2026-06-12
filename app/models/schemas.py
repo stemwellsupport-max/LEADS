@@ -22,8 +22,9 @@ class LeadCreate(BaseModel):
     canal: Optional[str] = "Manual"
     genero: Optional[str] = ""
     ciudad: Optional[str] = ""
+    pais: Optional[str] = ""               # ← NUEVO
     notas: Optional[str] = ""
-    pipeline: Optional[str] = ""           # ← ¿ESTÁ ESTA LÍNEA?
+    pipeline: Optional[str] = ""
     sales_status_inicial: Optional[str] = "New Lead"
     asesor_id: Optional[int] = None
     doctor_id: Optional[int] = None
@@ -48,7 +49,8 @@ class UpdateStatus(BaseModel):
     medical_status: Optional[str] = None
 
     # Pipeline
-    pipeline: Optional[str] = None         # ← NUEVO
+    pipeline: Optional[str] = None     
+    pais: Optional[str] = None      # ← NUEVO
 
     # Asignaciones
     doctor_id: Optional[int] = None
