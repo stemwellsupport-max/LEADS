@@ -72,7 +72,8 @@ def format_lead(l):
         "categoria": l.get("categoria") or "",
         "canal": l.get("canal") or "",
         "genero": l.get("genero") or "",
-        "ciudad": l.get("ciudad") or "",
+        "ciudad": l.get("pais") or "",
+        "pais": l.get("pais") or "",
         "sales_status": l.get("sales_status"),
         "appointment_status": l.get("appointment_status"),
         "medical_status": l.get("medical_status"),
@@ -168,13 +169,13 @@ def create_lead(conn, data):
         if row: asesor_id = row[0]
 
     cur2.execute(
-        "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,notas,"
+        "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,pais,notas,"
         "sales_status,asesor_id,doctor_id,creado_por,pipeline,last_contact_date,admission_date) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
         (data.nombre, data.telefono, data.email, data.categoria, data.canal,
-         data.genero, data.ciudad, data.notas,
-         data.sales_status_inicial or "New Lead",
-         asesor_id, data.doctor_id, data.creado_por, data.pipeline)
+        data.genero, data.ciudad, data.pais, data.notas,
+        data.sales_status_inicial or "New Lead",
+        asesor_id, data.doctor_id, data.creado_por, data.pipeline)
     )
     lead_id = cur2.fetchone()[0]
     conn.commit()
