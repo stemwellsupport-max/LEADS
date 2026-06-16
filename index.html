@@ -775,9 +775,9 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 const API = "";
 const H   = {"Content-Type":"application/json","ngrok-skip-browser-warning":"1"};
 
-const SALES = ["At reception","Booked Calls","Rescheduled","Cancelled Call","Does not answer",
-  "First contact","New Lead","Treatment proposal","Highly interested (Treatment Confirmed)","Won",
-  "Doctors","Sales","Lost / Not interested","International line","First Contact","No Answer",
+const SALES = ["At reception","Booked Calls","Rescheduled",
+  "First contact","New Lead","Won",
+  "Doctors","Sales","First Contact","No Answer",
   "Follow Up","Interested","Appointment Scheduled","Treatment Proposal Sent","Treatment Confirmed",
   "scheduled treatment","canceled treatment","Lost"];
 
@@ -785,10 +785,65 @@ const APPT    = ["Scheduled","Confirmed","Sent","Rescheduled","Canceled","Attend
 const MEDICAL = ["Pending Evaluation","Consultation Completed","Candidate Approved","Candidate Rejected",
                  "Treatment Proposal Sent","Treatment Scheduled","In Treatment","Treatment Completed"];
 const REJECTION_REASONS = [
-  "No interest","Money","Active cancer or malignancy","Uncontrolled systemic infections",
-  "Decompensated organ failure","Severe hematological disorders",
+    "No interest",
+  "Not ready to proceed",
+  "Needs more information",
+  "Considering other options",
+  "Seeking second opinion",
+
+  // Económicos
+  "Money",
+  "Treatment cost too high",
+  "Financing not available",
+  "Waiting for financial approval",
+
+  // Ubicación y logística
+  "Outside service area",
+  "Too far from clinic",
+  "Unable to travel",
+  "Relocation plans",
+  "Transportation issues",
+  "International patient - unable to travel",
+
+  // Tiempo
+  "No time available",
+  "Scheduling conflict",
+  "Wants to postpone treatment",
+
+  // Elegibilidad médica
+  "Active cancer or malignancy",
+  "Uncontrolled systemic infections",
+  "Decompensated organ failure",
+  "Severe hematological disorders",
   "Advanced structural damage or irreversible tissue loss",
-  "Expectations outside clinical scope","Medical history and imaging evaluation"
+  "Medical history and imaging evaluation",
+  "Condition not suitable for regenerative therapy",
+  "Disease stage too advanced",
+  "Not medically cleared",
+  "Poor candidate after physician review",
+
+  // Información insuficiente
+  "Missing medical records",
+  "Missing imaging studies",
+  "Unable to obtain medical clearance",
+
+  // Competencia
+  "Chose another clinic",
+  "Already receiving treatment elsewhere",
+  "Under care of another specialist",
+
+  // Contacto
+  "No response",
+  "Invalid phone number",
+  "Invalid email",
+  "Lost contact",
+  "Requested no further contact",
+
+  // Otros
+  "Language barrier",
+  "Insurance expectations not met",
+  "Expectations outside clinical scope",
+  "Other"
 ];
 
 const DOC_COLORS = ["#1e3a5f","#14532d","#4c1d95","#713f12","#0f3d3d","#2d1a4c"];
