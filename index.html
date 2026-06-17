@@ -53,8 +53,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .col-filter-btn{padding:.3rem .75rem;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.72rem;transition:all .2s;}
 .col-filter-btn:hover{border-color:var(--accent);color:var(--text);}
 .col-filter-btn.active{background:var(--purple);color:white;border-color:var(--purple);}
-.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-.table-card h2{padding:1rem 1.5rem;color:var(--text);font-size:.95rem;font-weight:600;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;gap:.8rem;}
+.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow-x:auto;}
+.table-card h2{padding:1rem 1.5rem;color:var(--text);font-size:.95rem;font-weight:600;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;gap:.8rem;white-space:nowrap;}
 table{width:100%;border-collapse:collapse;}
 th{text-align:left;padding:.6rem 1rem;background:var(--bg);color:var(--text3);font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;font-weight:500;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
 th:hover{color:var(--accent);}
@@ -1240,8 +1240,8 @@ function fechaCorta(d) {
   const s = String(d);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
   if (!m) return d;
-  const [, anio, mes, dia, hh = "00", mm = "00"] = m;
-  return `${mes}/${dia}/${anio} ${hh}:${mm}`;
+  const [, anio, mes, dia] = m;
+  return `${mes}/${dia}/${anio}`;  // ← SIN HORA: 12/17/2025
 }
 
 function buildRow(l) {
@@ -2102,26 +2102,32 @@ function buildSoporte(l) {
     </div>
   </div>
   <div class="two-col">
+    <div><label class="lbl">Pipeline</label>
+      <select id="sp-pipeline">
+        <option value="">No change</option>
+        <option value="Spanish - Local" ${l.pipeline==='Spanish - Local'?'selected':''}>Spanish - Local</option>
+        <option value="Spanish - International" ${l.pipeline==='Spanish - International'?'selected':''}>Spanish - International</option>
+        <option value="English - Local" ${l.pipeline==='English - Local'?'selected':''}>English - Local</option>
+        <option value="English - International" ${l.pipeline==='English - International'?'selected':''}>English - International</option>
+      </select>
+    </div>
+    <div><label class="lbl">Medilink Number</label>
+      <input type="text" id="sp-medilink" value="${l.medilink_numero||''}" placeholder="ML-2024-001">
+    </div>
+  </div>
+  <div class="two-col">
     <div><label class="lbl">Treatment Start</label><input type="datetime-local" id="sp-trat-inicio" value="${l.treatment_start_date?l.treatment_start_date.slice(0,16):''}"></div>
     <div><label class="lbl">Treatment End</label><input type="datetime-local" id="sp-trat-fin" value="${l.treatment_end_date?l.treatment_end_date.slice(0,16):''}"></div>
   </div>
-  <label class="lbl">Medilink Number</label>
-  <input type="text" id="sp-medilink" value="${l.medilink_numero||''}" placeholder="ML-2024-001">
   <label class="lbl">Appointment Confirmed</label>
   <select id="sp-confirmada">
     <option value="">No change</option>
     <option value="true" ${l.cita_confirmada?'selected':''}>Yes — Confirmed</option>
     <option value="false" ${l.cita_confirmada===false?'selected':''}>No</option>
-  </select>
-  <label class="lbl">Pipeline</label>
-<select id="sp-pipeline">
-    <option value="">No change</option>
-    <option value="Spanish - Local" ${l.pipeline==='Spanish - Local'?'selected':''}>Spanish - Local</option>
-    <option value="Spanish - International" ${l.pipeline==='Spanish - International'?'selected':''}>Spanish - International</option>
-    <option value="English - Local" ${l.pipeline==='English - Local'?'selected':''}>English - Local</option>
-    <option value="English - International" ${l.pipeline==='English - International'?'selected':''}>English - International</option>
-</select>`;
+  </select>`;
 }
+
+
 function onSoporteSalesChange() { const v=document.getElementById("sp-sales")?.value; document.getElementById("sp-fecha-cita-block")?.classList.toggle("hidden",v!=="Scheduled Appointment"); }
 
 // ══════════════════════════════════════════════
