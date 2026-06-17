@@ -220,6 +220,24 @@ def transferir_lead(conn, lead_id: int, nuevo_asesor_id: int, usuario_id: int):
 
 # ===========================================================
 #  UPDATE STATUS - LÓGICA COMPLETA (DOCTORES Y ASESORES)
+#
+#  IMPORTANTE: Los nombres de estado usados aquí DEBEN coincidir
+#  EXACTAMENTE (mismas mayúsculas/minúsculas y orden de palabras)
+#  con los arrays SALES / APPT / MEDICAL definidos en el frontend
+#  (Patient Tracking Sheet HTML). Si cambias un nombre en el front,
+#  cámbialo también acá.
+#
+#  SALES:    New Lead, First Contact, Callback, No Answer,
+#            Scheduled Appointment, Rescheduled Appointment,
+#            Cancelled Appointment, Treatment Proposal Sent,
+#            Treatment Confirmed, Won, Treatment in Progress,
+#            Canceled Treatment, Lost
+#  APPT:     Scheduled, Confirmed, Sent, Rescheduled, Canceled,
+#            Attended, No Show, Completed
+#  MEDICAL:  Pending Evaluation, Consultation Completed,
+#            Candidate Approved, Candidate Rejected,
+#            Treatment Proposal Sent, Treatment Scheduled,
+#            In Treatment, Treatment Completed
 # ===========================================================
 def update_lead_status(conn, lead_id: int, usuario_id: int, data):
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -272,7 +290,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                  data.booked_call_tipo or "Llamada", data.booked_call_notas or "")
             )
 
-        # --- CONFIRMAR CITA (Appointment Scheduled -> Confirmed) ---
+        # --- CONFIRMAR CITA (Scheduled Appointment -> Confirmed) ---
         elif data.cita_confirmada is True and sales == "Scheduled Appointment":
             if not data.doctor_id:
                 raise ValueError("Se requiere doctor para confirmar")
@@ -287,15 +305,15 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _update_agenda_estado(conn, lead_id, 'Confirmed')
 
         # --- DESCONFIRMAR CITA ---
-        elif data.cita_confirmada is False and sales == "Appointment Scheduled" and lead.get("cita_confirmada"):
+        elif data.cita_confirmada is False and sales == "Scheduled Appointment" and lead.get("cita_confirmada"):
             updates["cita_confirmada"] = False
             updates["appointment_status"] = "Scheduled"
             nota = "Cita desconfirmada por asesor"
             _update_agenda_estado(conn, lead_id, 'Scheduled')
 
         # --- CANCELAR CITA ---
-        elif data.appointment_status == "Canceled" and sales == "Appointment Scheduled":
-            updates["sales_status"] = "canceled treatment"
+        elif data.appointment_status == "Canceled" and sales == "Scheduled Appointment":
+            updates["sales_status"] = "Cancelled Appointment"
             updates["appointment_status"] = "Canceled"
             updates["cita_confirmada"] = False
             updates["medical_status"] = None
@@ -303,8 +321,8 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _delete_from_agenda(conn, lead_id)
 
         # --- NO SHOW (asesor) ---
-        elif data.appointment_status == "No Show" and sales == "Appointment Scheduled":
-            updates["sales_status"] = "canceled treatment"
+        elif data.appointment_status == "No Show" and sales == "Scheduled Appointment":
+            updates["sales_status"] = "Cancelled Appointment"
             updates["appointment_status"] = "No Show"
             updates["cita_confirmada"] = False
             updates["medical_status"] = None
@@ -312,7 +330,8 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _delete_from_agenda(conn, lead_id)
 
         # --- REAGENDAR CONSULTA ---
-        elif data.appointment_status == "Rescheduled" and sales == "Appointment Scheduled":
+        elif data.appointment_status == "Rescheduled" and sales == "Scheduled Appointment":
+            updates["sales_status"] = "Rescheduled Appointment"
             updates["appointment_status"] = "Rescheduled"
             if data.treatment_date:
                 updates["treatment_date"] = data.treatment_date
@@ -320,33 +339,39 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _update_agenda_fecha(conn, lead_id, data.treatment_date, 'Rescheduled')
 
         # --- AGENDAR INICIO DE TRATAMIENTO (desde Treatment Proposal Sent confirmado) ---
-        elif data.sales_status == "scheduled treatment" and sales == "Treatment Proposal Sent":
+        elif data.sales_status == "Treatment in Progress" and sales == "Treatment Proposal Sent":
             if not lead.get("treatment_confirmed"):
                 raise ValueError("El paciente aún no ha confirmado la propuesta de tratamiento")
             if not data.treatment_date:
                 raise ValueError("Fecha tentativa de inicio obligatoria")
-            updates["sales_status"] = "scheduled treatment"
+            updates["sales_status"] = "Treatment in Progress"
             updates["medical_status"] = "Treatment Scheduled"
             updates["appointment_status"] = "Scheduled"
             updates["cita_confirmada"] = False
             updates["treatment_date"] = data.treatment_date
+            if data.treatment_start_date:
+                updates["treatment_start_date"] = data.treatment_start_date
+            if data.treatment_end_date:
+                updates["treatment_end_date"] = data.treatment_end_date
+            if data.medilink_numero:
+                updates["medilink_numero"] = data.medilink_numero
             if data.doctor_id:
                 updates["doctor_id"] = data.doctor_id
             nota = f"Inicio de tratamiento agendado: {data.treatment_date}"
             _sync_agenda(conn, lead_id, data.treatment_date, data.doctor_id or lead.get("doctor_id"), 'Scheduled')
 
         # --- CONFIRMAR QUE EL PACIENTE VIENE AL TRATAMIENTO ---
-        elif data.cita_confirmada is True and sales == "scheduled treatment":
+        elif data.cita_confirmada is True and sales == "Treatment in Progress":
             updates["cita_confirmada"] = True
             updates["appointment_status"] = "Confirmed"
             nota = "Asesor confirmó asistencia del paciente al tratamiento"
             _update_agenda_estado(conn, lead_id, 'Confirmed')
 
-        # --- CONFIRMAR REAGENDA DE TRATAMIENTO (doctor marcó Rescheduled Treatment) ---
-        elif data.confirm_reschedule is True and sales == "Rescheduled Treatment":
+        # --- CONFIRMAR REAGENDA DE TRATAMIENTO (doctor marcó Rescheduled Appointment con tratamiento) ---
+        elif data.confirm_reschedule is True and sales == "Rescheduled Appointment" and med:
             if not data.treatment_date:
                 raise ValueError("Se requiere nueva fecha para confirmar reagenda")
-            updates["sales_status"] = "scheduled treatment"
+            updates["sales_status"] = "Treatment in Progress"
             updates["medical_status"] = "Treatment Scheduled"
             updates["appointment_status"] = "Scheduled"
             updates["cita_confirmada"] = False
@@ -355,10 +380,10 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _sync_agenda(conn, lead_id, data.treatment_date, lead.get("doctor_id"), 'Scheduled')
 
         # --- REAGENDAR CONSULTA DESDE CANCELADO ---
-        elif data.sales_status == "Appointment Scheduled" and sales == "canceled treatment":
+        elif data.sales_status == "Scheduled Appointment" and sales == "Canceled Treatment":
             if not data.medilink_numero and not lead.get("medilink_numero"):
                 raise ValueError("Número de paciente (medilink) obligatorio para agendar consulta")
-            updates["sales_status"] = "Appointment Scheduled"
+            updates["sales_status"] = "Scheduled Appointment"
             updates["appointment_status"] = "Scheduled"
             updates["cita_confirmada"] = False
             if data.doctor_id:
@@ -371,18 +396,26 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             _sync_agenda(conn, lead_id, data.treatment_date, data.doctor_id, 'Scheduled')
 
         # --- VOLVER A TREATMENT PROPOSAL SENT DESDE CANCELADO ---
-        elif data.sales_status == "Treatment Proposal Sent" and sales == "canceled treatment":
+        elif data.sales_status == "Treatment Proposal Sent" and sales == "Canceled Treatment":
             updates["sales_status"] = "Treatment Proposal Sent"
+            updates["appointment_status"] = "Sent"
             nota = "Tratamiento reagendado"
 
-        # --- FOLLOW UP DESDE CANCELADO ---
-        elif data.sales_status == "Follow Up" and sales == "canceled treatment":
-            updates["sales_status"] = "Follow Up"
+        # --- FOLLOW UP / SEGUIMIENTO DESDE CANCELADO (vuelve a Callback) ---
+        elif data.sales_status == "Callback" and sales == "Canceled Treatment":
+            updates["sales_status"] = "Callback"
             nota = "Seguimiento iniciado"
+            if data.booked_call_fecha:
+                cur.execute(
+                    "INSERT INTO booked_calls (lead_id,asesor_id,fecha_llamada,tipo,notas,estado) "
+                    "VALUES (%s,%s,%s,%s,%s,'Pendiente')",
+                    (lead_id, usuario_id, data.booked_call_fecha,
+                     data.booked_call_tipo or "Llamada", data.booked_call_notas or "")
+                )
 
         # --- CANCELAR PROPUESTA ENVIADA ---
         elif sales == "Treatment Proposal Sent" and data.appointment_status in ["Canceled", "No Show"]:
-            updates["sales_status"] = "canceled treatment"
+            updates["sales_status"] = "Canceled Treatment"
             updates["appointment_status"] = data.appointment_status
             nota = f"Tratamiento {data.appointment_status}"
 
@@ -390,29 +423,26 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
         elif data.sales_status:
             nuevo = data.sales_status
             trans_validas = {
-                "New Lead":      ["First Contact","No Answer","Callback","Follow Up","Interested","Appointment Scheduled","Lost","At reception"],
-                "First Contact": ["Follow Up","Interested","Appointment Scheduled","No Answer","Callback","Lost","At reception"],
-                "No Answer":     ["Callback","Follow Up","First Contact","Lost","At reception","Appointment Scheduled"],
-                "Follow Up":     ["Interested","Appointment Scheduled","Callback","Lost","At reception"],
-                "Interested":    ["Appointment Scheduled","Follow Up","Callback","Lost","At reception"],
-                "Callback":      ["First Contact","Follow Up","Interested","Appointment Scheduled","Lost","No Answer","At reception"],
-                "At reception":  ["Appointment Scheduled","Interested","Follow Up","Callback","Lost"],
-                "Appointment Scheduled": ["Callback","Follow Up","Lost","At reception"],
-                "Rescheduled Appointment": ["Callback","Follow Up","Lost","At reception"],
-                "Cancelled Appointment": ["Callback","Follow Up","Lost","At reception"],
+                "New Lead":                  ["First Contact", "No Answer", "Callback", "Scheduled Appointment", "Lost"],
+                "First Contact":              ["Callback", "Scheduled Appointment", "No Answer", "Lost"],
+                "No Answer":                  ["Callback", "First Contact", "Lost", "Scheduled Appointment"],
+                "Callback":                   ["First Contact", "Scheduled Appointment", "Lost", "No Answer"],
+                "Rescheduled Appointment":    ["Scheduled Appointment", "Callback", "Lost", "No Answer"],
+                "Cancelled Appointment":      ["Scheduled Appointment", "Callback", "Lost"],
             }
             if sales in trans_validas:
                 if nuevo not in trans_validas[sales]:
                     raise ValueError(f"Transición no permitida: {sales} -> {nuevo}")
             else:
-                permitidos = ["New Lead","First Contact","Follow Up","Interested","Lost","Appointment Scheduled","No Answer","canceled treatment","Callback","At reception","International line"]
+                permitidos = ["New Lead", "First Contact", "Callback", "No Answer", "Lost",
+                              "Scheduled Appointment", "Canceled Treatment"]
                 if nuevo not in permitidos:
                     raise ValueError(f"No puedes mover este lead a '{nuevo}'")
 
             updates["sales_status"] = nuevo
             nota = f"Asesor: {sales} -> {nuevo}"
 
-            if nuevo == "Appointment Scheduled":
+            if nuevo == "Scheduled Appointment":
                 medilink = data.medilink_numero or lead.get("medilink_numero")
                 if not medilink:
                     raise ValueError("Número de paciente (medilink_numero) obligatorio para agendar consulta")
@@ -451,49 +481,57 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
     #  ROL: DOCTOR
     # ================================================================
     elif rol == "doctor":
-        # (MANTENER TODO EL CÓDIGO DEL DOCTOR IGUAL - sin cambios)
+
         if data.treatment_end_date and med == "In Treatment":
             updates["treatment_end_date"] = data.treatment_end_date
             nota = f"Fecha fin actualizada: {data.treatment_end_date}"
-        elif data.appointment_status == "Canceled" and sales == "Appointment Scheduled":
-            updates["sales_status"] = "canceled treatment"
+
+        elif data.appointment_status == "Canceled" and sales == "Scheduled Appointment":
+            updates["sales_status"] = "Cancelled Appointment"
             updates["appointment_status"] = "Canceled"
             updates["cita_confirmada"] = False
             updates["medical_status"] = None
             nota = "Cita cancelada por doctor"
             _delete_from_agenda(conn, lead_id)
-        elif data.appointment_status == "No Show" and sales == "Appointment Scheduled":
-            updates["sales_status"] = "canceled treatment"
+
+        elif data.appointment_status == "No Show" and sales == "Scheduled Appointment":
+            updates["sales_status"] = "Cancelled Appointment"
             updates["appointment_status"] = "No Show"
             updates["cita_confirmada"] = False
             updates["medical_status"] = None
             nota = "No Show marcado por doctor"
             _delete_from_agenda(conn, lead_id)
-        elif data.appointment_status == "Attended" and sales == "Appointment Scheduled":
+
+        elif data.appointment_status == "Attended" and sales == "Scheduled Appointment":
             updates["appointment_status"] = "Attended"
             if not med:
                 updates["medical_status"] = "Pending Evaluation"
             nota = "Paciente asistió a consulta"
             _update_agenda_estado(conn, lead_id, 'Attended')
+
         elif data.treatment_confirmed is True and sales == "Treatment Proposal Sent":
             updates["treatment_confirmed"] = True
             nota = "Doctor confirmó aceptación del paciente -> asesor puede agendar inicio"
+
         elif data.appointment_status == "Rescheduled" and med in ("Treatment Scheduled", "In Treatment"):
-            updates["sales_status"] = "Rescheduled Treatment"
+            updates["sales_status"] = "Rescheduled Appointment"
             updates["appointment_status"] = "Rescheduled"
             updates["medical_status"] = None
             updates["cita_confirmada"] = False
             nota = "Tratamiento reagendado por doctor -> asesor para confirmar nueva fecha"
             _delete_from_agenda(conn, lead_id)
+
         elif data.medical_status == "In Treatment" and med == "Treatment Scheduled":
             if not data.treatment_start_date or not data.treatment_end_date:
                 raise ValueError("Fechas de inicio y fin del tratamiento obligatorias")
             updates["medical_status"] = "In Treatment"
+            updates["sales_status"] = "Treatment in Progress"
             updates["appointment_status"] = "Attended"
             updates["treatment_start_date"] = data.treatment_start_date
             updates["treatment_end_date"] = data.treatment_end_date
             nota = f"Tratamiento iniciado: {data.treatment_start_date} -> {data.treatment_end_date}"
             _update_agenda_estado(conn, lead_id, 'Attended')
+
         elif med == "In Treatment":
             if data.mark_treatment_completed:
                 updates["medical_status"] = "Treatment Completed"
@@ -515,7 +553,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 updates["treatment_end_date"] = data.treatment_end_date
                 nota = f"Fecha fin actualizada: {data.treatment_end_date}"
             elif data.appointment_status == "Rescheduled":
-                updates["sales_status"] = "Rescheduled Treatment"
+                updates["sales_status"] = "Rescheduled Appointment"
                 updates["appointment_status"] = "Rescheduled"
                 updates["medical_status"] = None
                 updates["cita_confirmada"] = False
@@ -523,24 +561,31 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 _delete_from_agenda(conn, lead_id)
             elif data.appointment_status == "No Show":
                 updates["appointment_status"] = "No Show"
-                updates["sales_status"] = "canceled treatment"
+                updates["sales_status"] = "Cancelled Appointment"
                 updates["medical_status"] = None
                 nota = "No Show en tratamiento -> asesor"
                 _delete_from_agenda(conn, lead_id)
             elif data.appointment_status == "Canceled":
                 updates["appointment_status"] = "Canceled"
-                updates["sales_status"] = "canceled treatment"
+                updates["sales_status"] = "Cancelled Appointment"
                 updates["medical_status"] = None
                 nota = "Tratamiento cancelado -> asesor"
                 _delete_from_agenda(conn, lead_id)
             elif not data.comentario:
                 raise ValueError("Indica acción para el tratamiento activo")
+
         elif med == "Pending Evaluation":
             if data.appointment_status == "Canceled":
                 updates["appointment_status"] = "Canceled"
-                updates["sales_status"] = "canceled treatment"
+                updates["sales_status"] = "Cancelled Appointment"
                 updates["medical_status"] = None
                 nota = "Cita cancelada por doctor -> asesor"
+                _delete_from_agenda(conn, lead_id)
+            elif data.appointment_status == "No Show":
+                updates["appointment_status"] = "No Show"
+                updates["sales_status"] = "Cancelled Appointment"
+                updates["medical_status"] = None
+                nota = "No Show en evaluación -> asesor"
                 _delete_from_agenda(conn, lead_id)
             elif data.medical_status == "Consultation Completed":
                 updates["medical_status"] = "Consultation Completed"
@@ -553,13 +598,18 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 updates["appointment_status"] = "Sent"
                 updates["treatment_confirmed"] = False
                 nota = "Propuesta enviada al paciente"
-            elif data.medical_status == "Highly Interested":
-                updates["medical_status"] = "Highly Interested"
-                updates["sales_status"] = "Follow Up"
-                nota = "Paciente muy interesado -> asesor para seguimiento"
+            elif data.medical_status == "Candidate Rejected":
+                if not data.rejection_reason:
+                    raise ValueError("Se requiere razón de rechazo")
+                updates["medical_status"] = "Candidate Rejected"
+                updates["rejection_reason"] = data.rejection_reason
+                updates["sales_status"] = "Lost"
+                nota = f"Rechazado: {data.rejection_reason}"
+                _delete_from_agenda(conn, lead_id)
             elif data.medical_status:
                 updates["medical_status"] = data.medical_status
                 nota = f"Doctor: {med} -> {data.medical_status}"
+
         elif med in ("Consultation Completed", "Candidate Approved"):
             if data.medical_status == "Treatment Proposal Sent":
                 updates["medical_status"] = "Treatment Proposal Sent"
@@ -578,25 +628,23 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 updates["sales_status"] = "Lost"
                 nota = f"Rechazado: {data.rejection_reason}"
                 _delete_from_agenda(conn, lead_id)
-            elif data.medical_status == "Highly Interested":
-                updates["medical_status"] = "Highly Interested"
-                updates["sales_status"] = "Follow Up"
-                nota = "Paciente muy interesado -> asesor para seguimiento"
             elif data.medical_status:
                 updates["medical_status"] = data.medical_status
                 nota = f"Doctor actualiza: {data.medical_status}"
+
         elif med == "Treatment Scheduled":
             if data.medical_status == "In Treatment":
                 if not data.treatment_start_date or not data.treatment_end_date:
                     raise ValueError("Fechas de inicio y fin obligatorias")
                 updates["medical_status"] = "In Treatment"
+                updates["sales_status"] = "Treatment in Progress"
                 updates["appointment_status"] = "Attended"
                 updates["treatment_start_date"] = data.treatment_start_date
                 updates["treatment_end_date"] = data.treatment_end_date
                 nota = f"Tratamiento iniciado: {data.treatment_start_date} -> {data.treatment_end_date}"
                 _update_agenda_estado(conn, lead_id, 'Attended')
             elif data.appointment_status == "Rescheduled":
-                updates["sales_status"] = "Rescheduled Treatment"
+                updates["sales_status"] = "Rescheduled Appointment"
                 updates["appointment_status"] = "Rescheduled"
                 updates["medical_status"] = None
                 updates["cita_confirmada"] = False
@@ -604,22 +652,24 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 _delete_from_agenda(conn, lead_id)
             elif data.appointment_status == "No Show":
                 updates["appointment_status"] = "No Show"
-                updates["sales_status"] = "canceled treatment"
+                updates["sales_status"] = "Cancelled Appointment"
                 updates["medical_status"] = None
                 nota = "No Show en inicio de tratamiento -> asesor"
                 _delete_from_agenda(conn, lead_id)
             elif data.appointment_status == "Canceled":
                 updates["appointment_status"] = "Canceled"
-                updates["sales_status"] = "canceled treatment"
+                updates["sales_status"] = "Cancelled Appointment"
                 updates["medical_status"] = None
                 nota = "Tratamiento cancelado por doctor -> asesor"
                 _delete_from_agenda(conn, lead_id)
+
         elif data.rejection_reason and not data.medical_status:
             updates["medical_status"] = "Candidate Rejected"
             updates["rejection_reason"] = data.rejection_reason
             updates["sales_status"] = "Lost"
             nota = f"Rechazado: {data.rejection_reason}"
             _delete_from_agenda(conn, lead_id)
+
         elif data.crear_control:
             pass
         elif not data.comentario:
@@ -644,8 +694,10 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
         if data.treatment_confirmed is not None: updates["treatment_confirmed"]  = data.treatment_confirmed
         if data.mark_treatment_completed is not None:
             updates["treatment_completed"] = data.mark_treatment_completed
+        if hasattr(data, "pipeline") and data.pipeline:
+            updates["pipeline"] = data.pipeline
         nota = "Actualización por soporte"
-        if data.treatment_date and data.doctor_id and updates.get("sales_status") == "Appointment Scheduled":
+        if data.treatment_date and data.doctor_id and updates.get("sales_status") == "Scheduled Appointment":
             _sync_agenda(conn, lead_id, data.treatment_date, data.doctor_id, 'Scheduled')
 
     else:
@@ -741,24 +793,24 @@ def get_controles(conn, lead_id: int):
 def toggle_favorito(conn, lead_id: int, favorito: bool, usuario_id: int):
     """Activa/desactiva favorito y registra en historial"""
     cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+
     cur.execute("SELECT id, nombre, favorito FROM leads WHERE id=%s", (lead_id,))
     lead = cur.fetchone()
     if not lead:
         cur.close()
         raise ValueError("Lead no encontrado")
-    
-    cur.execute("UPDATE leads SET favorito=%s, fecha_actualizacion=CURRENT_TIMESTAMP WHERE id=%s", 
+
+    cur.execute("UPDATE leads SET favorito=%s, fecha_actualizacion=CURRENT_TIMESTAMP WHERE id=%s",
                 (favorito, lead_id))
-    
+
     accion = "⭐ Marcado como favorito" if favorito else "Quitado de favoritos"
     cur.execute(
         "INSERT INTO historial_estados (lead_id, estado_anterior, estado_nuevo, cambiado_por, comentario) "
         "VALUES (%s, %s, %s, %s, %s)",
         (lead_id, f"FAV:{lead.get('favorito', False)}", f"FAV:{favorito}", usuario_id, accion)
     )
-    
+
     conn.commit()
     cur.close()
-    
+
     return {"message": accion, "lead_id": lead_id, "favorito": favorito}
