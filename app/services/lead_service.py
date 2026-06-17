@@ -97,7 +97,7 @@ def format_lead(l):
         "admission_date": _dt(l.get("admission_date") or l.get("fecha_creacion")),
         "last_contact_date": _dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
         "pipeline": l.get("pipeline") or "",
-
+        "favorito": l.get("favorito", False),  # ← NUEVO
     }
 
 # ===========================================================
@@ -170,12 +170,12 @@ def create_lead(conn, data):
 
     cur2.execute(
         "INSERT INTO leads (nombre,telefono,email,categoria,canal,genero,ciudad,pais,notas,"
-        "sales_status,asesor_id,doctor_id,creado_por,pipeline,last_contact_date,admission_date) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE) RETURNING id",
+        "sales_status,asesor_id,doctor_id,creado_por,pipeline,last_contact_date,admission_date,favorito) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE,CURRENT_DATE,%s) RETURNING id",
         (data.nombre, data.telefono, data.email, data.categoria, data.canal,
         data.genero, data.ciudad, data.pais, data.notas,
         data.sales_status_inicial or "New Lead",
-        asesor_id, data.doctor_id, data.creado_por, data.pipeline)
+        asesor_id, data.doctor_id, data.creado_por, data.pipeline, data.favorito)  # ← NUEVO
     )
     lead_id = cur2.fetchone()[0]
     conn.commit()
@@ -396,7 +396,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
                 "Follow Up":     ["Interested","Appointment Scheduled","Lost","Booked Calls","At reception"],
                 "Interested":    ["Appointment Scheduled","Follow Up","Lost","Booked Calls","At reception"],
                 "Booked Calls":  ["First Contact","Follow Up","Interested","Appointment Scheduled","Lost","No Answer","At reception"],
-                "At reception":  ["Appointment Scheduled","Interested","Follow Up","Lost","Booked Calls"],  # nuevo
+                "At reception":  ["Appointment Scheduled","Interested","Follow Up","Lost","Booked Calls"],
             }
             if sales in trans_validas:
                 if nuevo not in trans_validas[sales]:
@@ -671,7 +671,6 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
     # ================================================================
     #  EJECUTAR CAMBIOS (CORREGIDO para siempre actualizar last_contact_date)
     # ================================================================
-    # Forzar que last_contact_date se incluya si viene en la petición
     if hasattr(data, 'last_contact_date') and data.last_contact_date:
         updates["last_contact_date"] = data.last_contact_date
 
@@ -752,3 +751,34 @@ def get_controles(conn, lead_id: int):
     controles = cur.fetchall()
     cur.close()
     return {"controles": controles}
+
+# ===========================================================
+#  TOGGLE FAVORITO - NUEVO
+# ===========================================================
+def toggle_favorito(conn, lead_id: int, favorito: bool, usuario_id: int):
+    """Activa/desactiva favorito y registra en historial"""
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Verificar que el lead existe
+    cur.execute("SELECT id, nombre, favorito FROM leads WHERE id=%s", (lead_id,))
+    lead = cur.fetchone()
+    if not lead:
+        cur.close()
+        raise ValueError("Lead no encontrado")
+    
+    # Actualizar favorito
+    cur.execute("UPDATE leads SET favorito=%s, fecha_actualizacion=CURRENT_TIMESTAMP WHERE id=%s", 
+                (favorito, lead_id))
+    
+    # Registrar en historial
+    accion = "⭐ Marcado como favorito" if favorito else "Quitado de favoritos"
+    cur.execute(
+        "INSERT INTO historial_estados (lead_id, estado_anterior, estado_nuevo, cambiado_por, comentario) "
+        "VALUES (%s, %s, %s, %s, %s)",
+        (lead_id, f"FAV:{lead.get('favorito', False)}", f"FAV:{favorito}", usuario_id, accion)
+    )
+    
+    conn.commit()
+    cur.close()
+    
+    return {"message": accion, "lead_id": lead_id, "favorito": favorito}

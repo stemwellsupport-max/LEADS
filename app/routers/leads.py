@@ -1,7 +1,8 @@
+# app/routers/leads.py
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from ..dependencies import get_connection
-from ..models.schemas import LeadCreate, UpdateStatus
+from ..models.schemas import LeadCreate, UpdateStatus, ToggleFavorito  # ← NUEVO import
 from ..services.lead_service import (
     get_leads_for_user,
     create_lead,
@@ -9,6 +10,7 @@ from ..services.lead_service import (
     get_history,
     get_controles,
     transferir_lead,
+    toggle_favorito,  # ← NUEVO import
 )
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
@@ -41,6 +43,14 @@ def cambiar_estado(data: UpdateStatus, conn=Depends(get_connection)):
     except Exception as e:
         logger.error(f"500: {e}", exc_info=True)
         raise HTTPException(500, f"Error interno: {str(e)}")
+
+@router.put("/{lead_id}/favorito")  # ← NUEVO ENDPOINT
+def cambiar_favorito(lead_id: int, data: ToggleFavorito, conn=Depends(get_connection)):
+    """⭐ Activa o desactiva el favorito de un lead"""
+    try:
+        return toggle_favorito(conn, lead_id, data.favorito, data.usuario_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 @router.put("/{lead_id}/transferir")
 def transferir(lead_id: int, data: dict, conn=Depends(get_connection)):

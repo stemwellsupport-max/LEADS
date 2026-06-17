@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from .config import APP_NAME
 from .dependencies import get_connection
-from psycopg2.extras import RealDictCursor  # ← AGREGAR ESTA IMPORTACIÓN
+from psycopg2.extras import RealDictCursor
 
 app = FastAPI(title=APP_NAME, version="10.0.0")
 
@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importar routers (usando rutas absolutas desde app)
+# Importar routers
 from app.routers import auth, users, leads, agenda, google, health, webhooks, booked_calls, controles
 
 app.include_router(auth.router)
@@ -30,7 +30,6 @@ app.include_router(webhooks.router)
 app.include_router(booked_calls.router)
 app.include_router(controles.router)
 
-# Endpoint adicional para /doctores (lo pide el frontend directamente)
 @app.get("/doctores")
 def get_doctores(conn=Depends(get_connection)):
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -39,7 +38,6 @@ def get_doctores(conn=Depends(get_connection)):
     cur.close()
     return {"usuarios": [dict(d) for d in doctores]}
 
-# ← AGREGAR ESTE BLOQUE COMPLETO:
 @app.get("/asesores")
 def get_asesores(conn=Depends(get_connection)):
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -48,6 +46,6 @@ def get_asesores(conn=Depends(get_connection)):
     cur.close()
     return {"usuarios": [dict(a) for a in asesores]}
 
-# Servir frontend (index.html en la raíz del proyecto)
+# Servir frontend
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="frontend")

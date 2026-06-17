@@ -22,13 +22,14 @@ class LeadCreate(BaseModel):
     canal: Optional[str] = "Manual"
     genero: Optional[str] = ""
     ciudad: Optional[str] = ""
-    pais: Optional[str] = ""               # ← NUEVO
+    pais: Optional[str] = ""
     notas: Optional[str] = ""
     pipeline: Optional[str] = ""
     sales_status_inicial: Optional[str] = "New Lead"
     asesor_id: Optional[int] = None
     doctor_id: Optional[int] = None
     creado_por: Optional[str] = "soporte"
+    favorito: Optional[bool] = False  # ← NUEVO
 
 class LeadGoogle(BaseModel):
     nombre: str
@@ -37,6 +38,10 @@ class LeadGoogle(BaseModel):
     categoria: Optional[str] = ""
     canal: Optional[str] = "Google Sheets"
     source: Optional[str] = "google"
+
+class ToggleFavorito(BaseModel):  # ← NUEVO
+    favorito: bool
+    usuario_id: int
 
 class UpdateStatus(BaseModel):
     lead_id: int
@@ -50,7 +55,7 @@ class UpdateStatus(BaseModel):
 
     # Pipeline
     pipeline: Optional[str] = None     
-    pais: Optional[str] = None      # ← NUEVO
+    pais: Optional[str] = None
 
     # Asignaciones
     doctor_id: Optional[int] = None
