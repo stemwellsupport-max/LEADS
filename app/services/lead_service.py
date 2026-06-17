@@ -291,21 +291,22 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             )
 
         # --- CONFIRMAR CITA (Scheduled Appointment -> Confirmed) ---
-        elif data.cita_confirmada is True and sales == "Scheduled Appointment":
-            if not data.doctor_id:
-                raise ValueError("Se requiere doctor para confirmar")
-            updates["cita_confirmada"] = True
-            updates["appointment_status"] = "Confirmed"
-            updates["doctor_id"] = data.doctor_id
-            if not med:
-                updates["medical_status"] = "Pending Evaluation"
-            if data.treatment_date:
-                updates["treatment_date"] = data.treatment_date
-            nota = f"Cita confirmada -> doctor id={data.doctor_id}"
-            _update_agenda_estado(conn, lead_id, 'Confirmed')
+        elif data.cita_confirmada is True and sales in ("Scheduled Appointment", "Rescheduled Appointment"):
+                if not data.doctor_id:
+                    raise ValueError("Se requiere doctor para confirmar")
+                updates["cita_confirmada"] = True
+                updates["appointment_status"] = "Confirmed"
+                updates["doctor_id"] = data.doctor_id
+                if not med:
+                    updates["medical_status"] = "Pending Evaluation"
+                if data.treatment_date:
+                    updates["treatment_date"] = data.treatment_date
+                nota = f"Cita confirmada -> doctor id={data.doctor_id}"
+                _update_agenda_estado(conn, lead_id, 'Confirmed')
 
         # --- DESCONFIRMAR CITA ---
-        elif data.cita_confirmada is False and sales == "Scheduled Appointment" and lead.get("cita_confirmada"):
+        # --- DESCONFIRMAR CITA ---
+        elif data.cita_confirmada is False and sales in ("Scheduled Appointment", "Rescheduled Appointment") and lead.get("cita_confirmada"):
             updates["cita_confirmada"] = False
             updates["appointment_status"] = "Scheduled"
             nota = "Cita desconfirmada por asesor"
@@ -423,19 +424,22 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
         elif data.sales_status:
             nuevo = data.sales_status
             trans_validas = {
-                "New Lead":                  ["First Contact", "No Answer", "Callback", "Scheduled Appointment", "Lost"],
-                "First Contact":              ["Callback", "Scheduled Appointment", "No Answer", "Lost"],
-                "No Answer":                  ["Callback", "First Contact", "Lost", "Scheduled Appointment"],
-                "Callback":                   ["First Contact", "Scheduled Appointment", "Lost", "No Answer"],
-                "Rescheduled Appointment":    ["Scheduled Appointment", "Callback", "Lost", "No Answer"],
-                "Cancelled Appointment":      ["Scheduled Appointment", "Callback", "Lost"],
-            }
+                    "New Lead":                  ["First Contact", "No Answer", "Callback", "Scheduled Appointment", "Lost"],
+                    "First Contact":             ["Callback", "Scheduled Appointment", "No Answer", "Lost"],
+                    "No Answer":                 ["Callback", "First Contact", "Lost", "Scheduled Appointment"],
+                    "Callback":                  ["First Contact", "Scheduled Appointment", "Lost", "No Answer"],
+                    "Scheduled Appointment":     ["Callback", "Lost", "No Answer", "Rescheduled Appointment", "Cancelled Appointment", "Treatment Proposal Sent"],
+                    "Rescheduled Appointment":   ["Callback", "Lost", "No Answer", "Scheduled Appointment", "Cancelled Appointment"],
+                    "Cancelled Appointment":     ["Scheduled Appointment", "Callback", "Lost"],
+                }
             if sales in trans_validas:
-                if nuevo not in trans_validas[sales]:
+                if nuevo == sales:
+                    pass  # Permitir mismo estado (solo comentario)
+                elif nuevo not in trans_validas[sales]:
                     raise ValueError(f"Transición no permitida: {sales} -> {nuevo}")
             else:
                 permitidos = ["New Lead", "First Contact", "Callback", "No Answer", "Lost",
-                              "Scheduled Appointment", "Canceled Treatment"]
+                              "Scheduled Appointment", "Rescheduled Appointment", "Cancelled Appointment", "Canceled Treatment"]
                 if nuevo not in permitidos:
                     raise ValueError(f"No puedes mover este lead a '{nuevo}'")
 

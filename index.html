@@ -1262,6 +1262,7 @@ function buildRow(l) {
         ultimoContacto = fechaCorta(l.fecha_creacion);
     }
     
+    const fechaCita = l.treatment_date ? fechaCorta(l.treatment_date) : "—";
     const fechaTrat = l.treatment_start_date ? fechaCorta(l.treatment_start_date) : "—";
 
     if (rol === "visitas") return `<tr class="${filaClase}">
@@ -1302,7 +1303,7 @@ function buildRow(l) {
         <td>${citaBadge}</td>
         <td class="td-muted">${l.asesor_nombre||"—"}</td>
         <td class="td-muted">${admision}</td>
-        <td class="td-muted">${fechaTrat}</td>
+        <td class="td-muted">${fechaCita}</td>
         <td class="td-muted">${l.pipeline||"—"}</td>
     </tr>`;
 
@@ -1785,11 +1786,12 @@ function buildAsesor(l) {
 
   if (s==="Lost") return `<div class="info-box danger">❌ Lead lost.</div>`;
 
-  if (s==="Scheduled Appointment") {
+  if (s==="Scheduled Appointment" || s==="Rescheduled Appointment") {
     const fechaCita = l.treatment_date ? new Date(l.treatment_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : 'Not defined';
+    const label = s==="Rescheduled Appointment" ? "Rescheduled Appointment" : "Appointment";
 
-    if (!l.cita_confirmada) {
-      return `<div class="info-box warning">⚠️ Appointment for <strong>${fechaCita}</strong> — pending confirmation.</div>
+        if (!l.cita_confirmada) {
+      return `<div class="info-box warning">⚠️ ${label} for <strong>${fechaCita}</strong> — pending confirmation.</div>
         <div class="toggle-wrap">
           <span class="toggle-label">Confirmation:</span>
           <span class="toggle-status pending" id="toggle-status-txt">Unconfirmed</span>
@@ -1809,6 +1811,7 @@ function buildAsesor(l) {
         <select id="a-appt-accion" onchange="onApptAccion()">
           <option value="">— No change —</option>
           <option value="reagendar">📅 Reschedule appointment</option>
+          <option value="agendar_trat">🔁 Schedule treatment (if appointment was successful)</option>
           <option value="cancelar">❌ Cancel appointment (patient won't attend)</option>
           <option value="no_show">😶 No Show</option>
           <option value="lost">💔 Mark as Lost</option>
@@ -1816,12 +1819,18 @@ function buildAsesor(l) {
         <div id="block-reagendar" class="hidden">
           <label class="lbl">New Date</label><input type="datetime-local" id="a-fecha-reagendar">
         </div>
+        <div id="block-agendar-trat" class="hidden">
+          <label class="lbl">Treatment Start Date *</label><input type="datetime-local" id="a-fecha-inicio-trat">
+          <label class="lbl">Estimated End Date *</label><input type="datetime-local" id="a-fecha-fin-trat">
+          <label class="lbl">Doctor *</label>
+          <select id="a-doctor-trat"><option value="">Select doctor...</option>${doctoresOpts}</select>
+        </div>
         <div id="a-lost-block" class="hidden">
           <label class="lbl">Loss reason</label>
           <select id="a-lost-reason"><option value="">Select...</option>${rejOpts}</select>
         </div>`;
     } else {
-      return `<div class="info-box success">✅ Appointment confirmed for <strong>${fechaCita}</strong>.</div>
+      return `<div class="info-box success">✅ ${label} confirmed for <strong>${fechaCita}</strong>.</div>
         <label class="lbl">Medilink Number</label>
         <input type="text" id="a-medilink-confirm" placeholder="ML-2024-001" value="${l.medilink_numero || ''}">
         <label class="lbl">Actions</label>
@@ -1834,6 +1843,15 @@ function buildAsesor(l) {
           <option value="reagendar">📅 Reschedule appointment</option>
           <option value="agendar_trat">🔁 Schedule treatment (if appointment was successful)</option>
         </select>
+        <div id="block-reagendar" class="hidden">
+          <label class="lbl">New Date</label><input type="datetime-local" id="a-fecha-reagendar">
+        </div>
+        <div id="block-agendar-trat" class="hidden">
+          <label class="lbl">Treatment Start Date *</label><input type="datetime-local" id="a-fecha-inicio-trat">
+          <label class="lbl">Estimated End Date *</label><input type="datetime-local" id="a-fecha-fin-trat">
+          <label class="lbl">Doctor *</label>
+          <select id="a-doctor-trat"><option value="">Select doctor...</option>${doctoresOpts}</select>
+        </div>
         <div id="a-lost-block" class="hidden">
           <label class="lbl">Loss reason</label>
           <select id="a-lost-reason"><option value="">Select...</option>${rejOpts}</select>
@@ -1903,13 +1921,29 @@ function buildAsesor(l) {
       </div>`;
   }
 
+  if (s==="Callback") {
+    return `<div class="info-box info">📞 Callback pending. Contact the patient.</div>
+      <label class="lbl">Actions</label>
+      <select id="a-callback-accion" onchange="onCallbackAccion()">
+        <option value="">— Select —</option>
+        <option value="first_contact">✅ First Contact</option>
+        <option value="no_answer">📵 No Answer</option>
+        <option value="scheduled">📅 Schedule Appointment</option>
+        <option value="lost">💔 Mark as Lost</option>
+      </select>
+      <div id="a-lost-block" class="hidden">
+        <label class="lbl">Loss reason</label>
+        <select id="a-lost-reason"><option value="">Select...</option>${rejOpts}</select>
+      </div>`;
+  }
+
   const transMap = {
     "New Lead":                ["First Contact","No Answer","Callback","Scheduled Appointment","Lost"],
     "First Contact":           ["Callback","Scheduled Appointment","No Answer","Lost"],
-    "No Answer":                ["Callback","First Contact","Lost","Scheduled Appointment"],
-    "Callback":                  ["First Contact","Scheduled Appointment","Lost","No Answer"],
-    "Rescheduled Appointment":  ["Scheduled Appointment","Callback","Lost","No Answer"],
-    "Cancelled Appointment":    ["Scheduled Appointment","Callback","Follow Up","Lost"],
+    "No Answer":               ["Callback","First Contact","Lost","Scheduled Appointment"],
+    "Callback":                ["First Contact","Scheduled Appointment","Lost","No Answer"],
+    "Rescheduled Appointment": ["Scheduled Appointment","Callback","Lost","No Answer","Cancelled Appointment"],
+    "Cancelled Appointment":   ["Scheduled Appointment","Callback","Lost"],
   };
   const trans = transMap[s] || ["New Lead","First Contact","Callback","Lost","Scheduled Appointment","No Answer","Canceled Treatment"];
 
@@ -2152,7 +2186,7 @@ function onApptAccion() {
 }
 function onAsesorStatusChange() {
   const v=document.getElementById("a-sales-status")?.value;
-  document.getElementById("a-agenda-block")?.classList.toggle("hidden",v!=="Scheduled Appointment");
+  document.getElementById("a-agenda-block")?.classList.toggle("hidden",v!=="Scheduled Appointment" && v!=="Rescheduled Appointment");
   document.getElementById("a-booked-call-block")?.classList.toggle("hidden",v!=="Callback");
   document.getElementById("a-reject-block")?.classList.toggle("hidden",v!=="Lost");
 }
@@ -2210,7 +2244,7 @@ function buildBodyAsesor(body,l) {
     return true;
   }
 
-  if (s==="Scheduled Appointment") {
+  if (s==="Scheduled Appointment" || s==="Rescheduled Appointment") {
     const medilink = document.getElementById("a-medilink-confirm")?.value.trim();
     if(medilink) body.medilink_numero = medilink;
     
@@ -2226,6 +2260,24 @@ function buildBodyAsesor(body,l) {
     if (accion==="cancelar"){body.appointment_status="Canceled";body.sales_status="Cancelled Appointment";return true;}
     if (accion==="no_show"){body.appointment_status="No Show";return true;}
     if (accion==="reagendar"){const f=document.getElementById("a-fecha-reagendar")?.value; body.appointment_status="Rescheduled"; body.sales_status="Rescheduled Appointment"; if(f) body.treatment_date=f; return true;}
+    if (accion==="agendar_trat"){
+      const ini=document.getElementById("a-fecha-inicio-trat")?.value;
+      const fin=document.getElementById("a-fecha-fin-trat")?.value;
+      const doc=document.getElementById("a-doctor-trat")?.value;
+      if(!ini){toast("Start date is required",true);return false;}
+      if(!fin){toast("End date is required",true);return false;}
+      if(!doc){toast("Select a doctor",true);return false;}
+      if(new Date(fin)<=new Date(ini)){toast("End date must be after start date",true);return false;}
+      body.sales_status="Treatment in Progress";
+      body.medical_status="Treatment Scheduled";
+      body.appointment_status="Scheduled";
+      body.treatment_date=ini;
+      body.treatment_start_date=ini;
+      body.treatment_end_date=fin;
+      body.doctor_id=parseInt(doc);
+      body.cita_confirmada=false;
+      return true;
+    }
     if (accion==="lost"){const r=document.getElementById("a-lost-reason")?.value; if(!r){toast("Select a reason",true);return false;} body.sales_status="Lost"; body.rejection_reason=r; return true;}
     if (!body.comentario){toast("Select an action or write a comment",true);return false;}
     return true;
@@ -2275,9 +2327,19 @@ function buildBodyAsesor(body,l) {
     return true;
   }
 
+  if (s==="Callback") {
+    const accion=document.getElementById("a-callback-accion")?.value;
+    if (!accion && !body.comentario){toast("Select an action or write a comment",true);return false;}
+    if (accion==="first_contact"){body.sales_status="First Contact";return true;}
+    if (accion==="no_answer"){body.sales_status="No Answer";return true;}
+    if (accion==="scheduled"){body.sales_status="Scheduled Appointment";return true;}
+    if (accion==="lost"){const r=document.getElementById("a-lost-reason")?.value; if(!r){toast("Select a reason",true);return false;} body.sales_status="Lost"; body.rejection_reason=r; return true;}
+    return true;
+  }
+
   const newStatus=document.getElementById("a-sales-status")?.value;
   
-  if (newStatus === "Scheduled Appointment") {
+  if (newStatus === "Scheduled Appointment" || newStatus === "Rescheduled Appointment") {
     const medilinkAgenda = document.getElementById("a-medilink-agenda")?.value.trim();
     if(medilinkAgenda) body.medilink_numero = medilinkAgenda;
   }
@@ -2290,7 +2352,7 @@ function buildBodyAsesor(body,l) {
   if (!newStatus && !body.comentario){toast("Select a status or write a comment",true);return false;}
   if (newStatus) {
     body.sales_status=newStatus;
-    if (newStatus==="Scheduled Appointment"){
+    if (newStatus==="Scheduled Appointment" || newStatus==="Rescheduled Appointment"){
       const d=document.getElementById("a-doctor-agenda")?.value, f=document.getElementById("a-fecha-agenda")?.value;
       if(d) body.doctor_id=parseInt(d);
       if(f) body.treatment_date=f;
