@@ -422,7 +422,10 @@ tr.row-fav:hover td{background:#473a0d!important;}
       <button class="btn-save" onclick="guardarCambios()">💾 Save Changes</button>
       <button class="btn-close" onclick="cerrarModal()">Close</button>
     </div>
+    <label class="lbl" style="margin-top:1rem">📝 Lead Notes</label>
+    <div class="comments-history" id="m-notas-lead" style="border-color:var(--accent);min-height:40px">No notes</div>
     <hr class="section-divider">
+
     <label class="lbl">Previous Comments</label>
     <div class="comments-history" id="m-comentarios">No comments</div>
     <label class="lbl" style="margin-top:1rem">Change History</label>
@@ -1695,7 +1698,10 @@ async function abrirModal(id) {
     _citaToggle = false;
     document.getElementById("m-nombre").textContent = (l.favorito?"⭐ ":"") + l.nombre;
     document.getElementById("m-meta").textContent = `${l.telefono||"No phone"} · ${l.email||"No email"} · ${l.canal||""} · ${l.categoria||""}`;
-    document.getElementById("m-comentarios").textContent = l.comentarios||"No comments";
+// 📝 Notas originales del lead (columna "notas" en PostgreSQL)
+    document.getElementById("m-notas-lead").textContent = l.notas || "No notes";
+// 💬 Comentarios (historial de conversación)
+    document.getElementById("m-comentarios").textContent = l.comentarios || "No comments";
     document.getElementById("m-comentario").value = "";
     const btnTransferir = document.getElementById("btn-transferir");
     if (usuario.rol === "soporte" || usuario.rol === "asesor") { btnTransferir.classList.remove("hidden"); } else { btnTransferir.classList.add("hidden"); }

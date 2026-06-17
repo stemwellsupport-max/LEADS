@@ -81,6 +81,7 @@ def format_lead(l):
         "asesor_nombre": l.get("asesor_nombre"),
         "doctor_id": l.get("doctor_id"),
         "doctor_nombre": l.get("doctor_nombre"),
+        "notas": l.get("notas") or "",                    # ← AGREGAR ESTA LÍNEA
         "comentarios": l.get("comentarios") or "",
         "rejection_reason": l.get("rejection_reason"),
         "quit_reason": l.get("quit_reason"),
