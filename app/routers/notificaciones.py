@@ -7,9 +7,21 @@ from app.services.notification_service import (
     resolver_todas,
     detectar_y_crear_notificaciones
 )
-from app.dependencies import get_connection
+import psycopg2
 
 router = APIRouter(prefix="/api/notificaciones", tags=["notificaciones"])
+
+
+def _get_conn():
+    """Obtiene una conexión directa a la BD"""
+    return psycopg2.connect(
+        host="localhost",
+        port=5432,
+        database="stemwell",
+        user="crm_user",
+        password="crm2024",
+        client_encoding="UTF8"  # ← CAMBIADO de latin1 a UTF8
+    )
 
 
 @router.get("")
@@ -18,7 +30,7 @@ def obtener_notificaciones(
     solo_pendientes: bool = Query(True)
 ):
     """Lista notificaciones del usuario. Primero detecta nuevas."""
-    conn = get_connection()
+    conn = _get_conn()
     try:
         detectar_y_crear_notificaciones(conn)
         notifs = listar_notificaciones(conn, usuario_id, solo_pendientes)
@@ -34,7 +46,7 @@ def resolver_una_notificacion(notificacion_id: int, data: dict):
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         raise HTTPException(400, "usuario_id es obligatorio")
-    conn = get_connection()
+    conn = _get_conn()
     try:
         ok = resolver_notificacion(conn, notificacion_id, usuario_id)
         pendientes = contar_pendientes(conn, usuario_id)
@@ -49,7 +61,7 @@ def resolver_todas_notificaciones(data: dict):
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         raise HTTPException(400, "usuario_id es obligatorio")
-    conn = get_connection()
+    conn = _get_conn()
     try:
         resueltas = resolver_todas(conn, usuario_id)
         return {"resueltas": resueltas, "pendientes": 0}

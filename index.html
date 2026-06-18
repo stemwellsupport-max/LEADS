@@ -1800,9 +1800,10 @@ async function abrirModal(id) {
         <div class="cs-item"><div class="cs-label">Sales</div><div class="cs-val">${l.sales_status||"—"}</div></div>
         <div class="cs-item"><div class="cs-label">Appointment</div><div class="cs-val">${l.appointment_status||"—"}</div></div>
         <div class="cs-item"><div class="cs-label">Medical</div><div class="cs-val">${l.medical_status||"—"}</div></div>
+        ${l.treatment_date?`<div class="cs-item"><div class="cs-label">Appt. Date</div><div class="cs-val" style="color:var(--teal)">${fechaCorta(l.treatment_date)}</div></div>`:''}
         ${l.cita_confirmada?'<div class="cs-item"><div class="cs-label">Confirmed</div><div class="cs-val" style="color:var(--green)">✅ Yes</div></div>':''}
-        ${l.treatment_start_date?`<div class="cs-item"><div class="cs-label">Start Treat.</div><div class="cs-val" style="color:var(--teal)">${l.treatment_start_date}</div></div>`:''}
-        ${l.treatment_end_date?`<div class="cs-item"><div class="cs-label">End Treat.</div><div class="cs-val" style="color:var(--teal)">${l.treatment_end_date}</div></div>`:''}
+        ${l.treatment_start_date?`<div class="cs-item"><div class="cs-label">Start Treat.</div><div class="cs-val" style="color:var(--teal)">${fechaCorta(l.treatment_start_date)}</div></div>`:''}
+        ${l.treatment_end_date?`<div class="cs-item"><div class="cs-label">End Treat.</div><div class="cs-val" style="color:var(--teal)">${fechaCorta(l.treatment_end_date)}</div></div>`:''}
         ${l.medilink_numero?`<div class="cs-item"><div class="cs-label">Medilink #</div><div class="cs-val">${l.medilink_numero}</div></div>`:''}`;
     
     document.getElementById("m-body").innerHTML = buildModalBody(l);

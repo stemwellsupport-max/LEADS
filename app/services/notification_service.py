@@ -57,8 +57,8 @@ def resolver_todas(conn, usuario_id):
 
 
 def listar_notificaciones(conn, usuario_id, solo_pendientes=True):
-    """Lista notificaciones de un usuario."""
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    """Lista notificaciones de un usuario. Retorna lista de dicts."""
+    cur = conn.cursor()
     q = """
         SELECT n.id, n.lead_id, n.tipo, n.asunto, n.mensaje, n.fecha_envio, n.estado,
                n.usuario_id, n.lead_name
@@ -70,9 +70,18 @@ def listar_notificaciones(conn, usuario_id, solo_pendientes=True):
     q += " ORDER BY n.fecha_envio DESC LIMIT 50"
     cur.execute(q, (usuario_id,))
     rows = cur.fetchall()
+    cols = ["id", "lead_id", "tipo", "asunto", "mensaje", "fecha_envio", "estado", "usuario_id", "lead_name"]
+    resultado = []
+    for row in rows:
+        d = {}
+        for i, col in enumerate(cols):
+            val = row[i]
+            if isinstance(val, datetime):
+                val = val.isoformat()
+            d[col] = val
+        resultado.append(d)
     cur.close()
-    return [dict(r) for r in rows]
-
+    return resultado
 
 def contar_pendientes(conn, usuario_id):
     """Cuenta notificaciones pendientes de un usuario."""
