@@ -297,7 +297,6 @@ tr.row-fav:hover td{background:#473a0d!important;}
 .alert-banner .alert-close:hover{opacity:1;}
 .container{max-width:100%!important;padding:1.5rem 2.5rem;}
 </style>
-</style>
 </head>
 <body>
 
@@ -1983,6 +1982,15 @@ function buildAsesor(l) {
         <option value="scheduled">📅 Schedule Appointment</option>
         <option value="lost">💔 Mark as Lost</option>
       </select>
+      <div id="a-agenda-block" class="hidden">
+        <div class="info-box info" style="margin-top:.8rem">📅 You can confirm and assign a doctor later.</div>
+        <label class="lbl">Medilink Number (optional)</label>
+        <input type="text" id="a-medilink-agenda" placeholder="ML-2024-001" value="${l.medilink_numero || ''}">
+        <label class="lbl">Doctor (optional)</label>
+        <select id="a-doctor-agenda"><option value="">Unassigned</option>${doctoresOpts}</select>
+        <label class="lbl">Consultation Date/Time</label>
+        <input type="datetime-local" id="a-fecha-agenda">
+      </div>
       <div id="a-lost-block" class="hidden">
         <label class="lbl">Loss reason</label>
         <select id="a-lost-reason"><option value="">Select...</option>${rejOpts}</select>
@@ -2233,6 +2241,7 @@ function onApptAccion() {
   const v=document.getElementById("a-appt-accion")?.value;
   document.getElementById("block-confirmada")?.classList.add("hidden");
   document.getElementById("block-reagendar")?.classList.toggle("hidden",v!=="reagendar");
+  document.getElementById("block-agendar-trat")?.classList.toggle("hidden",v!=="agendar_trat");
   document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
   if(v)_citaToggle=false;
 }
@@ -2252,6 +2261,17 @@ function onCancelAccion() {
   document.getElementById("a-nueva-fecha-block")?.classList.toggle("hidden",!["reagendar_consulta","reagendar_trat"].includes(v));
   document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
 }
+
+// FIX: esta función faltaba por completo. Sin ella, el <select> "a-callback-accion"
+// llamaba a onCallbackAccion() en cada cambio pero no pasaba nada: nunca se mostraba
+// el bloque con Medilink/Doctor/Fecha cuando se elegía "Schedule Appointment" desde
+// un lead en estado Callback. Por eso el guardado fallaba pidiendo "medilink_numero".
+function onCallbackAccion() {
+  const v=document.getElementById("a-callback-accion")?.value;
+  document.getElementById("a-agenda-block")?.classList.toggle("hidden",v!=="scheduled");
+  document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
+}
+
 function onTratAccion() {
   const v=document.getElementById("d-trat-accion")?.value;
   document.getElementById("d-siguiente-block")?.classList.toggle("hidden",v!=="siguiente");
@@ -2384,7 +2404,20 @@ function buildBodyAsesor(body,l) {
     if (!accion && !body.comentario){toast("Select an action or write a comment",true);return false;}
     if (accion==="first_contact"){body.sales_status="First Contact";return true;}
     if (accion==="no_answer"){body.sales_status="No Answer";return true;}
-    if (accion==="scheduled"){body.sales_status="Scheduled Appointment";return true;}
+    if (accion==="scheduled"){
+      // FIX: antes solo se hacía body.sales_status="Scheduled Appointment" sin
+      // capturar medilink/doctor/fecha, porque el bloque #a-agenda-block nunca se
+      // mostraba (faltaba onCallbackAccion). Ahora sí se toman esos campos igual
+      // que en el flujo normal (newStatus==="Scheduled Appointment").
+      body.sales_status="Scheduled Appointment";
+      const medilinkAgenda = document.getElementById("a-medilink-agenda")?.value.trim();
+      const d = document.getElementById("a-doctor-agenda")?.value;
+      const f = document.getElementById("a-fecha-agenda")?.value;
+      if (medilinkAgenda) body.medilink_numero = medilinkAgenda;
+      if (d) body.doctor_id = parseInt(d);
+      if (f) body.treatment_date = f;
+      return true;
+    }
     if (accion==="lost"){const r=document.getElementById("a-lost-reason")?.value; if(!r){toast("Select a reason",true);return false;} body.sales_status="Lost"; body.rejection_reason=r; return true;}
     return true;
   }
@@ -2716,7 +2749,6 @@ function irALeadNotif(lid){
     }
 }
 document.addEventListener("click",function(e){const b=document.getElementById("notificationBell");const d=document.getElementById("notificationDropdown");if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}});
-</script>
 </script>
 </body>
 </html>
