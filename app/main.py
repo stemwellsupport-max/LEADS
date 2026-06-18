@@ -19,6 +19,7 @@ app.add_middleware(
 
 # Importar routers
 from app.routers import auth, users, leads, agenda, google, health, webhooks, booked_calls, controles
+from app.routers import notificaciones  # ← NUEVO
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -29,6 +30,7 @@ app.include_router(health.router)
 app.include_router(webhooks.router)
 app.include_router(booked_calls.router)
 app.include_router(controles.router)
+app.include_router(notificaciones.router)  # ← NUEVO
 
 @app.get("/doctores")
 def get_doctores(conn=Depends(get_connection)):

@@ -270,6 +270,33 @@ label.lbl{display:block;color:var(--text2);font-size:.7rem;text-transform:upperc
 tr.row-fav td{background:#3a2f0a!important;}
 tr.row-fav:hover td{background:#473a0d!important;}
 .filter-btn.fav-btn.active{background:var(--yellow);border-color:var(--yellow);color:#1a1303;}
+
+/* ===== NOTIFICATIONS ===== */
+.notification-bell{position:relative;cursor:pointer;font-size:1.4rem;padding:6px 10px;border-radius:8px;transition:background 0.2s;margin-left:8px;user-select:none;}
+.notification-bell:hover{background:rgba(255,255,255,0.08);}
+.notification-bell .badge{position:absolute;top:-2px;right:-2px;background:#ef4444;color:#fff;font-size:.65rem;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-family:'DM Mono',monospace;}
+.notification-dropdown{position:absolute;top:55px;right:20px;width:420px;max-height:520px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:1000;overflow:hidden;}
+.notif-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.notif-header strong{color:var(--text);font-size:.9rem;}
+.btn-resolver-todas{background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:.72rem;padding:4px 10px;border-radius:6px;font-family:inherit;transition:all .2s;}
+.btn-resolver-todas:hover{border-color:var(--accent);color:var(--accent);}
+.notif-list{overflow-y:auto;max-height:450px;}
+.notif-item{display:flex;align-items:flex-start;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;gap:12px;}
+.notif-item:hover{background:var(--bg3);}
+.notif-item .notif-icon{font-size:1.3rem;flex-shrink:0;width:28px;text-align:center;}
+.notif-item .notif-body{flex:1;min-width:0;}
+.notif-item .notif-asunto{font-weight:600;font-size:.85rem;color:var(--text);}
+.notif-item .notif-mensaje{font-size:.78rem;color:var(--text2);margin-top:3px;}
+.notif-item .notif-tiempo{font-size:.7rem;color:#555;margin-top:4px;font-family:'DM Mono',monospace;}
+.notif-item .btn-resolver{background:none;border:none;color:#555;cursor:pointer;font-size:1.1rem;padding:2px 6px;flex-shrink:0;transition:color .2s;}
+.notif-item .btn-resolver:hover{color:var(--green);}
+.notif-empty{text-align:center;padding:40px 16px;color:var(--text2);font-size:.85rem;}
+.alert-banner{display:flex;align-items:center;gap:10px;padding:12px 20px;background:linear-gradient(135deg,#2d1f0a,#1a1005);border:1px solid #d9770044;border-radius:10px;margin:0 0 1.2rem 0;font-size:.85rem;color:#fbbf24;}
+.alert-banner .alert-icon{font-size:1.3rem;}
+.alert-banner .alert-close{margin-left:auto;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#fbbf24;opacity:.7;}
+.alert-banner .alert-close:hover{opacity:1;}
+.container{max-width:100%!important;padding:1.5rem 2.5rem;}
+</style>
 </style>
 </head>
 <body>
@@ -301,6 +328,21 @@ tr.row-fav:hover td{background:#473a0d!important;}
       <span class="role-badge" id="user-info">—</span>
       <button class="btn-logout" onclick="abrirCambiarPassword()" style="border-color:var(--border2)">🔑</button>
       <button class="btn-logout" onclick="logout()">Sign Out</button>
+      <div class="notification-bell" id="notificationBell" onclick="toggleNotifications()">
+        🔔
+        <span class="badge" id="notificationBadge" style="display:none">0</span>
+      </div>
+    </div>
+  </div>
+
+    <!-- Dropdown notificaciones -->
+  <div class="notification-dropdown" id="notificationDropdown" style="display:none">
+    <div class="notif-header">
+      <strong>🔔 Notifications</strong>
+      <button class="btn-resolver-todas" onclick="resolverTodasNotif()">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notifList">
+      <p class="notif-empty">No pending notifications 🎉</p>
     </div>
   </div>
 
@@ -313,6 +355,12 @@ tr.row-fav:hover td{background:#473a0d!important;}
         <button class="btn-header" onclick="abrirGestionUsuarios()">👥 Users</button>
       </div>
     </div>
+    <div class="alert-banner" id="alertBanner" style="display:none">
+      <span class="alert-icon">⚠️</span>
+      <span id="alertBannerText"></span>
+      <button class="alert-close" onclick="document.getElementById('alertBanner').style.display='none'">×</button>
+    </div>
+
 
     <div class="stats" id="stats-container">
       <div class="stat-card" onclick="filtrar('all')"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
@@ -985,9 +1033,12 @@ function iniciarApp() {
     document.getElementById("soporte-banner").classList.remove("hidden");
     cargarAsesoresParaForm();
   }
-  if (usuario.rol === "asesor") {
+    if (usuario.rol === "asesor") {
     document.getElementById("asesor-header-actions").style.display = "flex";
   }
+  // Cargar notificaciones
+  setTimeout(cargarNotificaciones, 2000);
+  setInterval(cargarNotificaciones, 120000);
 }
 
 // ══════════════════════════════════════════════
@@ -2629,6 +2680,20 @@ function toast(msg,err=false){const t=document.createElement("div");t.className=
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){cerrarModal();cerrarModalNuevo();cerrarModalBookedCall();cerrarTransferir();document.getElementById("modal-usuarios").classList.remove("open");cerrarCambiarPassword();}});
 document.getElementById("modal-booked-call").addEventListener("click",e=>{if(e.target===document.getElementById("modal-booked-call"))cerrarModalBookedCall();});
 document.getElementById("modal-transferir").addEventListener("click",e=>{if(e.target===document.getElementById("modal-transferir"))cerrarTransferir();});
+
+// ══════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════
+async function cargarNotificaciones(){try{const res=await fetch(API+"/api/notificaciones?usuario_id="+usuario.id+"&solo_pendientes=true");if(!res.ok)return;const data=await res.json();actualizarBadge(data.pendientes);renderizarNotificaciones(data.notificaciones);actualizarBanner(data.notificaciones);}catch(e){console.error("Error loading notifications:",e);}}
+function actualizarBadge(p){const b=document.getElementById("notificationBadge");if(p>0){b.style.display="flex";b.textContent=p>99?"99+":p;}else{b.style.display="none";}}
+function toggleNotifications(){const d=document.getElementById("notificationDropdown");if(d.style.display==="none"||d.style.display===""){d.style.display="block";cargarNotificaciones();}else{d.style.display="none";}}
+function actualizarBanner(n){const b=document.getElementById("alertBanner");const t=document.getElementById("alertBannerText");if(!n||n.length===0){b.style.display="none";return;}const ll=n.filter(x=>x.tipo==="llamada_pendiente").length;const vv=n.filter(x=>x.tipo!=="llamada_pendiente").length;let m="";if(ll>0)m+="📞 "+ll+" pending callback(s). ";if(vv>0)m+="⚠️ "+vv+" overdue appointment(s). ";t.textContent=m.trim();b.style.display="flex";}
+function renderizarNotificaciones(n){const l=document.getElementById("notifList");if(!n||n.length===0){l.innerHTML='<p class="notif-empty">All clear 🎉</p>';return;}const ic={"llamada_pendiente":"📞","cita_vencida_doctor":"⏰","lead_devuelto_asesor":"🔄","tratamiento_cancelado":"❌"};l.innerHTML=n.map(x=>'<div class="notif-item" onclick="irALeadNotif('+x.lead_id+')"><span class="notif-icon">'+(ic[x.tipo]||"📌")+'</span><div class="notif-body"><div class="notif-asunto">'+(x.asunto||"Notification")+'</div><div class="notif-mensaje">'+(x.mensaje||"")+'</div><div class="notif-tiempo">'+formatearTiempoNotif(x.fecha_envio)+'</div></div><button class="btn-resolver" onclick="event.stopPropagation();resolverNotif('+x.id+')" title="Mark resolved">✓</button></div>').join("");}
+function formatearTiempoNotif(f){if(!f)return"";const a=new Date();const d=new Date(f);const m=Math.floor((a-d)/60000);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return d.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});}
+async function resolverNotif(id){await fetch(API+"/api/notificaciones/"+id+"/resolver",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});cargarNotificaciones();}
+async function resolverTodasNotif(){await fetch(API+"/api/notificaciones/resolver-todas",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});cargarNotificaciones();}
+function irALeadNotif(lid){document.getElementById("notificationDropdown").style.display="none";abrirModal(lid);}
+document.addEventListener("click",function(e){const b=document.getElementById("notificationBell");const d=document.getElementById("notificationDropdown");if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}});
 </script>
 </body>
 </html>

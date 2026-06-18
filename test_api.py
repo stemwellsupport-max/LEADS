@@ -1,3 +1,4 @@
+# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2 import pool
@@ -10,7 +11,7 @@ from schemas import (
     UpdateStatus, BookedCallCreate, BookedCallUpdate, LeadGoogle
 )
 
-app = FastAPI(title="Patient Tracking Sheet", version="9.7.0")
+app = FastAPI(title="Patient Tracking Sheet", version="10.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +36,18 @@ def release_db(conn):
 
 def hash_password(p: str) -> str:
     return hashlib.sha256(p.encode()).hexdigest()
+
+# ══════════════════════════════════════════════════════════════
+#  NOTIFICACIONES - IMPORT
+# ══════════════════════════════════════════════════════════════
+from app.services.notification_service import (
+    listar_notificaciones, contar_pendientes,
+    resolver_notificacion, resolver_todas,
+    detectar_y_crear_notificaciones,
+    crear_notificacion, notificacion_existe,
+    NOTIF_LLAMADA_PENDIENTE, NOTIF_CITA_VENCIDA_DOCTOR,
+    NOTIF_LEAD_DEVUELTO_ASESOR, NOTIF_TRATAMIENTO_CANCELADO
+)
 
 # ========== SETUP TABLAS ==========
 def ensure_tables():
@@ -98,7 +111,6 @@ def ensure_tables():
                 END IF;
             END $$;
         """)
-        # ← NUEVO: columna pais
         cur.execute("""
             DO $$ 
             BEGIN 
@@ -108,9 +120,45 @@ def ensure_tables():
                 END IF;
             END $$;
         """)
+        cur.execute("""
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name='notificaciones' AND column_name='usuario_id') THEN
+                    ALTER TABLE notificaciones ADD COLUMN usuario_id INTEGER;
+                END IF;
+            END $$;
+        """)
+        cur.execute("""
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name='notificaciones' AND column_name='resuelta_por') THEN
+                    ALTER TABLE notificaciones ADD COLUMN resuelta_por INTEGER;
+                END IF;
+            END $$;
+        """)
+        cur.execute("""
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name='notificaciones' AND column_name='fecha_resolucion') THEN
+                    ALTER TABLE notificaciones ADD COLUMN fecha_resolucion TIMESTAMP WITHOUT TIME ZONE;
+                END IF;
+            END $$;
+        """)
+        cur.execute("""
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name='notificaciones' AND column_name='lead_name') THEN
+                    ALTER TABLE notificaciones ADD COLUMN lead_name VARCHAR;
+                END IF;
+            END $$;
+        """)
         conn.commit()
         cur.close()
-        print("✅ Tablas y columnas verificadas")
+        print("✅ Tablas y columnas verificadas (incluyendo notificaciones)")
     except Exception as e:
         print(f"⚠️ Error: {e}")
     finally:
@@ -163,6 +211,35 @@ def update_agenda_fecha(conn, lead_id, treatment_date, estado='Rescheduled'):
         WHERE lead_id=%s""", (fecha, fecha, estado, lead_id))
     cur.close()
 
+# ══════════════════════════════════════════════════════════════
+#  NOTIFICACIONES - HELPERS
+# ══════════════════════════════════════════════════════════════
+def _notificar_lead_devuelto_asesor(conn, lead, motivo):
+    """Notifica al asesor cuando el doctor devuelve un lead"""
+    asesor_id = lead.get("asesor_id")
+    lead_id = lead.get("id")
+    lead_name = lead.get("nombre") or "Paciente"
+    if asesor_id and not notificacion_existe(conn, lead_id, NOTIF_LEAD_DEVUELTO_ASESOR, asesor_id):
+        crear_notificacion(
+            conn, lead_id, NOTIF_LEAD_DEVUELTO_ASESOR,
+            "🔄 Lead devuelto a tu bandeja",
+            f"{lead_name} fue devuelto por el doctor. Motivo: {motivo}. Debes reagendar o dar seguimiento.",
+            asesor_id, lead_name
+        )
+
+def _notificar_tratamiento_cancelado_asesor(conn, lead, motivo):
+    """Notifica al asesor cuando se cancela un tratamiento o cita"""
+    asesor_id = lead.get("asesor_id")
+    lead_id = lead.get("id")
+    lead_name = lead.get("nombre") or "Paciente"
+    if asesor_id and not notificacion_existe(conn, lead_id, NOTIF_TRATAMIENTO_CANCELADO, asesor_id):
+        crear_notificacion(
+            conn, lead_id, NOTIF_TRATAMIENTO_CANCELADO,
+            "❌ Cita/Tratamiento cancelado",
+            f"{lead_name}: {motivo}. Debes reagendar la cita o dar seguimiento al paciente.",
+            asesor_id, lead_name
+        )
+
 # ========== FORMAT LEAD ==========
 def dt(v):
     if not v: return None
@@ -174,7 +251,7 @@ def format_lead(l):
         "id": l["id"], "nombre": l["nombre"], "telefono": l["telefono"], "email": l["email"],
         "categoria": l.get("categoria") or "", "canal": l.get("canal") or "",
         "genero": l.get("genero") or "", "ciudad": l.get("ciudad") or "",
-        "pais": l.get("pais") or "",  # ← NUEVO
+        "pais": l.get("pais") or "",
         "sales_status": l.get("sales_status"), "appointment_status": l.get("appointment_status"),
         "medical_status": l.get("medical_status"),
         "asesor_id": l.get("asesor_id"), "asesor_nombre": l.get("asesor_nombre"),
@@ -195,6 +272,7 @@ def format_lead(l):
         "last_contact_date": dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
         "semaforo": l.get("semaforo") or "",
         "pipeline": l.get("pipeline") or "",
+        "favorito": l.get("favorito", False),
     }
 
 # ========== AUTH ==========
@@ -604,7 +682,6 @@ def cambiar_estado(data: UpdateStatus):
                 nota = f"Tratamiento {data.appointment_status}"
             elif data.sales_status:
                 nuevo = data.sales_status
-                # ← "No Answer" ahora incluye "Appointment Scheduled"
                 trans_validas = {
                     "New Lead":      ["First Contact","No Answer","Follow Up","Interested","Appointment Scheduled","Lost","Booked Calls","At reception","International line"],
                     "First Contact": ["Follow Up","Interested","Appointment Scheduled","No Answer","Lost","Booked Calls","At reception"],
@@ -656,6 +733,8 @@ def cambiar_estado(data: UpdateStatus):
                 updates["medical_status"] = None
                 nota = "Cita cancelada por doctor"
                 delete_from_agenda(conn, data.lead_id)
+                # ═══════ NOTIFICACIÓN ═══════
+                _notificar_lead_devuelto_asesor(conn, lead, "Cita cancelada por el doctor")
             elif data.appointment_status == "No Show" and sales == "Appointment Scheduled":
                 updates["sales_status"] = "canceled treatment"
                 updates["appointment_status"] = "No Show"
@@ -663,6 +742,8 @@ def cambiar_estado(data: UpdateStatus):
                 updates["medical_status"] = None
                 nota = "No Show marcado por doctor"
                 delete_from_agenda(conn, data.lead_id)
+                # ═══════ NOTIFICACIÓN ═══════
+                _notificar_lead_devuelto_asesor(conn, lead, "Paciente no asistió a la cita (No Show)")
             elif data.appointment_status == "Attended" and sales == "Appointment Scheduled":
                 updates["appointment_status"] = "Attended"
                 if not med:
@@ -679,6 +760,8 @@ def cambiar_estado(data: UpdateStatus):
                 updates["cita_confirmada"] = False
                 nota = "Tratamiento reagendado por doctor -> asesor para confirmar nueva fecha"
                 delete_from_agenda(conn, data.lead_id)
+                # ═══════ NOTIFICACIÓN ═══════
+                _notificar_lead_devuelto_asesor(conn, lead, "Tratamiento reagendado por el doctor")
             elif data.medical_status == "In Treatment" and med == "Treatment Scheduled":
                 if not data.treatment_start_date or not data.treatment_end_date:
                     raise HTTPException(400, "Fechas de inicio y fin del tratamiento obligatorias")
@@ -715,18 +798,24 @@ def cambiar_estado(data: UpdateStatus):
                     updates["cita_confirmada"] = False
                     nota = "Tratamiento reagendado por doctor -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_lead_devuelto_asesor(conn, lead, "Tratamiento reagendado por el doctor")
                 elif data.appointment_status == "No Show":
                     updates["appointment_status"] = "No Show"
                     updates["sales_status"] = "canceled treatment"
                     updates["medical_status"] = None
                     nota = "No Show en tratamiento -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_tratamiento_cancelado_asesor(conn, lead, "Paciente no asistió al tratamiento (No Show)")
                 elif data.appointment_status == "Canceled":
                     updates["appointment_status"] = "Canceled"
                     updates["sales_status"] = "canceled treatment"
                     updates["medical_status"] = None
                     nota = "Tratamiento cancelado -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_tratamiento_cancelado_asesor(conn, lead, "Tratamiento cancelado por el doctor")
                 elif not data.comentario:
                     raise HTTPException(400, "Indica acción para el tratamiento activo")
             elif med == "Pending Evaluation":
@@ -736,6 +825,16 @@ def cambiar_estado(data: UpdateStatus):
                     updates["medical_status"] = None
                     nota = "Cita cancelada por doctor -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_lead_devuelto_asesor(conn, lead, "Cita cancelada por el doctor durante evaluación")
+                elif data.appointment_status == "No Show":
+                    updates["appointment_status"] = "No Show"
+                    updates["sales_status"] = "canceled treatment"
+                    updates["medical_status"] = None
+                    nota = "No Show en evaluación -> asesor"
+                    delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_lead_devuelto_asesor(conn, lead, "Paciente no asistió a evaluación (No Show)")
                 elif data.medical_status == "Consultation Completed":
                     updates["medical_status"] = "Consultation Completed"
                     updates["appointment_status"] = "Completed"
@@ -796,18 +895,24 @@ def cambiar_estado(data: UpdateStatus):
                     updates["cita_confirmada"] = False
                     nota = "Tratamiento reagendado por doctor -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_lead_devuelto_asesor(conn, lead, "Tratamiento reagendado por el doctor")
                 elif data.appointment_status == "No Show":
                     updates["appointment_status"] = "No Show"
                     updates["sales_status"] = "canceled treatment"
                     updates["medical_status"] = None
                     nota = "No Show en inicio de tratamiento -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_tratamiento_cancelado_asesor(conn, lead, "Paciente no asistió al inicio de tratamiento (No Show)")
                 elif data.appointment_status == "Canceled":
                     updates["appointment_status"] = "Canceled"
                     updates["sales_status"] = "canceled treatment"
                     updates["medical_status"] = None
                     nota = "Tratamiento cancelado por doctor -> asesor"
                     delete_from_agenda(conn, data.lead_id)
+                    # ═══════ NOTIFICACIÓN ═══════
+                    _notificar_tratamiento_cancelado_asesor(conn, lead, "Tratamiento cancelado por el doctor")
             elif data.rejection_reason and not data.medical_status:
                 updates["medical_status"] = "Candidate Rejected"
                 updates["rejection_reason"] = data.rejection_reason
@@ -835,7 +940,7 @@ def cambiar_estado(data: UpdateStatus):
             if data.cita_confirmada is not None:     updates["cita_confirmada"]      = data.cita_confirmada
             if data.treatment_confirmed is not None: updates["treatment_confirmed"]  = data.treatment_confirmed
             if data.pipeline:                        updates["pipeline"]             = data.pipeline
-            if data.pais:                            updates["pais"]                 = data.pais   # ← NUEVO
+            if data.pais:                            updates["pais"]                 = data.pais
             if data.mark_treatment_completed is not None:
                 updates["treatment_completed"] = data.mark_treatment_completed
             nota = "Actualización por soporte"
@@ -847,7 +952,6 @@ def cambiar_estado(data: UpdateStatus):
         if not updates and not data.comentario and not data.crear_control:
             raise HTTPException(400, "No hay cambios para aplicar")
 
-        # Aplicar updates
         if updates:
             updates["fecha_actualizacion"] = "now"
             updates["last_contact_date"] = "now"
@@ -996,6 +1100,79 @@ def get_controles(lead_id: int):
     finally:
         release_db(conn)
 
+# ══════════════════════════════════════════════════════════════
+#  NOTIFICACIONES - ENDPOINTS
+# ══════════════════════════════════════════════════════════════
+
+@app.get("/api/notificaciones")
+def obtener_notificaciones(usuario_id: int, solo_pendientes: bool = True):
+    """Lista notificaciones del usuario. Primero detecta nuevas."""
+    conn = get_db()
+    try:
+        detectar_y_crear_notificaciones(conn)
+        notifs = listar_notificaciones(conn, usuario_id, solo_pendientes)
+        pendientes = contar_pendientes(conn, usuario_id)
+        return {"notificaciones": notifs, "pendientes": pendientes}
+    finally:
+        release_db(conn)
+
+
+@app.put("/api/notificaciones/{notificacion_id}/resolver")
+def resolver_una_notificacion(notificacion_id: int, data: dict):
+    """Marca una notificación como resuelta. Body: {"usuario_id": 1}"""
+    usuario_id = data.get("usuario_id")
+    if not usuario_id:
+        raise HTTPException(400, "usuario_id es obligatorio")
+    conn = get_db()
+    try:
+        ok = resolver_notificacion(conn, notificacion_id, usuario_id)
+        pendientes = contar_pendientes(conn, usuario_id)
+        return {"ok": ok, "pendientes": pendientes}
+    finally:
+        release_db(conn)
+
+
+@app.put("/api/notificaciones/resolver-todas")
+def resolver_todas_notificaciones(data: dict):
+    """Resuelve todas las notificaciones pendientes. Body: {"usuario_id": 1}"""
+    usuario_id = data.get("usuario_id")
+    if not usuario_id:
+        raise HTTPException(400, "usuario_id es obligatorio")
+    conn = get_db()
+    try:
+        resueltas = resolver_todas(conn, usuario_id)
+        return {"resueltas": resueltas, "pendientes": 0}
+    finally:
+        release_db(conn)
+
+
+# ========== TOGGLE FAVORITO ==========
+@app.put("/leads/{lead_id}/favorito")
+def toggle_favorito(lead_id: int, data: dict):
+    favorito = data.get("favorito", False)
+    usuario_id = data.get("usuario_id")
+    conn = get_db()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT id, nombre, favorito FROM leads WHERE id=%s", (lead_id,))
+        lead = cur.fetchone()
+        if not lead:
+            cur.close()
+            raise HTTPException(404, "Lead no encontrado")
+        cur.execute("UPDATE leads SET favorito=%s, fecha_actualizacion=CURRENT_TIMESTAMP WHERE id=%s",
+                    (favorito, lead_id))
+        accion = "⭐ Marcado como favorito" if favorito else "Quitado de favoritos"
+        cur.execute(
+            "INSERT INTO historial_estados (lead_id, estado_anterior, estado_nuevo, cambiado_por, comentario) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (lead_id, f"FAV:{lead.get('favorito', False)}", f"FAV:{favorito}", usuario_id, accion)
+        )
+        conn.commit()
+        cur.close()
+        return {"message": accion, "lead_id": lead_id, "favorito": favorito}
+    finally:
+        release_db(conn)
+
 # ========== GOOGLE SHEETS ==========
 @app.post("/google/lead")
 def recibir_lead_google(lead: LeadGoogle):
@@ -1019,9 +1196,9 @@ def recibir_lead_google(lead: LeadGoogle):
 # ========== HEALTH ==========
 @app.get("/health")
 def health():
-    conn = get_db()
     try:
+        conn = get_db()
         release_db(conn)
-        return {"status": "ok", "version": "9.7.0"}
+        return {"status": "ok", "version": "10.0.0"}
     except:
         return {"status": "error"}
