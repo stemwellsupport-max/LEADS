@@ -2781,5 +2781,397 @@ function irALeadNotif(lid){
 }
 document.addEventListener("click",function(e){const b=document.getElementById("notificationBell");const d=document.getElementById("notificationDropdown");if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}});
 </script>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// ANALYTICS MODULE v2 — Patient Tracking Sheet
+// Con filtros por año, mes y pipeline
+// ══════════════════════════════════════════════════════════════════
+(function () {
+
+  // ── 1. Esperar app ─────────────────────────────────────────────
+  function waitForApp(cb) {
+    const id = setInterval(() => {
+      if (typeof todosLeads !== "undefined" && typeof usuario !== "undefined") {
+        clearInterval(id); cb();
+      }
+    }, 400);
+  }
+
+  // ── 2. Estilos ─────────────────────────────────────────────────
+  const style = document.createElement("style");
+  style.textContent = `
+    #view-analytics{padding:0}
+    .an-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .an-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.3rem 1.5rem}
+    .an-card h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:1rem;font-weight:600}
+    .an-bar-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.45rem}
+    .an-bar-label{font-size:.73rem;color:var(--text2);width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .an-bar-wrap{flex:1;background:var(--bg3);border-radius:4px;height:8px}
+    .an-bar-fill{height:8px;border-radius:4px;transition:width .5s ease}
+    .an-bar-val{font-size:.72rem;color:var(--text2);width:28px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0}
+    .an-kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.7rem;margin-bottom:1.5rem}
+    .an-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem;cursor:pointer;transition:all .2s}
+    .an-kpi:hover{border-color:var(--accent);background:var(--bg3)}
+    .an-kpi-num{font-size:1.8rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);line-height:1}
+    .an-kpi-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);margin-top:.3rem}
+    .an-funnel{display:flex;flex-direction:column;gap:.35rem}
+    .an-funnel-step{display:flex;align-items:center;gap:.6rem}
+    .an-funnel-bar{height:28px;border-radius:6px;display:flex;align-items:center;padding:0 .6rem;font-size:.72rem;font-weight:600;white-space:nowrap;transition:width .5s ease;min-width:30px;color:white}
+    .an-funnel-count{font-size:.72rem;color:var(--text2);font-family:'DM Mono',monospace;width:28px;text-align:right}
+    .an-donut-wrap{display:flex;align-items:center;gap:1.2rem}
+    .an-donut-legend{display:flex;flex-direction:column;gap:.4rem;flex:1}
+    .an-donut-leg-row{display:flex;align-items:center;gap:.5rem;font-size:.73rem;color:var(--text2)}
+    .an-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+    .an-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1.2rem}
+    .an-filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+    .an-filters select{padding:.35rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.78rem}
+    .an-filters select:focus{outline:none;border-color:var(--accent)}
+    .btn-export-xlsx{padding:.45rem 1.2rem;background:#166534;color:#4ade80;border:1px solid #16a34a44;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600}
+    .btn-export-xlsx:hover{background:#14532d}
+    .an-semaforo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
+    .an-sem-card{background:var(--bg3);border-radius:10px;padding:.9rem;text-align:center;border:1px solid var(--border)}
+    .an-sem-icon{font-size:1.6rem}
+    .an-sem-num{font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;margin:.2rem 0}
+    .an-sem-label{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.6px}
+    .an-refresh{padding:.3rem .8rem;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.75rem}
+    .an-refresh:hover{border-color:var(--accent);color:var(--accent)}
+    .an-table{width:100%;border-collapse:collapse;font-size:.75rem}
+    .an-table th,.an-table td{padding:.4rem .6rem;border-bottom:1px solid var(--border);text-align:left}
+    .an-table th{color:var(--text3);font-size:.65rem;text-transform:uppercase;letter-spacing:.6px}
+    .an-table td{color:var(--text)}
+    .an-table tr:hover td{background:var(--bg3)}
+    .an-table .num{text-align:right;font-family:'DM Mono',monospace}
+  `;
+  document.head.appendChild(style);
+
+  // ── 3. Estado de filtros ──────────────────────────────────────
+  let anYear = new Date().getFullYear();
+  let anMonth = 0; // 0 = todos, 1-12
+  let anPipeline = "all";
+
+  // ── 4. Inyectar tab ────────────────────────────────────────────
+  function injectTab() {
+    const tabs = document.querySelector(".main-tabs");
+    if (!tabs || tabs.querySelector('[data-an-tab]')) return;
+    const btn = document.createElement("button");
+    btn.className = "main-tab";
+    btn.setAttribute("data-an-tab", "1");
+    btn.textContent = "📊 Analytics";
+    btn.onclick = function () { switchMainView("analytics", this); };
+    tabs.appendChild(btn);
+  }
+
+  // ── 5. Inyectar panel ──────────────────────────────────────────
+  function injectView() {
+    if (document.getElementById("view-analytics")) return;
+    const container = document.querySelector(".container");
+    const div = document.createElement("div");
+    div.className = "main-view";
+    div.id = "view-analytics";
+    
+    // Generar años disponibles
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= 2024; y--) years.push(y);
+    
+    div.innerHTML = `
+      <div class="an-toolbar">
+        <div class="an-filters">
+          <select id="an-year" onchange="anSetYear(this.value)">
+            ${years.map(y=>`<option value="${y}" ${y===anYear?'selected':''}>${y}</option>`).join("")}
+          </select>
+          <select id="an-month" onchange="anSetMonth(this.value)">
+            <option value="0" ${anMonth===0?'selected':''}>All Months</option>
+            <option value="1" ${anMonth===1?'selected':''}>January</option>
+            <option value="2" ${anMonth===2?'selected':''}>February</option>
+            <option value="3" ${anMonth===3?'selected':''}>March</option>
+            <option value="4" ${anMonth===4?'selected':''}>April</option>
+            <option value="5" ${anMonth===5?'selected':''}>May</option>
+            <option value="6" ${anMonth===6?'selected':''}>June</option>
+            <option value="7" ${anMonth===7?'selected':''}>July</option>
+            <option value="8" ${anMonth===8?'selected':''}>August</option>
+            <option value="9" ${anMonth===9?'selected':''}>September</option>
+            <option value="10" ${anMonth===10?'selected':''}>October</option>
+            <option value="11" ${anMonth===11?'selected':''}>November</option>
+            <option value="12" ${anMonth===12?'selected':''}>December</option>
+          </select>
+          <select id="an-pipeline" onchange="anSetPipeline(this.value)">
+            <option value="all">All Pipelines</option>
+            <option value="Spanish - Local">Spanish - Local</option>
+            <option value="Spanish - International">Spanish - International</option>
+            <option value="English - Local">English - Local</option>
+            <option value="English - International">English - International</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button class="an-refresh" onclick="anRefresh()">🔄 Refresh</button>
+          <button class="btn-export-xlsx" onclick="anExportXlsx()">⬇️ Download Report (.xlsx)</button>
+        </div>
+      </div>
+      <div class="an-kpi-row" id="an-kpis"></div>
+      <div class="an-grid" id="an-charts"></div>
+      <div class="an-card" style="margin-top:1rem">
+        <h4>📋 Monthly Breakdown (${anYear})</h4>
+        <div style="overflow-x:auto" id="an-monthly-table"></div>
+      </div>
+    `;
+    container.appendChild(div);
+  }
+
+  // ── 6. Filtrar leads ──────────────────────────────────────────
+  function getFilteredLeads() {
+    let L = typeof todosLeads !== "undefined" ? [...todosLeads] : [];
+    
+    // Filtrar por año
+    L = L.filter(l => {
+      const fecha = l.admission_date || l.fecha_creacion || l.treatment_date;
+      if (!fecha) return true;
+      const year = parseInt(String(fecha).slice(0,4));
+      return year === anYear;
+    });
+    
+    // Filtrar por mes
+    if (anMonth > 0) {
+      L = L.filter(l => {
+        const fecha = l.admission_date || l.fecha_creacion || l.treatment_date;
+        if (!fecha) return true;
+        const month = parseInt(String(fecha).slice(5,7));
+        return month === anMonth;
+      });
+    }
+    
+    // Filtrar por pipeline
+    if (anPipeline !== "all") {
+      L = L.filter(l => (l.pipeline || "Unassigned") === anPipeline);
+    }
+    
+    return L;
+  }
+
+  // ── 7. Paleta ──────────────────────────────────────────────────
+  const PAL = ["#3b82f6","#22c55e","#f59e0b","#a855f7","#14b8a6","#ef4444","#f97316","#ec4899","#6366f1","#84cc16"];
+
+  // ── 8. Calcular stats ──────────────────────────────────────────
+  function computeStats() {
+    const L = getFilteredLeads();
+    const total = L.length;
+    const newLeads = L.filter(l=>l.sales_status==="New Lead").length;
+    const won = L.filter(l=>l.sales_status==="Won").length;
+    const lost = L.filter(l=>l.sales_status==="Lost").length;
+    const inProg = L.filter(l=>l.sales_status==="Treatment in Progress").length;
+    const sched = L.filter(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)).length;
+    const callback = L.filter(l=>l.sales_status==="Callback").length;
+    const firstContact = L.filter(l=>l.sales_status==="First Contact").length;
+    const proposalSent = L.filter(l=>l.sales_status==="Treatment Proposal Sent").length;
+    const conv = total ? ((won/total)*100).toFixed(1) : "0.0";
+
+    const funnelDef = [
+      {label:"New Leads",      fn: v=>v==="New Lead"},
+      {label:"First Contact",  fn: v=>v==="First Contact"},
+      {label:"Callback",       fn: v=>v==="Callback"},
+      {label:"Scheduled Appt.",fn: v=>["Scheduled Appointment","Rescheduled Appointment"].includes(v)},
+      {label:"Proposal Sent",  fn: v=>v==="Treatment Proposal Sent"},
+      {label:"Treatment",      fn: v=>v==="Treatment in Progress"},
+      {label:"Won",            fn: v=>v==="Won"},
+    ];
+    const funnel = funnelDef.map(d=>({label:d.label, count:L.filter(l=>d.fn(l.sales_status)).length}));
+
+    const cnt = (arr, key) => { const m={}; arr.forEach(l=>{const k=l[key]||"—"; m[k]=(m[k]||0)+1;}); return m; };
+    const statusCount   = cnt(L,"sales_status");
+    const pipelineCount = cnt(L,"pipeline");
+    const catCount      = cnt(L,"categoria");
+    const docCount      = cnt(L,"doctor_nombre");
+    const medCount      = cnt(L,"medical_status");
+
+    const sem = {verde:0,amarillo:0,rojo:0,neutral:0};
+    L.forEach(l=>{
+      const s=String(l.sales_status||"").toLowerCase();
+      if(["new lead","won","lost"].includes(s)){sem.neutral++;return;}
+      const fs=l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;
+      if(!fs){sem.amarillo++;return;}
+      const [a,m2,d]=String(fs).slice(0,10).split("-").map(Number);
+      const diff=Math.floor((new Date()-new Date(a,m2-1,d))/86400000);
+      if(diff<=1)sem.verde++; else if(diff<=3)sem.amarillo++; else sem.rojo++;
+    });
+
+    // Tabla mensual
+    const monthlyData = [];
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    for (let m=1; m<=12; m++) {
+      const monthLeads = L.filter(l=>{
+        const fecha = l.admission_date || l.fecha_creacion || l.treatment_date;
+        if (!fecha) return false;
+        return parseInt(String(fecha).slice(5,7)) === m;
+      });
+      monthlyData.push({
+        month: monthNames[m-1],
+        total: monthLeads.length,
+        newLeads: monthLeads.filter(l=>l.sales_status==="New Lead").length,
+        scheduled: monthLeads.filter(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)).length,
+        won: monthLeads.filter(l=>l.sales_status==="Won").length,
+        lost: monthLeads.filter(l=>l.sales_status==="Lost").length,
+        inTreatment: monthLeads.filter(l=>l.sales_status==="Treatment in Progress").length,
+      });
+    }
+
+    return {total,newLeads,won,lost,inProg,sched,callback,firstContact,proposalSent,conv,funnel,statusCount,pipelineCount,catCount,docCount,medCount,sem,monthlyData,leads:L};
+  }
+
+  // ── 9. Render ──────────────────────────────────────────────────
+  function renderAnalytics() {
+    const s = computeStats();
+    
+    document.getElementById("an-kpis").innerHTML = [
+      {n:s.total,  l:"Total Leads",     onclick:"filtrar('all')"},
+      {n:s.newLeads,l:"New Leads",      onclick:"filtrar('New Lead')"},
+      {n:s.firstContact,l:"First Contact",onclick:"filtrar('First Contact')"},
+      {n:s.callback,l:"Callback",       onclick:"filtrar('Callback')"},
+      {n:s.sched,  l:"Scheduled Appt.", onclick:"filtrar('Scheduled Appointment')"},
+      {n:s.proposalSent,l:"Proposals Sent",onclick:"filtrar('Treatment Proposal Sent')"},
+      {n:s.inProg, l:"In Treatment",    onclick:"filtrar('Treatment in Progress')"},
+      {n:s.won,    l:"Won",             onclick:"filtrar('Won')"},
+      {n:s.lost,   l:"Lost",            onclick:"filtrar('Lost')"},
+      {n:s.conv+"%",l:"Conv. Rate"},
+    ].map(k=>`<div class="an-kpi" ${k.onclick?`onclick="switchMainView('leads',document.querySelector('.main-tab'));${k.onclick}"`:''}><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div></div>`).join("");
+
+    document.getElementById("an-charts").innerHTML = [
+      funnel(s.funnel),
+      bars("Sales Status", s.statusCount),
+      bars("By Category",  s.catCount),
+      bars("By Pipeline",  s.pipelineCount),
+      bars("By Doctor",    s.docCount),
+      donut("Medical Status", s.medCount),
+      semCard(s.sem),
+    ].join("");
+
+    // Tabla mensual
+    renderMonthlyTable(s.monthlyData);
+  }
+
+  function renderMonthlyTable(data) {
+    const maxTotal = Math.max(...data.map(d=>d.total), 1);
+    document.getElementById("an-monthly-table").innerHTML = `
+      <table class="an-table">
+        <thead><tr>
+          <th>Month</th><th class="num">Total</th><th class="num">New</th><th class="num">Scheduled</th><th class="num">In Treat.</th><th class="num">Won</th><th class="num">Lost</th><th>Bar</th>
+        </tr></thead>
+        <tbody>
+          ${data.map(d=>`
+            <tr>
+              <td>${d.month}</td>
+              <td class="num">${d.total||"—"}</td>
+              <td class="num">${d.newLeads||"—"}</td>
+              <td class="num">${d.scheduled||"—"}</td>
+              <td class="num">${d.inTreatment||"—"}</td>
+              <td class="num">${d.won||"—"}</td>
+              <td class="num">${d.lost||"—"}</td>
+              <td style="width:120px"><div class="an-bar-wrap" style="height:6px"><div class="an-bar-fill" style="width:${(d.total/maxTotal*100).toFixed(1)}%;background:var(--accent);height:6px"></div></div></td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function bars(title, obj) {
+    const sorted = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const max = Math.max(...sorted.map(e=>e[1]),1);
+    const rows = sorted.map(([lbl,n],i)=>`
+      <div class="an-bar-row">
+        <div class="an-bar-label" title="${lbl}">${lbl}</div>
+        <div class="an-bar-wrap"><div class="an-bar-fill" style="width:${(n/max*100).toFixed(1)}%;background:${PAL[i%PAL.length]}"></div></div>
+        <div class="an-bar-val">${n}</div>
+      </div>`).join("");
+    return `<div class="an-card"><h4>${title}</h4>${rows||'<p style="color:var(--text2);font-size:.8rem">No data</p>'}</div>`;
+  }
+
+  function funnel(steps) {
+    const fc=["#3b82f6","#6366f1","#a855f7","#f59e0b","#14b8a6","#22c55e","#4ade80"];
+    const max=Math.max(...steps.map(s=>s.count),1);
+    const rows=steps.map((s,i)=>{
+      const pct=Math.max((s.count/max)*100, s.count?6:3);
+      return `<div class="an-funnel-step">
+        <div class="an-bar-label" style="font-size:.72rem;color:var(--text2)">${s.label}</div>
+        <div style="flex:1"><div class="an-funnel-bar" style="width:${pct.toFixed(0)}%;background:${fc[i]}">${s.count||""}</div></div>
+        <div class="an-funnel-count">${s.count}</div>
+      </div>`;
+    }).join("");
+    return `<div class="an-card" style="grid-column:span 2"><h4>Sales Funnel</h4><div class="an-funnel">${rows}</div></div>`;
+  }
+
+  function donut(title, obj) {
+    const entries=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+    const total=entries.reduce((s,[,v])=>s+v,0)||1;
+    let off=0; const r=45,cx=60,cy=60,C=2*Math.PI*r;
+    const slices=entries.map(([,n],i)=>{
+      const pct=n/total, dash=pct*C, gap=C-dash;
+      const el=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PAL[i%PAL.length]}" stroke-width="16" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-off*C).toFixed(2)}"/>`;
+      off+=pct; return el;
+    }).join("");
+    const svg=`<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;transform:rotate(-90deg)">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="16"/>
+      ${slices}</svg>`;
+    const legend=entries.slice(0,8).map(([lbl,n],i)=>`
+      <div class="an-donut-leg-row">
+        <div class="an-dot" style="background:${PAL[i%PAL.length]}"></div>
+        <span style="flex:1;font-size:.7rem">${lbl}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--text)">${n}</span>
+      </div>`).join("");
+    return `<div class="an-card"><h4>${title}</h4><div class="an-donut-wrap">${svg}<div class="an-donut-legend">${legend}</div></div></div>`;
+  }
+
+  function semCard(sem) {
+    const items=[
+      {icon:"🟢",n:sem.verde,   lbl:"Active (≤1 day)",    c:"#22c55e"},
+      {icon:"🟡",n:sem.amarillo,lbl:"Follow-up (2-3d)",   c:"#f59e0b"},
+      {icon:"🔴",n:sem.rojo,    lbl:"Overdue (>3 days)",  c:"#ef4444"},
+      {icon:"⚫",n:sem.neutral, lbl:"New/Won/Lost",        c:"var(--text2)"},
+    ];
+    const cells=items.map(it=>`
+      <div class="an-sem-card">
+        <div class="an-sem-icon">${it.icon}</div>
+        <div class="an-sem-num" style="color:${it.c}">${it.n}</div>
+        <div class="an-sem-label">${it.lbl}</div>
+      </div>`).join("");
+    return `<div class="an-card"><h4>Traffic Light</h4><div class="an-semaforo-grid">${cells}</div></div>`;
+  }
+
+  // ── 10. Filtros públicos ──────────────────────────────────────
+  window.anSetYear = function(val) {
+    anYear = parseInt(val);
+    renderAnalytics();
+  };
+  window.anSetMonth = function(val) {
+    anMonth = parseInt(val);
+    renderAnalytics();
+  };
+  window.anSetPipeline = function(val) {
+    anPipeline = val;
+    renderAnalytics();
+  };
+  window.anRefresh = function() {
+    if (document.getElementById("view-analytics")?.classList.contains("active")) renderAnalytics();
+  };
+
+  // ── 11. Hook switchMainView ────────────────────────────────────
+  const _orig = window.switchMainView;
+  window.switchMainView = function(view, btn) {
+    if (view === "analytics") {
+      document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));
+      document.querySelectorAll(".main-tab").forEach(b=>b.classList.remove("active"));
+      document.getElementById("view-analytics")?.classList.add("active");
+      if(btn) btn.classList.add("active");
+      renderAnalytics();
+    } else { _orig(view, btn); }
+  };
+
+  // ── 12. Init ───────────────────────────────────────────────────
+  waitForApp(() => {
+    const _origInit = window.iniciarApp;
+    window.iniciarApp = function() { _origInit(); injectTab(); injectView(); };
+    if (document.getElementById("app").style.display !== "none") { injectTab(); injectView(); }
+  });
+
+})();
+</script>
 </body>
 </html>
