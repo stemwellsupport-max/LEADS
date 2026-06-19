@@ -1285,6 +1285,18 @@ function calcSemaforo(l) {
     return "🔴";
 }
 
+//✅ NUEVA: Muestra fecha Y hora (para el calendario y modal)
+function fechaConHora(d) {
+  if (!d) return "—";
+  const s = String(d);
+  // Intenta parsear: "2026-06-19T10:30" o "2026-06-19 10:30:00" o "2026-06-19 10:30"
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) return fechaCorta(d);
+  const [, anio, mes, dia, hora, min] = m;
+  return `${mes}/${dia}/${anio} ${hora}:${min}`;
+}
+
+
 function fechaCorta(d) {
   if (!d) return "—";
   const s = String(d);
@@ -1620,10 +1632,29 @@ async function fetchCalendarEvents(info, successCB, failCB) {
         const idx = docMap[s.doctor_id] ?? 0;
 
         let start = s.fecha_inicio || s.fecha || s.date || null;
-        if (start && !start.includes('T')) start = start + 'T08:00:00';
+        // ✅ CORREGIDO: Respetar la hora que viene de la BD, no forzar 08:00
+        if (start) {
+          if (start.includes('T')) {
+            // Ya tiene formato ISO: "2026-06-19T10:30" → DEJAR COMO ESTÁ
+          } else if (start.includes(' ')) {
+            // Viene con espacio: "2026-06-19 10:30" → convertir a ISO
+            start = start.replace(' ', 'T');
+          } else if (start.length === 10) {
+            // Solo fecha sin hora: "2026-06-19"
+            start = start + 'T00:00:00';
+          }
+        }
 
         let end = s.fecha_fin || s.fecha_end || null;
-        if (end && !end.includes('T')) end = end + 'T09:00:00';
+        if (end) {
+          if (end.includes('T')) {
+            // Ya tiene formato ISO
+          } else if (end.includes(' ')) {
+            end = end.replace(' ', 'T');
+          } else if (end.length === 10) {
+            end = end + 'T00:00:00';
+          }
+        }
         if (!end && start) {
           const d = new Date(start);
           d.setHours(d.getHours() + 1);
@@ -1799,10 +1830,10 @@ async function abrirModal(id) {
         <div class="cs-item"><div class="cs-label">Sales</div><div class="cs-val">${l.sales_status||"—"}</div></div>
         <div class="cs-item"><div class="cs-label">Appointment</div><div class="cs-val">${l.appointment_status||"—"}</div></div>
         <div class="cs-item"><div class="cs-label">Medical</div><div class="cs-val">${l.medical_status||"—"}</div></div>
-        ${l.treatment_date?`<div class="cs-item"><div class="cs-label">Appt. Date</div><div class="cs-val" style="color:var(--teal)">${fechaCorta(l.treatment_date)}</div></div>`:''}
+        ${l.treatment_date?`<div class="cs-item"><div class="cs-label">Appt. Date</div><div class="cs-val" style="color:var(--teal)">${fechaConHora(l.treatment_date)}</div></div>`:''}
         ${l.cita_confirmada?'<div class="cs-item"><div class="cs-label">Confirmed</div><div class="cs-val" style="color:var(--green)">✅ Yes</div></div>':''}
-        ${l.treatment_start_date?`<div class="cs-item"><div class="cs-label">Start Treat.</div><div class="cs-val" style="color:var(--teal)">${fechaCorta(l.treatment_start_date)}</div></div>`:''}
-        ${l.treatment_end_date?`<div class="cs-item"><div class="cs-label">End Treat.</div><div class="cs-val" style="color:var(--teal)">${fechaCorta(l.treatment_end_date)}</div></div>`:''}
+        ${l.treatment_start_date?`<div class="cs-item"><div class="cs-label">Start Treat.</div><div class="cs-val" style="color:var(--teal)">${fechaConHora(l.treatment_start_date)}</div></div>`:''}
+        ${l.treatment_end_date?`<div class="cs-item"><div class="cs-label">End Treat.</div><div class="cs-val" style="color:var(--teal)">${fechaConHora(l.treatment_end_date)}</div></div>`:''}
         ${l.medilink_numero?`<div class="cs-item"><div class="cs-label">Medilink #</div><div class="cs-val">${l.medilink_numero}</div></div>`:''}`;
     
     document.getElementById("m-body").innerHTML = buildModalBody(l);

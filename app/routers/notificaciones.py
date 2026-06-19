@@ -20,7 +20,7 @@ def _get_conn():
         database="stemwell",
         user="crm_user",
         password="crm2024",
-        client_encoding="UTF8"  # ← CAMBIADO de latin1 a UTF8
+        client_encoding="UTF8"
     )
 
 
@@ -29,9 +29,10 @@ def obtener_notificaciones(
     usuario_id: int,
     solo_pendientes: bool = Query(True)
 ):
-    """Lista notificaciones del usuario. Primero detecta nuevas."""
+    """Lista notificaciones del usuario. Primero detecta nuevas y limpia huérfanas."""
     conn = _get_conn()
     try:
+        # detectar_y_crear_notificaciones YA incluye la limpieza automática
         detectar_y_crear_notificaciones(conn)
         notifs = listar_notificaciones(conn, usuario_id, solo_pendientes)
         pendientes = contar_pendientes(conn, usuario_id)
