@@ -31,120 +31,66 @@ def _get_conn():
 
 
 @router.get("")
-def obtener_notificaciones(
-    usuario_id: int,
-    solo_pendientes: bool = Query(True)
-):
-    """
-    Lista notificaciones del usuario.
-    Primero ejecuta detección masiva (que incluye limpieza automática).
-    Luego retorna las notificaciones del usuario solicitado.
-    """
+def obtener_notificaciones(usuario_id: int, solo_pendientes: bool = Query(True)):
+    """Lista notificaciones del usuario."""
     conn = _get_conn()
     try:
-        # detectar_y_crear_notificaciones YA incluye la limpieza automática
         nuevas = detectar_y_crear_notificaciones(conn)
         notifs = listar_notificaciones(conn, usuario_id, solo_pendientes)
         pendientes = contar_pendientes(conn, usuario_id)
-        return {
-            "notificaciones": notifs, 
-            "pendientes": pendientes,
-            "nuevas_creadas": nuevas
-        }
+        return {"notificaciones": notifs, "pendientes": pendientes, "nuevas_creadas": nuevas}
     except Exception as e:
-        print(f"❌ Error al obtener notificaciones: {e}")
-        raise HTTPException(500, f"Error al obtener notificaciones: {str(e)}")
+        raise HTTPException(500, f"Error: {str(e)}")
     finally:
         conn.close()
 
 
 @router.put("/{notificacion_id}/resolver")
 def resolver_una_notificacion(notificacion_id: int, data: dict):
-    """
-    Marca una notificación como resuelta.
-    Body: {"usuario_id": 1}
-    """
+    """Marca una notificación como resuelta."""
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         raise HTTPException(400, "usuario_id es obligatorio")
-    
     conn = _get_conn()
     try:
         ok = resolver_notificacion(conn, notificacion_id, usuario_id)
         if not ok:
-            raise HTTPException(404, "Notificación no encontrada o ya resuelta")
-        
-        pendientes = contar_pendientes(conn, usuario_id)
-        return {"ok": True, "pendientes": pendientes}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Error al resolver notificación: {e}")
-        raise HTTPException(500, f"Error al resolver notificación: {str(e)}")
+            raise HTTPException(404, "No encontrada")
+        return {"ok": True, "pendientes": contar_pendientes(conn, usuario_id)}
     finally:
         conn.close()
 
 
 @router.put("/resolver-todas")
 def resolver_todas_notificaciones(data: dict):
-    """
-    Resuelve todas las notificaciones pendientes de un usuario.
-    Body: {"usuario_id": 1}
-    """
+    """Resuelve todas las notificaciones pendientes de un usuario."""
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         raise HTTPException(400, "usuario_id es obligatorio")
-    
     conn = _get_conn()
     try:
         resueltas = resolver_todas(conn, usuario_id)
-        return {
-            "resueltas": resueltas, 
-            "pendientes": 0,
-            "mensaje": f"Se resolvieron {resueltas} notificaciones"
-        }
-    except Exception as e:
-        print(f"❌ Error al resolver todas las notificaciones: {e}")
-        raise HTTPException(500, f"Error al resolver notificaciones: {str(e)}")
+        return {"resueltas": resueltas, "pendientes": 0}
     finally:
         conn.close()
 
 
 @router.get("/diagnostico")
 def diagnosticar():
-    """
-    Endpoint de diagnóstico para verificar asignación correcta de notificaciones.
-    """
+    """Endpoint de diagnóstico."""
     conn = _get_conn()
     try:
-        resultado = diagnosticar_asignaciones(conn)
-        return {
-            "estado": "completado",
-            "diagnostico": resultado
-        }
-    except Exception as e:
-        print(f"❌ Error en diagnóstico: {e}")
-        raise HTTPException(500, f"Error en diagnóstico: {str(e)}")
+        return {"estado": "completado", "diagnostico": diagnosticar_asignaciones(conn)}
     finally:
         conn.close()
 
 
 @router.post("/forzar-deteccion")
 def forzar_deteccion():
-    """
-    Fuerza la ejecución inmediata de detección masiva de notificaciones.
-    Útil para pruebas o ejecución manual.
-    """
+    """Fuerza la detección masiva de notificaciones."""
     conn = _get_conn()
     try:
         nuevas = detectar_y_crear_notificaciones(conn)
-        return {
-            "estado": "completado",
-            "nuevas_notificaciones": nuevas,
-            "mensaje": f"Se crearon {nuevas} nuevas notificaciones"
-        }
-    except Exception as e:
-        print(f"❌ Error en detección forzada: {e}")
-        raise HTTPException(500, f"Error en detección: {str(e)}")
+        return {"estado": "completado", "nuevas_notificaciones": nuevas}
     finally:
         conn.close()
