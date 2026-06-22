@@ -3354,7 +3354,10 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
   // ══════════════════════════════════════════════════════════════
   // EXPORT XLSX — Respeta filtros activos, formato plantilla oficial
   // ══════════════════════════════════════════════════════════════
-  window.anExportXlsx = function() {
+  // ══════════════════════════════════════════════════════════════
+// EXPORT XLSX — Respeta filtros activos, formato plantilla oficial
+// ══════════════════════════════════════════════════════════════
+window.anExportXlsx = function() {
     // Usar leads FILTRADOS (no todosLeads)
     const L = getFilteredLeads();
     const today = new Date();
@@ -3381,17 +3384,20 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
     const bucket3   = (fn) => [L.filter(l=>fn(l)&&isEngInt(l)).length, L.filter(l=>fn(l)&&isSpInt(l)).length, L.filter(l=>fn(l)&&isLocal(l)).length];
     const isToday   = (v) => { if(!v)return false; return String(v).slice(0,10)===today.toISOString().slice(0,10); };
 
+    // ✅ KPIs CORREGIDOS
     const kpi = {
       newLeads:          bucket3(()=>true),
-      bookedCalls:       bucket3(l=>l.sales_status==="Callback"),
+      callbacks:         bucket3(l=>l.sales_status==="Callback"),
+      scheduledCalls:    bucket3(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)),
       scheduledToday:    bucket3(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)&&isToday(l.treatment_date)),
-      callsCompleted:    bucket3(l=>l.appointment_status==="Completed"||l.sales_status==="First Contact"),
+      callsCompleted:    bucket3(l=>l.appointment_status==="Completed"||l.appointment_status==="Attended"),
       noShows:           bucket3(l=>l.appointment_status==="No Show"),
       awaitingMedical:   bucket3(l=>l.medical_status==="Awaiting Medical Report"),
+      awaitingProposal:  bucket3(l=>(l.appointment_status==="Completed"||l.appointment_status==="Attended")&&l.sales_status!=="Treatment Proposal Sent"&&l.medical_status!=="Treatment Proposal Sent"&&!["Won","Lost"].includes(l.sales_status)),
       proposalsSent:     bucket3(l=>l.sales_status==="Treatment Proposal Sent"||l.medical_status==="Treatment Proposal Sent"),
       proposalsAccepted: bucket3(l=>l.medical_status==="Candidate Approved"||l.treatment_confirmed===true),
-      treatmentConfirmed:bucket3(l=>l.sales_status==="Treatment in Progress"),
-      treatmentsDone:    bucket3(l=>l.sales_status==="Won"),
+      treatmentConfirmed:bucket3(l=>l.sales_status==="Treatment in Progress"||l.medical_status==="In Treatment"||l.medical_status==="Treatment Scheduled"),
+      treatmentsDone:    bucket3(l=>l.sales_status==="Won"||l.medical_status==="Treatment Completed"),
     };
 
     const sourceOrder = ["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral"];
@@ -3403,12 +3409,7 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
     });
 
     // TODOS los leads filtrados para sección 3 (sin límite de 30)
-    // Columnas: Patient Name | Language | Pipeline | Lead Source | Campaign | Coordinator | Doctor |
-    //           Paid Online Consult | Paid In-Person Consult | Treatment Proposal | Proposal Status |
-    //           Treatment Status | Medical Report Status | Next Step / Remarks | Contact / CRM ID
-    // (eliminadas: Discovery Call, Medilink Call)
     const patients = L.map(l=>{
-      // Construir Next Step / Remarks desde comentarios del lead
       const comentario = l.comentarios || l.comentario || l.notas || l.notes || l.remarks || "";
       const lastAction = l.ultima_accion || l.last_action || "";
       const remarks = [comentario, lastAction].filter(Boolean).join(" | ") || "";
@@ -3421,21 +3422,13 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
         E: "",
         F: l.asesor_nombre||"",
         G: l.doctor_nombre||"",
-        // H = Paid Online Consult (era col I antes, ahora H sin Discovery/Medilink)
         H: "",
-        // I = Paid In-Person Consult
         I: "",
-        // J = Treatment Proposal
         J: l.sales_status==="Treatment Proposal Sent"?"Sent":"",
-        // K = Proposal Status
         K: l.medical_status==="Candidate Approved"?"Accepted":(l.sales_status==="Treatment Proposal Sent"?"Sent":"Not Sent"),
-        // L = Treatment Status
         L: l.treatment_confirmed?"Confirmed":"Not Confirmed",
-        // M = Medical Report Status
         M: l.medical_status||"Not Required",
-        // N = Next Step / Remarks (comentarios)
         N: remarks,
-        // O = Contact / CRM ID
         O: l.medilink_numero||l.id||"",
       };
     });
@@ -3455,13 +3448,7 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
   };
 
   // ══════════════════════════════════════════════════════════════
-  // GENERADOR XLSX
-  // Cambios vs v9:
-  //  - Sección 3: sin Discovery Call, sin Medilink Call, agrega Next Step/Remarks
-  //               todos los leads del filtro (sin límite)
-  //  - Sección 5 eliminada
-  //  - Sección 6 eliminada
-  //  - Merges y layout ajustados
+  // GENERADOR XLSX - CORREGIDO
   // ══════════════════════════════════════════════════════════════
   function generateXlsxBytes(data) {
     const C={titleBg:"1F4E78",infoBg:"D9EAF7",sec1Bg:"5B9BD5",sec2Bg:"70AD47",sec3Bg:"4472C4",sec4Bg:"ED7D31",headerBg:"404040",white:"FFFFFF"};
@@ -3469,20 +3456,11 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
     const xb=new XlsxBuilder();
 
     const numLeads = data.patients.length;
-    // Sección 3 empieza en fila 19 (headers) y datos desde fila 20
-    // Fin de sección 3: fila 19 + numLeads
     const sec3End = 19 + Math.max(numLeads, 1);
-    // Sección 4 empieza 2 filas después del fin de sección 3
     const sec4Start = sec3End + 2;
     const sec4HeaderRow = sec4Start + 1;
     const sec4DataStart = sec4HeaderRow + 1;
     const sec4TotalRow = sec4DataStart + 3;
-
-    // Columnas sección 3 (15 columnas A-O):
-    // A: Patient Name, B: Language, C: Pipeline, D: Lead Source, E: Campaign,
-    // F: Coordinator/Staff, G: Doctor, H: Paid Online Consult, I: Paid In-Person Consult,
-    // J: Treatment Proposal, K: Proposal Status, L: Treatment Status,
-    // M: Medical Report Status, N: Next Step / Remarks, O: Contact / CRM ID
 
     const sheet=xb.addSheet({
       name:"Daily Report",
@@ -3523,20 +3501,22 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
     set("G5","2. LEAD SOURCE & CAMPAIGN SUMMARY",{font:{bold:true,color:C.white},fill:C.sec2Bg,align:{wrapText:true}});
     ["Lead Source / Campaign","English Int.","Spanish Int.","Local Colombia","Total"].forEach((t,i)=>set(`${"GHIJK"[i]}6`,t,{...hdr,border:{right:i===4?null:thin,bottom:thin,left:i===0?null:thin}}));
 
-    // ── Filas 6-15: Datos sección 1 ──
+    // ── Filas 7-18: Datos sección 1 con KPIs CORREGIDOS ──
     [
       ["New Patients / Leads",data.kpi.newLeads],
-      ["Booked Calls",data.kpi.bookedCalls],
-      ["Scheduled Calls for Today",data.kpi.scheduledToday],
+      ["Callbacks",data.kpi.callbacks],
+      ["Scheduled Appointments",data.kpi.scheduledCalls],
+      ["Scheduled for Today",data.kpi.scheduledToday],
       ["Calls Completed",data.kpi.callsCompleted],
       ["No Shows",data.kpi.noShows],
       ["Awaiting Medical Reports",data.kpi.awaitingMedical],
+      ["Awaiting Treatment Proposal",data.kpi.awaitingProposal],
       ["Treatment Proposals Sent",data.kpi.proposalsSent],
       ["Proposals Accepted",data.kpi.proposalsAccepted],
       ["Treatment Confirmed",data.kpi.treatmentConfirmed],
       ["Treatments Done",data.kpi.treatmentsDone]
     ].forEach(([label,vals],i)=>{
-      const r=6+i,isLast=i===9;
+      const r=7+i,isLast=i===11;
       set(`A${r}`,label,{...dataStyle,border:{right:thin,top:thin,bottom:isLast?null:thin}});
       set(`B${r}`,vals[0]||0,{...dataStyle,border:{left:thin,right:thin,top:thin,bottom:isLast?null:thin}});
       set(`C${r}`,vals[1]||0,{...dataStyle,border:{left:thin,right:thin,top:thin,bottom:isLast?null:thin}});
@@ -3559,10 +3539,12 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
     set("J16",{f:"SUM(J7:J15)"},{border:{left:thin,right:thin,top:thin}});
     set("K16",{f:"SUM(K7:K15)"},{border:{left:thin,top:thin}});
 
-    // ── Fila 18: Sección 3 header ──
-    set("A18","3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});
+    // ── Fila 19: Separador (fila vacía) ──
+    
+    // ── Fila 20: Sección 3 header ──
+    set("A20","3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});
 
-    // ── Fila 19: Headers sección 3 (sin Discovery Call, sin Medilink Call) ──
+    // ── Fila 21: Headers sección 3 ──
     const sec3Headers = [
       "Patient Name","Language","Pipeline","Lead Source","Campaign",
       "Coordinator / Staff","Doctor",
@@ -3570,11 +3552,11 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
       "Treatment Proposal","Proposal Status","Treatment Status",
       "Medical Report Status","Next Step / Remarks","Contact / CRM ID"
     ];
-    sec3Headers.forEach((h,i)=>set(`${XlsxBuilder.colName(i)}19`,h,hdr));
+    sec3Headers.forEach((h,i)=>set(`${XlsxBuilder.colName(i)}21`,h,hdr));
 
-    // ── Filas 20+: Datos sección 3 (TODOS los leads filtrados) ──
-    for(let rr=20; rr<=sec3End; rr++){
-      const p=data.patients[rr-20];
+    // ── Filas 22+: Datos sección 3 (TODOS los leads filtrados) ──
+    for(let rr=22; rr<=sec3End; rr++){
+      const p=data.patients[rr-22];
       for(let ci=0;ci<15;ci++){
         const col=XlsxBuilder.colName(ci);
         const colLetter=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"][ci];
@@ -3667,6 +3649,7 @@ document.addEventListener("click",function(e){const b=document.getElementById("n
   });
 
 })();
+
 </script>
 </body>
 </html>
