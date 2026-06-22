@@ -2856,111 +2856,104 @@ function toggleNotifications(){
   const d=document.getElementById("notificationDropdown");
   if(d.style.display==="none"||d.style.display===""){
     d.style.display="block";
-    cargarNotificaciones();
-  }else{
-    d.style.display="none";
-  }
-}
+cargarNotificaciones();
+}else{
+d.style.display="none";
+}}
 
 function actualizarBanner(n){
-  const b=document.getElementById("alertBanner");
-  const t=document.getElementById("alertBannerText");
-  if(!n||n.length===0){b.style.display="none";return;}
-  const resumen={};
-  n.forEach(x=>{
-    const config=NOTIF_CONFIG[x.tipo];
-    const nombre=config?config.grupo:x.tipo;
-    resumen[nombre]=(resumen[nombre]||0)+1;
-  });
-  let m=Object.entries(resumen).map(([nombre,count])=>`${count} ${nombre.toLowerCase()}`).join(' · ');
-  t.textContent='⚠️ '+m;
-  b.style.display="flex";
+const b=document.getElementById("alertBanner");
+const t=document.getElementById("alertBannerText");
+if(!n||n.length===0){b.style.display="none";return;}
+const resumen={};
+n.forEach(x=>{
+const config=NOTIF_CONFIG[x.tipo];
+const nombre=config?config.grupo:x.tipo;
+resumen[nombre]=(resumen[nombre]||0)+1;
+});
+let m=Object.entries(resumen).map(([nombre,count])=>`${count} ${nombre.toLowerCase()}`).join(' · ');
+t.textContent='⚠️ '+m;
+b.style.display="flex";
 }
 
 function renderizarNotificacionesAgrupadas(notificaciones){
-  const l=document.getElementById("notifList");
-  if(!notificaciones||notificaciones.length===0){
-    l.innerHTML='<p class="notif-empty">✨ All clear</p>';
-    return;
-  }
-  const grupos={};
-  notificaciones.forEach(n=>{
-    const tipo=n.tipo||'otro';
-    if(!grupos[tipo])grupos[tipo]=[];
-    grupos[tipo].push(n);
-  });
-  const gruposOrdenados=Object.entries(grupos).sort((a,b)=>b[1].length-a[1].length);
-  let html=`<div style="padding:10px 18px;font-size:.75rem;color:var(--text2);border-bottom:1px solid var(--border)">${notificaciones.length} notifications in ${gruposOrdenados.length} categories</div>`;
-  gruposOrdenados.forEach(([tipo,items])=>{
-    const config=NOTIF_CONFIG[tipo]||{icon:'📌',grupo:tipo.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),color:'#6b7280'};
-    const expandido=notifGruposExpandidos[tipo]||false;
-    const total=items.length;
-    html+=`<div class="notif-group ${expandido?'open':''}" id="notif-group-${tipo}"><div class="notif-group-header" onclick="toggleGrupoNotif('${tipo}')" style="border-left:3px solid ${config.color}"><span class="notif-group-icon">${config.icon}</span><div class="notif-group-info"><div class="notif-group-title">${config.grupo}</div><div class="notif-group-subtitle">${total} pending</div></div><div class="notif-group-count"><span class="notif-group-badge">${total}</span><span class="notif-group-arrow">▶</span></div></div><div class="notif-group-items">`;
-    items.sort((a,b)=>new Date(b.fecha_envio)-new Date(a.fecha_envio));
-    items.forEach(n=>{
-      const tiempo=formatearTiempoNotif(n.fecha_envio);
-      const leadName=n.lead_name||'Patient #'+n.lead_id;
-      html+=`<div class="notif-item" onclick="irALeadNotif(${n.lead_id})"><div class="notif-body"><div class="notif-lead">${leadName}</div><div class="notif-mensaje">${n.mensaje||n.asunto||''}</div><div class="notif-tiempo">${tiempo}</div></div><button class="btn-resolver" onclick="event.stopPropagation();resolverNotif(${n.id})" title="Mark resolved">✓</button></div>`;
-    });
-    html+=`</div></div>`;
-  });
-  l.innerHTML=html;
+const l=document.getElementById("notifList");
+if(!notificaciones||notificaciones.length===0){
+l.innerHTML='<p class="notif-empty">✨ All clear</p>';
+return;
+}
+const grupos={};
+notificaciones.forEach(n=>{
+const tipo=n.tipo||'otro';
+if(!grupos[tipo])grupos[tipo]=[];
+grupos[tipo].push(n);
+});
+const gruposOrdenados=Object.entries(grupos).sort((a,b)=>b[1].length-a[1].length);
+let html=`<div style="padding:10px 18px;font-size:.75rem;color:var(--text2);border-bottom:1px solid var(--border)">${notificaciones.length} notifications in ${gruposOrdenados.length} categories</div>`;
+gruposOrdenados.forEach(([tipo,items])=>{
+const config=NOTIF_CONFIG[tipo]||{icon:'📌',grupo:tipo.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),color:'#6b7280'};
+const expandido=notifGruposExpandidos[tipo]||false;
+const total=items.length;
+html+=`<div class="notif-group ${expandido?'open':''}" id="notif-group-${tipo}"><div class="notif-group-header" onclick="toggleGrupoNotif('${tipo}')" style="border-left:3px solid ${config.color}"><span class="notif-group-icon">${config.icon}</span><div class="notif-group-info"><div class="notif-group-title">${config.grupo}</div><div class="notif-group-subtitle">${total} pending</div></div><div class="notif-group-count"><span class="notif-group-badge">${total}</span><span class="notif-group-arrow">▶</span></div></div><div class="notif-group-items">`;
+items.sort((a,b)=>new Date(b.fecha_envio)-new Date(a.fecha_envio));
+items.forEach(n=>{
+const tiempo=formatearTiempoNotif(n.fecha_envio);
+const leadName=n.lead_name||'Patient #'+n.lead_id;
+html+=`<div class="notif-item" onclick="irALeadNotif(${n.lead_id})"><div class="notif-body"><div class="notif-lead">${leadName}</div><div class="notif-mensaje">${n.mensaje||n.asunto||''}</div><div class="notif-tiempo">${tiempo}</div></div><button class="btn-resolver" onclick="event.stopPropagation();resolverNotif(${n.id})" title="Mark resolved">✓</button></div>`;
+});
+html+=`</div></div>`;
+});
+l.innerHTML=html;
 }
 
 function toggleGrupoNotif(tipo){
-  notifGruposExpandidos[tipo]=!notifGruposExpandidos[tipo];
-  const grupo=document.getElementById('notif-group-'+tipo);
-  if(grupo)grupo.classList.toggle('open',notifGruposExpandidos[tipo]);
+notifGruposExpandidos[tipo]=!notifGruposExpandidos[tipo];
+const grupo=document.getElementById('notif-group-'+tipo);
+if(grupo)grupo.classList.toggle('open',notifGruposExpandidos[tipo]);
 }
 
 function formatearTiempoNotif(f){
-  if(!f)return"";
-  const a=new Date(),d=new Date(f),m=Math.floor((a-d)/60000);
-  if(m<1)return"Just now";
-  if(m<60)return m+"m ago";
-  const h=Math.floor(m/60);
-  if(h<24)return h+"h ago";
-  return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+if(!f)return"";
+const a=new Date(),d=new Date(f),m=Math.floor((a-d)/60000);
+if(m<1)return"Just now";
+if(m<60)return m+"m ago";
+const h=Math.floor(m/60);
+if(h<24)return h+"h ago";
+return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
 }
 
 async function resolverNotif(id){
-  await fetch(API+"/api/notificaciones/"+id+"/resolver",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});
-  cargarNotificaciones();
+await fetch(API+"/api/notificaciones/"+id+"/resolver",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});
+cargarNotificaciones();
 }
 
 async function resolverTodasNotif(){
-  await fetch(API+"/api/notificaciones/resolver-todas",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});
-  notifGruposExpandidos={};
-  cargarNotificaciones();
+await fetch(API+"/api/notificaciones/resolver-todas",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});
+notifGruposExpandidos={};
+cargarNotificaciones();
 }
 
 function irALeadNotif(lid){
-  document.getElementById("notificationDropdown").style.display="none";
-  let lead=leads.find(l=>l.id===lid)||todosLeads.find(l=>l.id===lid);
-  if(lead){seleccionado=lead;abrirModal(lid);}
-  else{
-    fetch(API+"/leads/usuario/"+usuario.id).then(r=>r.json()).then(data=>{
-      const encontrado=(data.leads||[]).find(l=>l.id===lid);
-      if(encontrado){
-        if(!todosLeads.find(l=>l.id===lid))todosLeads.push(encontrado);
-        seleccionado=encontrado;abrirModal(lid);
-      }else{toast("❌ Lead not found",true);}
-    }).catch(()=>toast("❌ Error loading lead",true));
-  }
+document.getElementById("notificationDropdown").style.display="none";
+let lead=leads.find(l=>l.id===lid)||todosLeads.find(l=>l.id===lid);
+if(lead){seleccionado=lead;abrirModal(lid);}
+else{
+fetch(API+"/leads/usuario/"+usuario.id).then(r=>r.json()).then(data=>{
+const encontrado=(data.leads||[]).find(l=>l.id===lid);
+if(encontrado){
+if(!todosLeads.find(l=>l.id===lid))todosLeads.push(encontrado);
+seleccionado=encontrado;abrirModal(lid);
+}else{toast("❌ Lead not found",true);}
+}).catch(()=>toast("❌ Error loading lead",true));
+}
 }
 
 document.addEventListener("click",function(e){
-  const b=document.getElementById("notificationBell");
-  const d=document.getElementById("notificationDropdown");
-  if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
+const b=document.getElementById("notificationBell");
+const d=document.getElementById("notificationDropdown");
+if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 });
 </script>
-
-
-
-
-
-
 
 <script>
 // ══════════════════════════════════════════════════════════════════
