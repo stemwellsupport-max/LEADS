@@ -32,7 +32,6 @@ def _notificar_lead_devuelto_asesor(conn, lead, motivo):
     lead_name = lead.get("nombre") or "Paciente"
     
     if asesor_id:
-        # ✅ LIMPIAR notificaciones anteriores del mismo tipo para este lead
         cur = conn.cursor()
         cur.execute("""
             UPDATE notificaciones 
@@ -44,7 +43,6 @@ def _notificar_lead_devuelto_asesor(conn, lead, motivo):
         conn.commit()
         cur.close()
         
-        # ✅ CREAR nueva notificación si no existe
         if not notificacion_existe(conn, lead_id, NOTIF_LEAD_DEVUELTO_ASESOR, asesor_id):
             crear_notificacion(
                 conn,
@@ -64,7 +62,6 @@ def _notificar_tratamiento_cancelado_asesor(conn, lead, motivo):
     lead_name = lead.get("nombre") or "Paciente"
     
     if asesor_id:
-        # ✅ LIMPIAR notificaciones anteriores del mismo tipo para este lead
         cur = conn.cursor()
         cur.execute("""
             UPDATE notificaciones 
@@ -75,7 +72,6 @@ def _notificar_tratamiento_cancelado_asesor(conn, lead, motivo):
         conn.commit()
         cur.close()
         
-        # ✅ CREAR nueva notificación si no existe
         if not notificacion_existe(conn, lead_id, NOTIF_TRATAMIENTO_CANCELADO, asesor_id):
             crear_notificacion(
                 conn,
@@ -91,10 +87,6 @@ def _notificar_tratamiento_cancelado_asesor(conn, lead, motivo):
 #  AUXILIARES AGENDA
 # ===========================================================
 def _parse_fecha(v):
-    """
-    Convierte cualquier formato de fecha a timestamp para PostgreSQL.
-    Acepta: "2026-06-19", "2026-06-19T10:30", "2026-06-19 10:30:00", "2026-06-19 10:30"
-    """
     if not v:
         return None
     s = str(v).strip()
@@ -232,6 +224,22 @@ def format_lead(l):
         "last_contact_date": _dt(l.get("last_contact_date") or l.get("fecha_actualizacion")),
         "pipeline": l.get("pipeline") or "",
         "favorito": l.get("favorito", False),
+        "consulta_agendada": l.get("consulta_agendada", False),
+        "primera_agenda_date": _dt(l.get("primera_agenda_date")),
+        "primer_contacto": l.get("primer_contacto", False),
+        "cita_asistida": l.get("cita_asistida", False),
+        "evaluacion_realizada": l.get("evaluacion_realizada", False),
+        "propuesta_enviada": l.get("propuesta_enviada", False),
+        "propuesta_aceptada": l.get("propuesta_aceptada", False),
+        "tratamiento_iniciado": l.get("tratamiento_iniciado", False),
+        "tratamiento_completado": l.get("tratamiento_completado", False),
+        "fecha_primer_contacto": _dt(l.get("fecha_primer_contacto")),
+        "fecha_cita_asistida": _dt(l.get("fecha_cita_asistida")),
+        "fecha_evaluacion": _dt(l.get("fecha_evaluacion")),
+        "fecha_propuesta_enviada": _dt(l.get("fecha_propuesta_enviada")),
+        "fecha_propuesta_aceptada": _dt(l.get("fecha_propuesta_aceptada")),
+        "fecha_tratamiento_inicio": _dt(l.get("fecha_tratamiento_inicio")),
+        "fecha_won": _dt(l.get("fecha_won")),
     }
 
 # ===========================================================
@@ -820,6 +828,83 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
 
     else:
         raise ValueError("Rol no autorizado")
+
+    # ══════════════════════════════════════════════════════════════
+    # ✅ FLAGS DE EMBUDO (NUNCA SE DESACTIVAN)
+    # ══════════════════════════════════════════════════════════════
+    
+    # Contacto inicial - SOLO estados previos a agendar
+    if updates.get("sales_status") in ("First Contact","No Answer","Callback"):
+        updates["primer_contacto"] = True
+        if not lead.get("fecha_primer_contacto"):
+            updates["fecha_primer_contacto"] = now.strftime("%Y-%m-%d")
+    
+    # Cita asistida - también activa evaluacion_realizada
+    if updates.get("appointment_status") == "Attended":
+        updates["cita_asistida"] = True
+        updates["evaluacion_realizada"] = True
+        if not lead.get("fecha_cita_asistida"):
+            updates["fecha_cita_asistida"] = now.strftime("%Y-%m-%d")
+        if not lead.get("fecha_evaluacion"):
+            updates["fecha_evaluacion"] = now.strftime("%Y-%m-%d")
+    
+    # Propuesta enviada - solo si ya asistió
+    if updates.get("sales_status") == "Treatment Proposal Sent" or updates.get("medical_status") == "Treatment Proposal Sent":
+        if lead.get("cita_asistida") or updates.get("cita_asistida"):
+            updates["propuesta_enviada"] = True
+            if not lead.get("fecha_propuesta_enviada"):
+                updates["fecha_propuesta_enviada"] = now.strftime("%Y-%m-%d")
+    
+    # Propuesta aceptada - solo si ya asistió
+    if updates.get("treatment_confirmed") is True:
+        if lead.get("cita_asistida") or updates.get("cita_asistida"):
+            updates["propuesta_aceptada"] = True
+            if not lead.get("fecha_propuesta_aceptada"):
+                updates["fecha_propuesta_aceptada"] = now.strftime("%Y-%m-%d")
+    
+    # Tratamiento iniciado - solo si ya asistió
+    if updates.get("sales_status") in ("Treatment in Progress", "Won"):
+        if lead.get("cita_asistida") or updates.get("cita_asistida"):
+            updates["tratamiento_iniciado"] = True
+            if not lead.get("fecha_tratamiento_inicio"):
+                updates["fecha_tratamiento_inicio"] = now.strftime("%Y-%m-%d")
+    
+    # Won - solo si ya asistió
+    if updates.get("sales_status") == "Won":
+        if lead.get("cita_asistida") or updates.get("cita_asistida"):
+            updates["tratamiento_completado"] = True
+            if not lead.get("fecha_won"):
+                updates["fecha_won"] = now.strftime("%Y-%m-%d")
+
+    # ══════════════════════════════════════════════════════════════
+    # ✅ FLAGS DE AGENDA (NUNCA SE DESACTIVAN)
+    # ══════════════════════════════════════════════════════════════
+    se_esta_agendando = False
+    fecha_agenda = None
+    
+    if updates.get("sales_status") in ("Scheduled Appointment", "Rescheduled Appointment", "Cancelled Appointment"):
+        se_esta_agendando = True
+    
+    if updates.get("appointment_status") in ("Scheduled", "Confirmed", "Rescheduled", "Attended"):
+        se_esta_agendando = True
+    
+    if updates.get("cita_confirmada") is True:
+        se_esta_agendando = True
+    
+    if hasattr(data, 'treatment_date') and data.treatment_date:
+        se_esta_agendando = True
+        fecha_agenda = _parse_fecha(data.treatment_date)
+    
+    if se_esta_agendando:
+        updates["consulta_agendada"] = True
+        
+        if not lead.get("consulta_agendada"):
+            if fecha_agenda:
+                updates["primera_agenda_date"] = fecha_agenda
+            elif updates.get("treatment_date"):
+                updates["primera_agenda_date"] = updates["treatment_date"]
+            elif lead.get("treatment_date"):
+                updates["primera_agenda_date"] = _parse_fecha(lead["treatment_date"])
 
     # ================================================================
     #  EJECUTAR CAMBIOS
