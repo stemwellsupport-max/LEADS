@@ -2105,7 +2105,7 @@ function buildAsesor(l) {
     "No Answer":               ["Callback","First Contact","Lost","Scheduled Appointment"],
     "Callback":                ["First Contact","Scheduled Appointment","Lost","No Answer"],
     "Rescheduled Appointment": ["Scheduled Appointment","Callback","Lost","No Answer","Cancelled Appointment"],
-    "Cancelled Appointment":   ["Scheduled Appointment","Callback","Lost"],
+    "Cancelled Appointment":   ["Scheduled Appointment","Callback","Lost", "No Answer"],
   };
   const trans = transMap[s] || ["New Lead","First Contact","Callback","Lost","Scheduled Appointment","No Answer","Canceled Treatment"];
 
@@ -2957,23 +2957,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// ANALYTICS MODULE v9 — Data Analyst Mode
-// Cambios vs v8:
-//  • KPI "Conv. Rate" eliminado → "Proposals Sent"
-//  • Filtro por SEMANA agregado (además de año/mes)
-//  • Nuevos charts: Tendencia Semanal, por Canal, Tasa de Conversión
-//    por Pipeline, Heatmap de actividad por día, Edad promedio del lead
-// ══════════════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════════════
-// ANALYTICS MODULE v10 — Data Analyst Mode
-// Cambios vs v9:
-//  • KPI "Avg Lead Age" eliminado
-//  • Export respeta filtros activos (año/mes/semana)
-//  • Sección 3: TODOS los leads filtrados (no solo 30), sin columnas
-//    "Discovery Call" ni "Medilink Call", agrega "Next Step / Remarks"
-//    con comentarios del lead
-//  • Sección 5 (Front Desk / Coordinator) eliminada
-//  • Sección 6 (Patients Requiring Attention) eliminada
+// ANALYTICS MODULE v13 - CONV RATE CORREGIDO + LABELS
 // ══════════════════════════════════════════════════════════════════
 (function () {
 
@@ -2985,7 +2969,6 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     }, 400);
   }
 
-  // ── Estilos ─────────────────────────────────────────────────────
   const style = document.createElement("style");
   style.textContent = `
     #view-analytics{padding:0}
@@ -3047,43 +3030,156 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   `;
   document.head.appendChild(style);
 
-  // ── State ────────────────────────────────────────────────────────
   let anYear = "all", anMonth = "all", anWeek = "all";
-
   const PAL = ["#3b82f6","#22c55e","#f59e0b","#a855f7","#14b8a6","#ef4444","#f97316","#ec4899","#6366f1","#84cc16"];
   const MONTHS_LABEL = ["","January","February","March","April","May","June","July","August","September","October","November","December"];
   const DAY_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-  // ── Inject tab ───────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════
+  // HELPERS DE CANAL Y PAÍS
+  // ══════════════════════════════════════════════════════
+
+  function isSocialMedia(canal) {
+    const c = (canal||"").toLowerCase();
+    return c.includes("instagram") || c.includes("facebook") || c.includes("social media") ||
+           c.includes("tiktok") || c.includes("twitter") || c.includes("youtube") ||
+           c.includes("linkedin") || c.includes("red social") || c === "social media";
+  }
+
+  function isCallOrWhatsapp(canal) {
+    const c = (canal||"").toLowerCase();
+    return c.includes("llamada") || c.includes("whatsapp") || c.includes("call") || c === "llamada";
+  }
+
+  function getPipelineByPais(l) {
+    const pais = (l.pais || "").toLowerCase().trim();
+    const pipe = (l.pipeline || "").toLowerCase();
+    if (pais.includes("colombia")) return "local";
+    if (pais.includes("canad")) return "canada";
+    if (pais.includes("estados unidos") || pais.includes("united states") || pais === "us" || pais === "usa") return "usa";
+    if (pipe.includes("local")) return "local";
+    if (pipe.includes("spanish")) return "spanish_int";
+    return "english_int";
+  }
+
+  function getColumns(l) {
+    const p = getPipelineByPais(l);
+    return {
+      col0: (p === "english_int" || p === "usa" || p === "canada") ? 1 : 0,
+      col1: p === "spanish_int" ? 1 : 0,
+      col2: p === "local" ? 1 : 0,
+    };
+  }
+
+  function getCampaignRow(l) {
+    const pais  = (l.pais || "").toLowerCase().trim();
+    const canal = (l.canal || "").toLowerCase().trim();
+
+    // Campañas pagadas por país
+    if (pais.includes("estados unidos") || pais === "us" || pais === "usa") return "US Targeted Campaign";
+    if (pais.includes("canad")) return "Canada Targeted Campaign";
+    if (pais.includes("colombia")) return "Local Campaign";
+
+    // ✅ SOLO Facebook e Instagram = "Direct Social Media"
+    if (canal.includes("facebook") || canal.includes("instagram")) return "Direct Social Media";
+    
+    // Otras redes sociales (TikTok, Twitter, YouTube, LinkedIn) → Website
+    if (canal.includes("tiktok") || canal.includes("twitter") || canal.includes("youtube") || 
+        canal.includes("linkedin") || canal.includes("red social")) return "Website";
+    
+    // Canales específicos
+    if (canal.includes("web") || canal.includes("página") || canal.includes("pagina") || canal === "página web") return "Website";
+    if (canal.includes("email")) return "Email";
+    if (canal.includes("walk") || canal.includes("walk-in")) return "Walk-in Colombia";
+    if (canal.includes("refer") || canal.includes("referido")) return "Referral";
+    if (isCallOrWhatsapp(canal)) return "Call / WhatsApp";
+    
+    return "Website";
+}
+  // ══════════════════════════════════════════════════════
+  // KPI HELPERS
+  // ══════════════════════════════════════════════════════
+
+  // Scheduled Appointments = TODAS las citas agendadas
+  const isScheduledAppointment = l => 
+    ["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status);
+
+  // Appointments Attended = appointment_status "Attended"
+  const isAppointmentAttended = l => l.appointment_status === "Attended";
+
+  // Scheduled for today
+  const isTodayAppt = (l, today) => {
+    const t = today.toISOString().slice(0,10);
+    return isScheduledAppointment(l) && l.treatment_date && String(l.treatment_date).slice(0,10) === t;
+  };
+
+  // Awaiting Medical Report
+  const isAwaitingMedical = l => l.medical_status === "Awaiting Medical Report";
+
+  // Proposals Sent = sales_status es "Treatment Proposal Sent" O medical_status es "Treatment Proposal Sent"
+  const isProposalSent = l => 
+    l.sales_status === "Treatment Proposal Sent" || 
+    l.medical_status === "Treatment Proposal Sent";
+
+  // *** NUEVO: Lead alguna vez tuvo propuesta enviada (para calcular Conv Rate) ***
+  // Un lead que ahora es "Won" probablemente PASÓ por "Treatment Proposal Sent" antes
+  // Pero si no guardamos historial, asumimos que si es Won/In Treatment/Treatment Confirmed, TUVO propuesta
+  const hadProposalSent = l => {
+    // Si actualmente tiene proposal sent
+    if (isProposalSent(l)) return true;
+    // Si ya está en tratamiento o ganado, asumimos que pasó por propuesta
+    if (isTreatmentConfirmed(l) || isTreatmentDone(l)) return true;
+    // Si tuvo propuesta aceptada, obviamente tuvo propuesta enviada
+    if (isProposalAccepted(l)) return true;
+    // Si tiene treatment_proposal_date, tuvo propuesta
+    if (l.treatment_proposal_date) return true;
+    return false;
+  };
+
+  // Proposals Accepted
+  const isProposalAccepted = l => l.treatment_confirmed === true;
+
+  // Treatment Confirmed
+  const isTreatmentConfirmed = l =>
+    l.sales_status === "Treatment in Progress" ||
+    l.medical_status === "In Treatment" ||
+    l.medical_status === "Treatment Scheduled";
+
+  // Treatments Done = Won
+  const isTreatmentDone = l => 
+    l.sales_status === "Won" || 
+    l.medical_status === "Treatment Completed";
+
+  // No Show
+  const isNoShow = l => l.appointment_status === "No Show";
+
+  // ══════════════════════════════════════════════════════
+  // TAB & VIEW
+  // ══════════════════════════════════════════════════════
   function injectTab() {
     const tabs = document.querySelector(".main-tabs");
     if (!tabs || tabs.querySelector('[data-an-tab]')) return;
     const btn = document.createElement("button");
-    btn.className = "main-tab"; btn.setAttribute("data-an-tab", "1");
+    btn.className = "main-tab"; btn.setAttribute("data-an-tab","1");
     btn.textContent = "📊 Analytics";
-    btn.onclick = function () { switchMainView("analytics", this); };
+    btn.onclick = function(){ switchMainView("analytics",this); };
     tabs.appendChild(btn);
   }
 
-  // ── Inject view ──────────────────────────────────────────────────
   function injectView() {
     if (document.getElementById("view-analytics")) return;
     const container = document.querySelector(".container");
-    const div = document.createElement("div"); div.className = "main-view"; div.id = "view-analytics";
+    const div = document.createElement("div"); div.className="main-view"; div.id="view-analytics";
     div.innerHTML = `
       <div class="an-toolbar">
         <div class="an-filters">
-          <span class="an-filter-label">📅 Período:</span>
-          <select class="an-select" id="an-year-sel" onchange="anYearChange(this.value)">
-            <option value="all">All Years</option>
-          </select>
+          <span class="an-filter-label">📅 Period:</span>
+          <select class="an-select" id="an-year-sel" onchange="anYearChange(this.value)"><option value="all">All Years</option></select>
           <select class="an-select" id="an-month-sel" onchange="anMonthChange(this.value)">
             <option value="all">All Months</option>
             ${MONTHS_LABEL.slice(1).map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}
           </select>
-          <select class="an-select" id="an-week-sel" onchange="anWeekChange(this.value)">
-            <option value="all">All Weeks</option>
-          </select>
+          <select class="an-select" id="an-week-sel" onchange="anWeekChange(this.value)"><option value="all">All Weeks</option></select>
           <span class="an-filter-badge" id="an-filter-badge">Showing <span>all leads</span></span>
           <button class="an-refresh" onclick="anRefresh()">🔄 Reset</button>
         </div>
@@ -3100,262 +3196,261 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     container.appendChild(div);
   }
 
-  // ── Date helpers ─────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════
+  // DATE HELPERS
+  // ══════════════════════════════════════════════════════
   function getAdmissionDate(l) {
     const d = l.admission_date || l.fecha_creacion;
     if (!d) return null;
     return new Date(String(d).slice(0,10));
   }
-
   function getISOWeek(date) {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const d = new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+    const dayNum = d.getUTCDay()||7;
+    d.setUTCDate(d.getUTCDate()+4-dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    return { week: Math.ceil((((d - yearStart) / 86400000) + 1)/7), year: d.getUTCFullYear() };
+    return {week:Math.ceil((((d-yearStart)/86400000)+1)/7),year:d.getUTCFullYear()};
+  }
+  function weekLabel(year,week) {
+    const jan4=new Date(Date.UTC(year,0,4));
+    const dow=jan4.getUTCDay()||7;
+    const monday=new Date(jan4);
+    monday.setUTCDate(jan4.getUTCDate()-dow+1+(week-1)*7);
+    return `W${week} (${monday.toLocaleDateString("en-US",{month:"short",day:"numeric"})})`;
   }
 
-  function weekLabel(year, week) {
-    const jan4 = new Date(Date.UTC(year, 0, 4));
-    const dayOfWeek = jan4.getUTCDay() || 7;
-    const monday = new Date(jan4);
-    monday.setUTCDate(jan4.getUTCDate() - dayOfWeek + 1 + (week-1)*7);
-    const m = monday.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-    return `W${week} (${m})`;
-  }
-
-  // ── Populate selects ─────────────────────────────────────────────
   function populateYears() {
-    const L = typeof todosLeads !== "undefined" ? todosLeads : [];
-    const years = [...new Set(L.map(l=>{ const d=getAdmissionDate(l); return d?d.getFullYear():null; }).filter(Boolean))].sort((a,b)=>b-a);
-    const sel = document.getElementById("an-year-sel");
-    if (!sel) return;
-    const current = sel.value;
-    sel.innerHTML = '<option value="all">All Years</option>';
-    years.forEach(y => { const o=document.createElement("option"); o.value=y; o.textContent=y; if(String(y)===current)o.selected=true; sel.appendChild(o); });
+    const L = typeof todosLeads!=="undefined"?todosLeads:[];
+    const years=[...new Set(L.map(l=>{const d=getAdmissionDate(l);return d?d.getFullYear():null;}).filter(Boolean))].sort((a,b)=>b-a);
+    const sel=document.getElementById("an-year-sel"); if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="all">All Years</option>';
+    years.forEach(y=>{const o=document.createElement("option");o.value=y;o.textContent=y;if(String(y)===cur)o.selected=true;sel.appendChild(o);});
   }
-
   function populateWeeks() {
-    const L = typeof todosLeads !== "undefined" ? todosLeads : [];
-    const sel = document.getElementById("an-week-sel");
-    if (!sel) return;
-    const current = sel.value;
-    const weeks = new Map();
-    L.forEach(l => {
-      const d = getAdmissionDate(l);
-      if (!d) return;
-      if (anYear !== "all" && d.getFullYear() !== parseInt(anYear)) return;
-      if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return;
-      const {week, year} = getISOWeek(d);
-      const key = `${year}-${String(week).padStart(2,"0")}`;
-      if (!weeks.has(key)) weeks.set(key, {year, week, key});
+    const L=typeof todosLeads!=="undefined"?todosLeads:[];
+    const sel=document.getElementById("an-week-sel"); if(!sel)return;
+    const cur=sel.value, weeks=new Map();
+    L.forEach(l=>{
+      const d=getAdmissionDate(l); if(!d)return;
+      if(anYear!=="all"&&d.getFullYear()!==parseInt(anYear))return;
+      if(anMonth!=="all"&&(d.getMonth()+1)!==parseInt(anMonth))return;
+      const {week,year}=getISOWeek(d),key=`${year}-${String(week).padStart(2,"0")}`;
+      if(!weeks.has(key))weeks.set(key,{year,week,key});
     });
-    const sorted = [...weeks.values()].sort((a,b) => b.key.localeCompare(a.key));
-    sel.innerHTML = '<option value="all">All Weeks</option>';
-    sorted.forEach(({key, year, week}) => {
-      const o = document.createElement("option");
-      o.value = key;
-      o.textContent = weekLabel(year, week);
-      if (key === current) o.selected = true;
-      sel.appendChild(o);
-    });
+    const sorted=[...weeks.values()].sort((a,b)=>b.key.localeCompare(a.key));
+    sel.innerHTML='<option value="all">All Weeks</option>';
+    sorted.forEach(({key,year,week})=>{const o=document.createElement("option");o.value=key;o.textContent=weekLabel(year,week);if(key===cur)o.selected=true;sel.appendChild(o);});
   }
 
-  // ── Filter ───────────────────────────────────────────────────────
   function getFilteredLeads() {
-    const L = typeof todosLeads !== "undefined" ? todosLeads : [];
-    return L.filter(l => {
-      const d = getAdmissionDate(l);
-      if (!d) return anYear === "all" && anMonth === "all" && anWeek === "all";
-      if (anYear  !== "all" && d.getFullYear() !== parseInt(anYear))  return false;
-      if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
-      if (anWeek  !== "all") {
-        const {week, year} = getISOWeek(d);
-        const key = `${year}-${String(week).padStart(2,"0")}`;
-        if (key !== anWeek) return false;
-      }
+    const L=typeof todosLeads!=="undefined"?todosLeads:[];
+    return L.filter(l=>{
+      const d=getAdmissionDate(l);
+      if(!d)return anYear==="all"&&anMonth==="all"&&anWeek==="all";
+      if(anYear!=="all"&&d.getFullYear()!==parseInt(anYear))return false;
+      if(anMonth!=="all"&&(d.getMonth()+1)!==parseInt(anMonth))return false;
+      if(anWeek!=="all"){const{week,year}=getISOWeek(d);if(`${year}-${String(week).padStart(2,"0")}`!==anWeek)return false;}
       return true;
     });
   }
 
   function updateFilterBadge(count) {
-    const badge = document.getElementById("an-filter-badge");
-    if (!badge) return;
-    let label = `${count} total leads`;
-    if (anYear !== "all" || anMonth !== "all" || anWeek !== "all") {
-      const parts = [];
-      if (anMonth !== "all") parts.push(MONTHS_LABEL[parseInt(anMonth)]);
-      if (anYear  !== "all") parts.push(anYear);
-      if (anWeek  !== "all") {
-        const [y,w] = anWeek.split("-");
-        parts.push(weekLabel(parseInt(y), parseInt(w)));
-      }
-      label = `${count} lead${count!==1?"s":""} · ${parts.join(" ")}`;
+    const badge=document.getElementById("an-filter-badge"); if(!badge)return;
+    let label=`${count} total leads`;
+    if(anYear!=="all"||anMonth!=="all"||anWeek!=="all"){
+      const parts=[];
+      if(anMonth!=="all")parts.push(MONTHS_LABEL[parseInt(anMonth)]);
+      if(anYear!=="all")parts.push(anYear);
+      if(anWeek!=="all"){const[y,w]=anWeek.split("-");parts.push(weekLabel(parseInt(y),parseInt(w)));}
+      label=`${count} lead${count!==1?"s":""} · ${parts.join(" ")}`;
     }
-    badge.innerHTML = `Showing <span>${label}</span>`;
+    badge.innerHTML=`Showing <span>${label}</span>`;
   }
 
-  // ── Window handlers ──────────────────────────────────────────────
-  window.anYearChange  = v => { anYear  = v; populateWeeks(); renderAnalytics(); };
-  window.anMonthChange = v => { anMonth = v; populateWeeks(); renderAnalytics(); };
-  window.anWeekChange  = v => { anWeek  = v; renderAnalytics(); };
-  window.anRefresh = () => {
-    anYear="all"; anMonth="all"; anWeek="all";
+  window.anYearChange  = v=>{anYear=v;populateWeeks();renderAnalytics();};
+  window.anMonthChange = v=>{anMonth=v;populateWeeks();renderAnalytics();};
+  window.anWeekChange  = v=>{anWeek=v;renderAnalytics();};
+  window.anRefresh = ()=>{
+    anYear="all";anMonth="all";anWeek="all";
     ["an-year-sel","an-month-sel","an-week-sel"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="all";});
-    populateYears(); populateWeeks(); renderAnalytics();
+    populateYears();populateWeeks();renderAnalytics();
   };
 
-  // ── Compute stats ────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════
+  // COMPUTE STATS (CONV RATE CORREGIDO)
+  // ══════════════════════════════════════════════════════
   function computeStats() {
-    const L = getFilteredLeads(), total = L.length;
-    const won       = L.filter(l=>l.sales_status==="Won").length;
+    const L=getFilteredLeads(), total=L.length;
+    const today=new Date();
+    const won       = L.filter(isTreatmentDone).length;
     const lost      = L.filter(l=>l.sales_status==="Lost").length;
-    const inProg    = L.filter(l=>l.sales_status==="Treatment in Progress").length;
-    const sched     = L.filter(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)).length;
+    const inProg    = L.filter(isTreatmentConfirmed).length;
+    const scheduled = L.filter(isScheduledAppointment).length;
+    const attended  = L.filter(isAppointmentAttended).length;
     const newL      = L.filter(l=>l.sales_status==="New Lead").length;
     const callback  = L.filter(l=>l.sales_status==="Callback").length;
-    const proposals = L.filter(l=>l.sales_status==="Treatment Proposal Sent").length;
-    const closedN   = won + lost;
-    const closeRate = closedN ? ((won/closedN)*100).toFixed(0) : "—";
+    const proposals = L.filter(isProposalSent).length;
+    const noShows   = L.filter(isNoShow).length;
+    const awaitingMedical = L.filter(isAwaitingMedical).length;
+    const propAccepted = L.filter(isProposalAccepted).length;
+    
+    // *** CORRECCIÓN: Total de leads que tuvieron propuesta (incluye los que ya son Won) ***
+    const totalPropuestas = L.filter(hadProposalSent).length;
+    
+    // Conv Rate = Won / Total de leads que tuvieron propuesta
+    const closeRate = totalPropuestas > 0 ? ((won / totalPropuestas) * 100).toFixed(0) : "—";
+    
+    // Debug en consola
+    console.log("📊 Conv Rate Debug:", {
+      won: won,
+      proposalsActuales: proposals,
+      totalPropuestas: totalPropuestas,
+      closeRate: closeRate + "%",
+      formula: `${won} / ${totalPropuestas} = ${closeRate}%`
+    });
 
-    const funnelDef = [
-      {label:"New Leads",       fn:v=>v==="New Lead"},
-      {label:"First Contact",   fn:v=>v==="First Contact"},
-      {label:"Callback",        fn:v=>v==="Callback"},
-      {label:"Scheduled Appt.", fn:v=>["Scheduled Appointment","Rescheduled Appointment"].includes(v)},
-      {label:"Proposal Sent",   fn:v=>v==="Treatment Proposal Sent"},
-      {label:"In Treatment",    fn:v=>v==="Treatment in Progress"},
-      {label:"Won",             fn:v=>v==="Won"},
+    const funnelDef=[
+      {label:"New Leads",           fn:l=>l.sales_status==="New Lead"},
+      {label:"First Contact",       fn:l=>l.sales_status==="First Contact"},
+      {label:"Callback",            fn:l=>l.sales_status==="Callback"},
+      {label:"Scheduled Appts.",    fn:isScheduledAppointment},
+      {label:"Appts. Attended",     fn:isAppointmentAttended},
+      {label:"Proposal Sent",       fn:hadProposalSent},
+      {label:"Proposal Accepted",   fn:isProposalAccepted},
+      {label:"In Treatment",        fn:isTreatmentConfirmed},
+      {label:"Won",                 fn:isTreatmentDone},
     ];
-    const funnel = funnelDef.map(d=>({label:d.label, count:L.filter(l=>d.fn(l.sales_status)).length}));
+    const funnel=funnelDef.map(d=>({label:d.label,count:L.filter(d.fn).length}));
+    const cnt=key=>{const m={};L.forEach(l=>{const k=l[key]||"—";m[k]=(m[k]||0)+1;});return m;};
+    const statusCount=cnt("sales_status"),pipelineCount=cnt("pipeline"),catCount=cnt("categoria"),
+          docCount=cnt("doctor_nombre"),medCount=cnt("medical_status"),canalCount=cnt("canal"),paisCount=cnt("pais");
 
-    const cnt = (key) => { const m={}; L.forEach(l=>{const k=l[key]||"—";m[k]=(m[k]||0)+1;}); return m; };
-
-    const statusCount   = cnt("sales_status");
-    const pipelineCount = cnt("pipeline");
-    const catCount      = cnt("categoria");
-    const docCount      = cnt("doctor_nombre");
-    const medCount      = cnt("medical_status");
-    const canalCount    = cnt("canal");
-    const paisCount     = cnt("pais");
-
-    const sem = {verde:0,amarillo:0,rojo:0,neutral:0};
+    const sem={verde:0,amarillo:0,rojo:0,neutral:0};
     L.forEach(l=>{
-      const s = String(l.sales_status||"").toLowerCase();
+      const s=String(l.sales_status||"").toLowerCase();
       if(["new lead","won","lost"].includes(s)){sem.neutral++;return;}
-      const fs = l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;
+      const fs=l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;
       if(!fs){sem.amarillo++;return;}
       const[a,mo,d]=String(fs).slice(0,10).split("-").map(Number);
       const diff=Math.floor((new Date()-new Date(a,mo-1,d))/86400000);
       if(diff<=1)sem.verde++;else if(diff<=3)sem.amarillo++;else sem.rojo++;
     });
 
-    const allLeads = typeof todosLeads !== "undefined" ? todosLeads : [];
-    const weeklyMap = {};
-    allLeads.forEach(l => {
-      const d = getAdmissionDate(l);
-      if (!d) return;
-      if (anYear  !== "all" && d.getFullYear() !== parseInt(anYear))   return;
-      if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return;
-      const {week, year} = getISOWeek(d);
-      const key = `${year}-${String(week).padStart(2,"0")}`;
-      if (!weeklyMap[key]) weeklyMap[key] = {key, year, week, total:0, won:0, proposals:0, scheduled:0};
+    const allLeads=typeof todosLeads!=="undefined"?todosLeads:[];
+    const weeklyMap={};
+    allLeads.forEach(l=>{
+      const d=getAdmissionDate(l); if(!d)return;
+      if(anYear!=="all"&&d.getFullYear()!==parseInt(anYear))return;
+      if(anMonth!=="all"&&(d.getMonth()+1)!==parseInt(anMonth))return;
+      const{week,year}=getISOWeek(d),key=`${year}-${String(week).padStart(2,"0")}`;
+      if(!weeklyMap[key])weeklyMap[key]={key,year,week,total:0,won:0,proposals:0,scheduled:0};
       weeklyMap[key].total++;
-      if (l.sales_status==="Won") weeklyMap[key].won++;
-      if (l.sales_status==="Treatment Proposal Sent") weeklyMap[key].proposals++;
-      if (["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)) weeklyMap[key].scheduled++;
+      if(isTreatmentDone(l))weeklyMap[key].won++;
+      if(hadProposalSent(l))weeklyMap[key].proposals++;
+      if(isScheduledAppointment(l))weeklyMap[key].scheduled++;
     });
-    const weeklyTrend = Object.values(weeklyMap).sort((a,b)=>a.key.localeCompare(b.key)).slice(-14);
+    const weeklyTrend=Object.values(weeklyMap).sort((a,b)=>a.key.localeCompare(b.key)).slice(-14);
 
-    const monthlyMap = {};
-    allLeads.forEach(l => {
-      const d = getAdmissionDate(l);
-      if (!d) return;
-      if (anYear !== "all" && d.getFullYear() !== parseInt(anYear)) return;
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      if (!monthlyMap[key]) monthlyMap[key] = {key, label:MONTHS_LABEL[d.getMonth()+1].slice(0,3)+" "+String(d.getFullYear()).slice(2), total:0, won:0};
+    const monthlyMap={};
+    allLeads.forEach(l=>{
+      const d=getAdmissionDate(l); if(!d)return;
+      if(anYear!=="all"&&d.getFullYear()!==parseInt(anYear))return;
+      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      if(!monthlyMap[key])monthlyMap[key]={key,label:MONTHS_LABEL[d.getMonth()+1].slice(0,3)+" "+String(d.getFullYear()).slice(2),total:0,won:0};
       monthlyMap[key].total++;
-      if (l.sales_status==="Won") monthlyMap[key].won++;
+      if(isTreatmentDone(l))monthlyMap[key].won++;
     });
-    const monthlyTrend = Object.values(monthlyMap).sort((a,b)=>a.key.localeCompare(b.key)).slice(-12);
+    const monthlyTrend=Object.values(monthlyMap).sort((a,b)=>a.key.localeCompare(b.key)).slice(-12);
 
-    const dayActivity = [0,0,0,0,0,0,0];
-    L.forEach(l => {
-      const d = getAdmissionDate(l);
-      if (!d) return;
-      const dow = (d.getDay() + 6) % 7;
-      dayActivity[dow]++;
-    });
+    const dayActivity=[0,0,0,0,0,0,0];
+    L.forEach(l=>{const d=getAdmissionDate(l);if(!d)return;dayActivity[(d.getDay()+6)%7]++;});
 
-    const pipeConv = {};
-    L.forEach(l => {
-      const p = l.pipeline || "Unknown";
-      if (!pipeConv[p]) pipeConv[p] = {total:0, won:0};
+    const pipeConv={};
+    L.forEach(l=>{
+      const p=l.pipeline||"Unknown";
+      if(!pipeConv[p])pipeConv[p]={total:0,won:0,proposals:0,accepted:0};
       pipeConv[p].total++;
-      if (l.sales_status==="Won") pipeConv[p].won++;
+      if(isTreatmentDone(l))pipeConv[p].won++;
+      if(hadProposalSent(l))pipeConv[p].proposals++;
+      if(isProposalAccepted(l))pipeConv[p].accepted++;
     });
 
-    return {total,newL,won,lost,inProg,sched,callback,proposals,closeRate,
-            funnel,statusCount,pipelineCount,catCount,docCount,medCount,
-            canalCount,paisCount,sem,weeklyTrend,monthlyTrend,dayActivity,
-            pipeConv,leads:L};
+    const docStats={};
+    L.forEach(l=>{
+      const doc=l.doctor_nombre||"Unassigned";
+      if(!docStats[doc])docStats[doc]={scheduled:0,attended:0,proposals:0,done:0};
+      if(isScheduledAppointment(l))docStats[doc].scheduled++;
+      if(isAppointmentAttended(l))docStats[doc].attended++;
+      if(hadProposalSent(l))docStats[doc].proposals++;
+      if(isTreatmentDone(l))docStats[doc].done++;
+    });
+
+    return{
+      total,newL,won,lost,inProg,scheduled,attended,callback,proposals,totalPropuestas,noShows,awaitingMedical,
+      propSent:proposals,propAccepted,closeRate,
+      funnel,statusCount,pipelineCount,catCount,docCount,medCount,canalCount,paisCount,
+      sem,weeklyTrend,monthlyTrend,dayActivity,pipeConv,leads:L,docStats
+    };
   }
 
-  // ── Render ───────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════
+  // RENDER (KPI LABEL ACTUALIZADO)
+  // ══════════════════════════════════════════════════════
   function renderAnalytics() {
-    populateYears();
-    populateWeeks();
-    const s = computeStats();
+    populateYears(); populateWeeks();
+    const s=computeStats();
     updateFilterBadge(s.total);
 
-    // ── KPIs (sin Avg Lead Age) ──
-    const kpiDefs = [
-      {n:s.total,    l:"Total Leads",    c:"#3b82f6"},
-      {n:s.newL,     l:"New",            c:"#6366f1"},
-      {n:s.callback, l:"Callbacks",      c:"#f59e0b"},
-      {n:s.sched,    l:"Scheduled",      c:"#14b8a6"},
-      {n:s.proposals,l:"Proposals Sent", c:"#a855f7"},
-      {n:s.inProg,   l:"In Treatment",   c:"#f97316"},
-      {n:s.won,      l:"Won",            c:"#22c55e"},
-      {n:s.lost,     l:"Lost",           c:"#ef4444"},
-      {n:s.closeRate+(s.closeRate!=="—"?"%":""), l:"Close Rate", c:"#84cc16",
-       sub: s.won+s.lost > 0 ? `${s.won} won / ${s.won+s.lost} closed` : "No closed leads"},
+    const kpiDefs=[
+      {n:s.total,         l:"Total Leads",              c:"#3b82f6"},
+      {n:s.newL,          l:"New",                      c:"#6366f1"},
+      {n:s.callback,      l:"Callbacks",                c:"#f59e0b"},
+      {n:s.scheduled,     l:"Scheduled Appts.",         c:"#14b8a6", sub:`${s.attended} attended`},
+      {n:s.attended,      l:"Appts. Attended",          c:"#06b6d4"},
+      {n:s.proposals,     l:"Proposals Sent",           c:"#a855f7"},
+      {n:s.inProg,        l:"In Treatment",             c:"#f97316"},
+      {n:s.won,           l:"Won",                      c:"#22c55e"},
+      {n:s.lost,          l:"Lost",                     c:"#ef4444"},
+      {n:s.closeRate+(s.closeRate!=="—"?"%":""),l:"Conv. Rate (Won/Prop)",c:"#84cc16",
+       sub:s.totalPropuestas>0?`${s.won} won / ${s.totalPropuestas} proposals`:"won vs proposals sent"},
     ];
-    document.getElementById("an-kpis").innerHTML = kpiDefs.map(k=>`
+    document.getElementById("an-kpis").innerHTML=kpiDefs.map(k=>`
       <div class="an-kpi" style="--an-kpi-color:${k.c}">
         <div class="an-kpi-num">${k.n}</div>
         <div class="an-kpi-label">${k.l}</div>
-        ${k.sub ? `<div class="an-kpi-sub">${k.sub}</div>` : ""}
+        ${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}
       </div>`).join("");
 
-    document.getElementById("an-trends").innerHTML = [
-      buildTrendChart(s.weeklyTrend, s.monthlyTrend),
-      buildFunnel(s.funnel, s.total),
+    document.getElementById("an-trends").innerHTML=[
+      buildTrendChart(s.weeklyTrend,s.monthlyTrend),
+      buildFunnel(s.funnel,s.total),
     ].join("");
 
-    document.getElementById("an-charts").innerHTML = [
-      buildBars("Sales Status",s.statusCount, true),
-      buildBars("By Category",s.catCount, true),
-      buildBars("📡 Lead Channel",s.canalCount, true),
-      buildBars("By Pipeline",s.pipelineCount, true),
-      buildBars("By Doctor",s.docCount, false),
-      buildBars("🌎 By Country",s.paisCount, false),
+    document.getElementById("an-charts").innerHTML=[
+      buildBars("Sales Status",s.statusCount,true),
+      buildBars("By Category",s.catCount,true),
+      buildBars("📡 Lead Channel",s.canalCount,true),
+      buildBars("By Pipeline",s.pipelineCount,true),
+      buildBars("By Doctor",s.docCount,false),
+      buildBars("🌎 By Country",s.paisCount,false),
       buildDonut("Medical Status",s.medCount),
       buildSemCard(s.sem),
     ].join("");
 
-    document.getElementById("an-perf").innerHTML = [
+    document.getElementById("an-perf").innerHTML=[
       buildPipelineConvTable(s.pipeConv),
       buildDayHeatmap(s.dayActivity),
     ].join("");
   }
 
-  // ── Chart builders ───────────────────────────────────────────────
-  function buildBars(title, obj, showPct) {
-    const sorted = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const max = Math.max(...sorted.map(e=>e[1]),1);
-    const total = sorted.reduce((s,[,v])=>s+v,0)||1;
-    if (!sorted.length) return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;
+  // ══════════════════════════════════════════════════════
+  // CHART BUILDERS
+  // ══════════════════════════════════════════════════════
+  function buildBars(title,obj,showPct){
+    const sorted=Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const max=Math.max(...sorted.map(e=>e[1]),1),total=sorted.reduce((s,[,v])=>s+v,0)||1;
+    if(!sorted.length)return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;
     return `<div class="an-card"><h4>${title}</h4>${sorted.map(([l,n],i)=>`
       <div class="an-bar-row">
         <div class="an-bar-label" title="${l}">${l}</div>
@@ -3365,13 +3460,13 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       </div>`).join("")}</div>`;
   }
 
-  function buildFunnel(steps, totalLeads) {
-    const fc = ["#3b82f6","#6366f1","#a855f7","#f59e0b","#14b8a6","#22c55e","#4ade80"];
-    const maxVal = totalLeads || Math.max(...steps.map(s=>s.count),1);
+  function buildFunnel(steps,totalLeads){
+    const fc=["#3b82f6","#6366f1","#f59e0b","#06b6d4","#a855f7","#8b5cf6","#f97316","#22c55e","#4ade80"];
+    const maxVal=totalLeads||Math.max(...steps.map(s=>s.count),1);
     return `<div class="an-card" style="grid-column:span 2"><h4>🏆 Sales Funnel</h4>
       <div class="an-funnel">${steps.map((s,i)=>{
-        const pct = maxVal ? ((s.count/maxVal)*100).toFixed(0) : 0;
-        const barW = Math.max(s.count ? (s.count/maxVal)*100 : 3, s.count?6:3);
+        const pct=maxVal?((s.count/maxVal)*100).toFixed(0):0;
+        const barW=Math.max(s.count?(s.count/maxVal)*100:3,s.count?6:3);
         return `<div class="an-funnel-step">
           <div class="an-bar-label" style="font-size:.72rem">${s.label}</div>
           <div style="flex:1"><div class="an-funnel-bar" style="width:${barW.toFixed(0)}%;background:${fc[i]}">${s.count||""}</div></div>
@@ -3381,34 +3476,28 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       }).join("")}</div></div>`;
   }
 
-  function buildTrendChart(weekly, monthly) {
-    const data = weekly.length >= 3 ? weekly : monthly;
-    const isWeekly = weekly.length >= 3;
-    if (!data.length) return `<div class="an-card" style="grid-column:span 2"><h4>📈 Trend</h4><p class="an-no-data">Not enough data</p></div>`;
-
-    const maxVal = Math.max(...data.map(d=>d.total),1);
-    const W = 600, H = 140, pad = {t:10,r:10,b:30,l:28};
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const xs = data.map((_,i)=>pad.l + (i/(data.length-1||1))*cw);
-    const y  = v => pad.t + ch - (v/maxVal)*ch;
-
-    const totalPts = data.map((d,i)=>`${xs[i]},${y(d.total)}`).join(" ");
-    const wonPts   = data.map((d,i)=>`${xs[i]},${y(d.won||0)}`).join(" ");
-    const schedPts = data.map((d,i)=>`${xs[i]},${y(d.scheduled||d.proposals||0)}`).join(" ");
-    const fillPts = `${pad.l},${pad.t+ch} ${totalPts} ${xs[xs.length-1]},${pad.t+ch}`;
-
-    const xlabels = data.map((d,i)=>{
-      if (i % Math.ceil(data.length/6) !== 0 && i !== data.length-1) return "";
-      const lbl = isWeekly ? weekLabel(d.year,d.week).split(" ")[0] : d.label;
-      return `<text x="${xs[i]}" y="${H-6}" text-anchor="middle" fill="#7a90a8" font-size="9">${lbl}</text>`;
+  function buildTrendChart(weekly,monthly){
+    const data=weekly.length>=3?weekly:monthly;
+    const isWeekly=weekly.length>=3;
+    if(!data.length)return `<div class="an-card" style="grid-column:span 2"><h4>📈 Trend</h4><p class="an-no-data">Not enough data</p></div>`;
+    const maxVal=Math.max(...data.map(d=>d.total),1);
+    const W=600,H=140,pad={t:10,r:10,b:30,l:28};
+    const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+    const xs=data.map((_,i)=>pad.l+(i/(data.length-1||1))*cw);
+    const y=v=>pad.t+ch-(v/maxVal)*ch;
+    const totalPts=data.map((d,i)=>`${xs[i]},${y(d.total)}`).join(" ");
+    const wonPts=data.map((d,i)=>`${xs[i]},${y(d.won||0)}`).join(" ");
+    const schedPts=data.map((d,i)=>`${xs[i]},${y(d.scheduled||d.proposals||0)}`).join(" ");
+    const fillPts=`${pad.l},${pad.t+ch} ${totalPts} ${xs[xs.length-1]},${pad.t+ch}`;
+    const xlabels=data.map((d,i)=>{
+      if(i%Math.ceil(data.length/6)!==0&&i!==data.length-1)return "";
+      return `<text x="${xs[i]}" y="${H-6}" text-anchor="middle" fill="#7a90a8" font-size="9">${isWeekly?weekLabel(d.year,d.week).split(" ")[0]:d.label}</text>`;
     }).join("");
-
-    const yLines = [0,.25,.5,.75,1].map(r=>{
-      const yv = pad.t + ch - r*ch;
+    const yLines=[0,.25,.5,.75,1].map(r=>{
+      const yv=pad.t+ch-r*ch;
       return `<line x1="${pad.l}" x2="${W-pad.r}" y1="${yv}" y2="${yv}" stroke="#1e2d42" stroke-width="1"/>
               <text x="${pad.l-4}" y="${yv+3}" text-anchor="end" fill="#7a90a8" font-size="9">${Math.round(r*maxVal)}</text>`;
     }).join("");
-
     return `<div class="an-card" style="grid-column:span 2">
       <h4>📈 ${isWeekly?"Weekly":"Monthly"} Trend <span style="font-size:.65rem;color:var(--text3);text-transform:none;letter-spacing:0;font-weight:400">last ${data.length} ${isWeekly?"weeks":"months"}</span></h4>
       <div class="an-trend-wrap">
@@ -3418,13 +3507,12 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
           <polyline points="${totalPts}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round"/>
           <polyline points="${wonPts}"   fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,2"/>
           <polyline points="${schedPts}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,2"/>
-          ${data.map((d,i)=>`<circle cx="${xs[i]}" cy="${y(d.total)}" r="3" fill="#3b82f6"/>
-            <title>${isWeekly?weekLabel(d.year,d.week):d.label}: ${d.total} leads, ${d.won||0} won</title>`).join("")}
+          ${data.map((d,i)=>`<circle cx="${xs[i]}" cy="${y(d.total)}" r="3" fill="#3b82f6"/>`).join("")}
           ${xlabels}
         </svg>
       </div>
       <div style="display:flex;gap:1.2rem;margin-top:.6rem">
-        ${[{c:"#3b82f6",l:"Total leads"},{c:"#22c55e",l:"Won"},{c:"#f59e0b",l:"Scheduled/Proposals"}].map(x=>
+        ${[{c:"#3b82f6",l:"Total leads"},{c:"#22c55e",l:"Won"},{c:"#f59e0b",l:"Scheduled"}].map(x=>
           `<span style="font-size:.68rem;color:var(--text2);display:flex;align-items:center;gap:.3rem">
             <span style="display:inline-block;width:16px;height:2px;background:${x.c}"></span>${x.l}</span>`
         ).join("")}
@@ -3432,15 +3520,15 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     </div>`;
   }
 
-  function buildDonut(title, obj) {
-    const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
-    if (!entries.length) return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;
-    const total = entries.reduce((s,[,v])=>s+v,0)||1;
-    let off=0; const r=45,cx=60,cy=60,C=2*Math.PI*r;
-    const slices = entries.map(([,n],i)=>{
-      const pct=n/total, d=pct*C, g=C-d;
-      const sl = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PAL[i%PAL.length]}" stroke-width="16" stroke-dasharray="${d.toFixed(2)} ${g.toFixed(2)}" stroke-dashoffset="${(-off*C).toFixed(2)}"/>`;
-      off+=pct; return sl;
+  function buildDonut(title,obj){
+    const entries=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+    if(!entries.length)return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;
+    const total=entries.reduce((s,[,v])=>s+v,0)||1;
+    let off=0;const r=45,cx=60,cy=60,C=2*Math.PI*r;
+    const slices=entries.map(([,n],i)=>{
+      const pct=n/total,d=pct*C,g=C-d;
+      const sl=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PAL[i%PAL.length]}" stroke-width="16" stroke-dasharray="${d.toFixed(2)} ${g.toFixed(2)}" stroke-dashoffset="${(-off*C).toFixed(2)}"/>`;
+      off+=pct;return sl;
     }).join("");
     return `<div class="an-card"><h4>${title}</h4>
       <div class="an-donut-wrap">
@@ -3460,8 +3548,8 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     </div>`;
   }
 
-  function buildSemCard(sem) {
-    const items = [
+  function buildSemCard(sem){
+    const items=[
       {icon:"🟢",n:sem.verde,   lbl:"Active (≤1d)",    c:"#22c55e"},
       {icon:"🟡",n:sem.amarillo,lbl:"Follow-up (2-3d)", c:"#f59e0b"},
       {icon:"🔴",n:sem.rojo,    lbl:"Overdue (>3d)",    c:"#ef4444"},
@@ -3478,22 +3566,22 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     </div>`;
   }
 
-  function buildPipelineConvTable(pipeConv) {
-    const rows = Object.entries(pipeConv).sort((a,b)=>b[1].total-a[1].total);
-    if (!rows.length) return `<div class="an-card"><h4>🔁 Conversion by Pipeline</h4><p class="an-no-data">No data</p></div>`;
-    return `<div class="an-card"><h4>🔁 Conversion by Pipeline</h4>
+  function buildPipelineConvTable(pipeConv){
+    const rows=Object.entries(pipeConv).sort((a,b)=>b[1].total-a[1].total);
+    if(!rows.length)return `<div class="an-card"><h4>🔁 Won vs Proposals by Pipeline</h4><p class="an-no-data">No data</p></div>`;
+    return `<div class="an-card"><h4>🔁 Won vs Proposals by Pipeline</h4>
       <table class="an-conv-table">
         <thead><tr>
-          <th>Pipeline</th><th>Total</th><th>Won</th><th>Lost</th><th>Conv%</th>
+          <th>Pipeline</th><th>Leads</th><th>Proposals</th><th>Won</th><th>Conv%</th>
         </tr></thead>
-        <tbody>${rows.map(([pipe, {total, won}])=>{
-          const pct = total ? ((won/total)*100).toFixed(1) : "—";
-          const barW = total ? ((won/total)*100) : 0;
+        <tbody>${rows.map(([pipe,{total,proposals,won}])=>{
+          const pct=proposals?((won/proposals)*100).toFixed(1):"—";
+          const barW=proposals?((won/proposals)*100):0;
           return `<tr>
             <td style="color:var(--text)">${pipe}</td>
             <td>${total}</td>
-            <td style="color:#22c55e">${won}</td>
-            <td style="color:#7a90a8">${total-won}</td>
+            <td style="color:#a855f7">${proposals||0}</td>
+            <td style="color:#22c55e">${won||0}</td>
             <td>
               <span class="an-conv-pct-bar" style="width:${barW.toFixed(0)}px;background:#22c55e;opacity:.7"></span>
               <span style="font-family:'DM Mono',monospace">${pct}${pct!=="—"?"%":""}</span>
@@ -3504,106 +3592,122 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     </div>`;
   }
 
-  function buildDayHeatmap(dayActivity) {
-    const maxDay = Math.max(...dayActivity, 1);
-    const colors = ["#1e40af","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe"];
+  function buildDayHeatmap(dayActivity){
+    const maxDay=Math.max(...dayActivity,1);
+    const colors=["#1e40af","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe"];
     return `<div class="an-card"><h4>📅 Activity by Day of Week</h4>
       <div class="an-heatmap-labels">${DAY_LABELS.map(d=>`<div class="an-heat-label">${d}</div>`).join("")}</div>
       <div class="an-heatmap">${dayActivity.map((n,i)=>{
-        const intensity = maxDay ? Math.floor((n/maxDay)*6) : 0;
-        const bg = n === 0 ? "var(--bg3)" : colors[intensity];
+        const intensity=maxDay?Math.floor((n/maxDay)*6):0;
+        const bg=n===0?"var(--bg3)":colors[intensity];
         return `<div class="an-heat-cell" style="background:${bg}" title="${DAY_LABELS[i]}: ${n} leads">${n||""}</div>`;
       }).join("")}</div>
       <p style="font-size:.68rem;color:var(--text3);margin-top:.8rem">Lead admission day distribution</p>
     </div>`;
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // EXPORT XLSX — Respeta filtros activos, formato plantilla oficial
-  // ══════════════════════════════════════════════════════════════
-  // ══════════════════════════════════════════════════════════════
-// EXPORT XLSX — Respeta filtros activos, formato plantilla oficial
-// ══════════════════════════════════════════════════════════════
-window.anExportXlsx = function() {
-    // Usar leads FILTRADOS (no todosLeads)
-    const L = getFilteredLeads();
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
-    const prepBy = typeof usuario!=="undefined" ? usuario.nombre : "—";
+  // ══════════════════════════════════════════════════════
+  // EXPORT XLSX
+  // ══════════════════════════════════════════════════════
+  window.anExportXlsx = function() {
+    const L=getFilteredLeads();
+    const s=computeStats();
+    const today=new Date();
+    const dateStr=today.toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+    const prepBy=typeof usuario!=="undefined"?usuario.nombre:"—";
 
-    // Etiqueta del período filtrado
-    let periodLabel = "All Time";
-    if (anYear !== "all" || anMonth !== "all" || anWeek !== "all") {
-      const parts = [];
-      if (anMonth !== "all") parts.push(MONTHS_LABEL[parseInt(anMonth)]);
-      if (anYear  !== "all") parts.push(anYear);
-      if (anWeek  !== "all") {
-        const [y,w] = anWeek.split("-");
-        parts.push(weekLabel(parseInt(y), parseInt(w)));
-      }
-      periodLabel = parts.join(" ");
+    let periodLabel="All Time";
+    if(anYear!=="all"||anMonth!=="all"||anWeek!=="all"){
+      const parts=[];
+      if(anMonth!=="all")parts.push(MONTHS_LABEL[parseInt(anMonth)]);
+      if(anYear!=="all")parts.push(anYear);
+      if(anWeek!=="all"){const[y,w]=anWeek.split("-");parts.push(weekLabel(parseInt(y),parseInt(w)));}
+      periodLabel=parts.join(" ");
     }
 
-    const getPipe   = (l) => l.pipeline || "";
-    const isEngInt  = (l) => getPipe(l) === "English - International";
-    const isSpInt   = (l) => getPipe(l) === "Spanish - International";
-    const isLocal   = (l) => getPipe(l) === "Spanish - Local" || getPipe(l) === "English - Local";
-    const bucket3   = (fn) => [L.filter(l=>fn(l)&&isEngInt(l)).length, L.filter(l=>fn(l)&&isSpInt(l)).length, L.filter(l=>fn(l)&&isLocal(l)).length];
-    const isToday   = (v) => { if(!v)return false; return String(v).slice(0,10)===today.toISOString().slice(0,10); };
-
-    // ✅ KPIs CORREGIDOS
-    const kpi = {
-      newLeads:          bucket3(()=>true),
-      callbacks:         bucket3(l=>l.sales_status==="Callback"),
-      scheduledCalls:    bucket3(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)),
-      scheduledToday:    bucket3(l=>["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status)&&isToday(l.treatment_date)),
-      callsCompleted:    bucket3(l=>l.appointment_status==="Completed"||l.appointment_status==="Attended"),
-      noShows:           bucket3(l=>l.appointment_status==="No Show"),
-      awaitingMedical:   bucket3(l=>l.medical_status==="Awaiting Medical Report"),
-      awaitingProposal:  bucket3(l=>(l.appointment_status==="Completed"||l.appointment_status==="Attended")&&l.sales_status!=="Treatment Proposal Sent"&&l.medical_status!=="Treatment Proposal Sent"&&!["Won","Lost"].includes(l.sales_status)),
-      proposalsSent:     bucket3(l=>l.sales_status==="Treatment Proposal Sent"||l.medical_status==="Treatment Proposal Sent"),
-      proposalsAccepted: bucket3(l=>l.medical_status==="Candidate Approved"||l.treatment_confirmed===true),
-      treatmentConfirmed:bucket3(l=>l.sales_status==="Treatment in Progress"||l.medical_status==="In Treatment"||l.medical_status==="Treatment Scheduled"),
-      treatmentsDone:    bucket3(l=>l.sales_status==="Won"||l.medical_status==="Treatment Completed"),
+    const bucket3=(fn)=>{
+      let e=0,sp=0,lc=0;
+      L.forEach(l=>{
+        if(!fn(l,today))return;
+        const{col0,col1,col2}=getColumns(l);
+        e+=col0;sp+=col1;lc+=col2;
+      });
+      return[e,sp,lc];
     };
 
-    const sourceOrder = ["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral"];
-    const bySource = {}; sourceOrder.forEach(k=>{bySource[k]=[0,0,0];});
-    L.forEach(l=>{
-      const src = l.canal||"";
-      const key = sourceOrder.find(s=>src.toLowerCase().includes(s.toLowerCase())||(s==="Call / WhatsApp"&&(src.includes("Call")||src.includes("WhatsApp")||src.includes("Llamada"))))||(src.includes("Web")?"Website":src.includes("Email")?"Email":src.includes("Social")?"Social Media":src.includes("Walk")?"Walk-in Colombia":src.includes("Refer")?"Referral":"Website");
-      if(bySource[key]){if(isEngInt(l))bySource[key][0]++;else if(isSpInt(l))bySource[key][1]++;else if(isLocal(l))bySource[key][2]++;}
-    });
+    const kpi={
+      newLeads:                  bucket3(()=>true),
+      ScheduledAppointments:     bucket3(isScheduledAppointment),
+      scheduledToday:            bucket3((l,t)=>isTodayAppt(l,t)),
+      AppointmentsAttended:      bucket3(isAppointmentAttended),
+      noShows:                   bucket3(isNoShow),
+      awaitingMedical:           bucket3(isAwaitingMedical),
+      proposalsSent:             bucket3(hadProposalSent),
+      proposalsAccepted:         bucket3(isProposalAccepted),
+      treatmentConfirmed:        bucket3(isTreatmentConfirmed),
+      treatmentsDone:            bucket3(isTreatmentDone),
+    };
 
-    // TODOS los leads filtrados para sección 3 (sin límite de 30)
-    const patients = L.map(l=>{
-      const comentario = l.comentarios || l.comentario || l.notas || l.notes || l.remarks || "";
-      const lastAction = l.ultima_accion || l.last_action || "";
-      const remarks = [comentario, lastAction].filter(Boolean).join(" | ") || "";
+    const sourceOrder = [
+    "Website",
+    "US Targeted Campaign", 
+    "Canada Targeted Campaign", 
+    "Local Campaign",
+    "Email",
+    "Call / WhatsApp",
+    "Direct Social Media",
+    "Walk-in Colombia",
+    "Referral"
+];
 
-      return {
-        A: l.nombre||"",
-        B: getPipe(l).startsWith("English")?"English":"Spanish",
-        C: isLocal(l)?"Local Colombia":"International",
-        D: l.canal||"",
-        E: "",
-        F: l.asesor_nombre||"",
-        G: l.doctor_nombre||"",
-        H: "",
-        I: "",
-        J: l.sales_status==="Treatment Proposal Sent"?"Sent":"",
-        K: l.medical_status==="Candidate Approved"?"Accepted":(l.sales_status==="Treatment Proposal Sent"?"Sent":"Not Sent"),
-        L: l.treatment_confirmed?"Confirmed":"Not Confirmed",
-        M: l.medical_status||"Not Required",
-        N: remarks,
-        O: l.medilink_numero||l.id||"",
+const bySource = {};
+sourceOrder.forEach(k => { bySource[k] = [0, 0, 0]; });
+
+L.forEach(l => {
+    const src = getCampaignRow(l);
+    const key = sourceOrder.includes(src) ? src : "Website";
+    const { col0, col1, col2 } = getColumns(l);
+    bySource[key][0] += col0;
+    bySource[key][1] += col1;
+    bySource[key][2] += col2;
+});
+
+    const patients=L.map(l=>{
+      const p=getPipelineByPais(l);
+      const lang=(p==="english_int"||p==="usa"||p==="canada")?"English":"Spanish";
+      const market=p==="local"?"Local Colombia":"International";
+      const comentario=(l.comentarios||l.notas||"").replace(/\n/g," ").substring(0,120);
+      return{
+        A:l.nombre||"",
+        B:lang,
+        C:market,
+        D:l.canal||"",
+        E:getCampaignRow(l),
+        F:l.asesor_nombre||"",
+        G:l.doctor_nombre||"",
+        H:"",
+        I:"",
+        J:hadProposalSent(l)?"Sent":"",
+        K:isProposalAccepted(l)?"Accepted":(hadProposalSent(l)?"Sent":"Not Sent"),
+        L:l.treatment_confirmed?"Confirmed":"Not Confirmed",
+        M:l.medical_status||"Not Required",
+        N:comentario,
+        O:l.medilink_numero||String(l.id||""),
       };
     });
 
-    const docNames = [...new Set(L.map(l=>l.doctor_nombre).filter(Boolean))];
-    const doctors = (docNames.length?docNames:["Dr. Camilo White","Dr. Sandra Fernandez","Dr. 3"]).slice(0,3).map(name=>{
-      const dl=L.filter(l=>l.doctor_nombre===name);
-      return [name,{B:dl.filter(l=>l.appointment_status==="Booked"||l.appointment_status==="Completed").length||"",C:"",D:"",E:"",F:dl.filter(l=>l.sales_status==="Treatment Proposal Sent").length||"",G:dl.filter(l=>l.sales_status==="Won").length||""}];
+    const docNames=[...new Set(L.map(l=>l.doctor_nombre).filter(Boolean))];
+    const docList=(docNames.length?docNames:["Dra. Sandra Fernandez","Dr. Camilo White","Dr. 3"]).slice(0,3);
+    const doctors=docList.map(name=>{
+      const stats=s.docStats[name]||{scheduled:0,attended:0,proposals:0,done:0};
+      return[name,{
+        B:stats.scheduled,
+        C:stats.attended,
+        D:"",
+        E:"",
+        F:stats.proposals,
+        G:stats.done,
+      }];
     });
 
     const wbBytes=generateXlsxBytes({reportDate:dateStr,preparedBy:prepBy,periodLabel,kpi,bySource,patients,doctors});
@@ -3614,161 +3718,153 @@ window.anExportXlsx = function() {
     document.body.appendChild(a);a.click();document.body.removeChild(a);
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // GENERADOR XLSX - CORREGIDO
-  // ══════════════════════════════════════════════════════════════
-  function generateXlsxBytes(data) {
+  // ══════════════════════════════════════════════════════
+  // GENERADOR XLSX (LABELS CORREGIDOS)
+  // ══════════════════════════════════════════════════════
+  function generateXlsxBytes(data){
     const C={titleBg:"1F4E78",infoBg:"D9EAF7",sec1Bg:"5B9BD5",sec2Bg:"70AD47",sec3Bg:"4472C4",sec4Bg:"ED7D31",headerBg:"404040",white:"FFFFFF"};
     const thin="thin",allBorder={left:thin,right:thin,top:thin,bottom:thin};
     const xb=new XlsxBuilder();
 
-    const numLeads = data.patients.length;
-    const sec3End = 19 + Math.max(numLeads, 1);
-    const sec4Start = sec3End + 2;
-    const sec4HeaderRow = sec4Start + 1;
-    const sec4DataStart = sec4HeaderRow + 1;
-    const sec4TotalRow = sec4DataStart + 3;
+    const numLeads=data.patients.length;
+    const dataStartRow=20;
+    const sec3End=dataStartRow+Math.max(numLeads,1)-1;
+    const sec4Start=sec3End+2;
+    const sec4HeaderRow=sec4Start+1;
+    const sec4DataStart=sec4HeaderRow+1;
+    const sec4TotalRow=sec4DataStart+3;
 
     const sheet=xb.addSheet({
       name:"Daily Report",
-      colWidths:{A:45,B:12,C:16,D:20,E:22,F:20,G:22,H:18,I:18,J:18,K:18,L:18,M:22,N:35,O:18,Q:22,R:18,S:22,T:18,U:22,V:24,W:22,X:18,Y:20,Z:18,AA:24,AB:25},
-      rowHeights:{1:22.35,2:27.6,5:27.6},
-      merges:[`A1:O1`,`A4:O4`,`G5:O5`,`A${sec4Start}:H${sec4Start}`],
+      colWidths:{A:45,B:12,C:16,D:22,E:26,F:20,G:22,H:18,I:18,J:18,K:18,L:18,M:22,N:38,O:18,
+                 Q:22,R:18,S:22,T:24,U:22,V:24,W:22,X:18,Y:20},
+      rowHeights:{1:22,2:20,5:20},
+      merges:[`A1:O1`,`A4:E4`,`G5:K5`,`A${sec4Start}:H${sec4Start}`],
       dataValidations:[
-        {sqref:"B20:B"+sec3End,formula1:"$Q$2:$Q$3"},
-        {sqref:"C20:C"+sec3End,formula1:"$R$2:$R$3"},
-        {sqref:"D20:D"+sec3End,formula1:"$S$2:$S$8"},
-        {sqref:"E20:E"+sec3End,formula1:"$T$2:$T$8"},
-        {sqref:`G20:G${sec3End} G${sec4DataStart}:G${sec4DataStart+2}`,formula1:"$U$2:$U$3"},
-        {sqref:"H20:I"+sec3End,formula1:"$V$2:$V$8"},
-        {sqref:"J20:K"+sec3End,formula1:"$W$2:$W$7"},
-        {sqref:"L20:L"+sec3End,formula1:"$X$2:$X$6"},
-        {sqref:"M20:M"+sec3End,formula1:"$Y$2:$Y$6"},
+        {sqref:`B${dataStartRow}:B${sec3End}`,formula1:"$Q$2:$Q$3"},
+        {sqref:`C${dataStartRow}:C${sec3End}`,formula1:"$R$2:$R$3"},
+        {sqref:`D${dataStartRow}:D${sec3End}`,formula1:"$S$2:$S$8"},
+        {sqref:`E${dataStartRow}:E${sec3End}`,formula1:"$T$2:$T$5"},
+        {sqref:`G${dataStartRow}:G${sec3End}`,formula1:"$U$2:$U$4"},
+        {sqref:`H${dataStartRow}:I${sec3End}`,formula1:"$V$2:$V$8"},
+        {sqref:`J${dataStartRow}:K${sec3End}`,formula1:"$W$2:$W$7"},
+        {sqref:`L${dataStartRow}:L${sec3End}`,formula1:"$X$2:$X$6"},
+        {sqref:`M${dataStartRow}:M${sec3End}`,formula1:"$Y$2:$Y$6"},
       ]
     });
+
     const set=(ref,val,style)=>xb.setCell(sheet,ref,val,style);
     const hdr={font:{bold:true,color:C.white},fill:C.headerBg,align:{horizontal:"center",vertical:"center",wrapText:true}};
-    const dataStyle={align:{wrapText:true}};
+    const ds={align:{wrapText:true}};
 
-    // ── Fila 1: Título ──
     set("A1","STEM CELL CLINIC COLOMBIA - DAILY ACTIVITY REPORT",{font:{bold:true,size:14,color:C.white},fill:C.titleBg,align:{horizontal:"center",vertical:"center",wrapText:true}});
 
-    // ── Fila 2: Info ──
-    const infoStyle={font:{bold:true},fill:C.infoBg};
-    set("A2","Report Date:",infoStyle);set("B2",data.reportDate,infoStyle);set("C2","",infoStyle);
-    set("D2","Prepared By:",infoStyle);set("E2",data.preparedBy,infoStyle);set("F2","",infoStyle);
-    set("G2","Department:",infoStyle);set("H2","Stem Cell Clinic - Colombia",infoStyle);
-    set("I2","Period:",infoStyle);set("J2",data.periodLabel,infoStyle);
+    const inf={font:{bold:true},fill:C.infoBg};
+    set("A2","Report Date:",inf);set("B2",data.reportDate,inf);set("C2","",inf);
+    set("D2","Prepared By:",inf);set("E2",data.preparedBy,inf);set("F2","",inf);
+    set("G2","Department:",inf);set("H2","Stem Cell Clinic - Colombia",inf);
+    set("I2","Period:",inf);set("J2",data.periodLabel,inf);
 
-    // ── Fila 4: Sección 1 header ──
     set("A4","1. DAILY MANAGEMENT SUMMARY",{font:{bold:true,color:C.white},fill:C.sec1Bg,align:{horizontal:"left",wrapText:true}});
 
-    // ── Fila 5: Headers sección 1 (A-E) y sección 2 (G-K) ──
-    ["Activity / KPI","English International","Spanish International","Local Colombia","Total"].forEach((t,i)=>set(`${"ABCDE"[i]}5`,t,{...hdr,border:{right:i===4?null:thin,bottom:thin,left:i===0?null:thin}}));
+    ["Activity / KPI","English International","Spanish International","Local Colombia","Total"].forEach((t,i)=>
+      set(`${"ABCDE"[i]}5`,t,{...hdr}));
+
     set("G5","2. LEAD SOURCE & CAMPAIGN SUMMARY",{font:{bold:true,color:C.white},fill:C.sec2Bg,align:{wrapText:true}});
-    ["Lead Source / Campaign","English Int.","Spanish Int.","Local Colombia","Total"].forEach((t,i)=>set(`${"GHIJK"[i]}6`,t,{...hdr,border:{right:i===4?null:thin,bottom:thin,left:i===0?null:thin}}));
+    ["Lead Source / Campaign","English Int.","Spanish Int.","Local Colombia","Total"].forEach((t,i)=>
+      set(`${"GHIJK"[i]}6`,t,{...hdr}));
 
-    // ── Filas 7-18: Datos sección 1 con KPIs CORREGIDOS ──
-    [
-      ["New Patients / Leads",data.kpi.newLeads],
-      ["Callbacks",data.kpi.callbacks],
-      ["Scheduled Appointments",data.kpi.scheduledCalls],
-      ["Scheduled for Today",data.kpi.scheduledToday],
-      ["Calls Completed",data.kpi.callsCompleted],
-      ["No Shows",data.kpi.noShows],
-      ["Awaiting Medical Reports",data.kpi.awaitingMedical],
-      ["Awaiting Treatment Proposal",data.kpi.awaitingProposal],
-      ["Treatment Proposals Sent",data.kpi.proposalsSent],
-      ["Proposals Accepted",data.kpi.proposalsAccepted],
-      ["Treatment Confirmed",data.kpi.treatmentConfirmed],
-      ["Treatments Done",data.kpi.treatmentsDone]
-    ].forEach(([label,vals],i)=>{
-      const r=7+i,isLast=i===11;
-      set(`A${r}`,label,{...dataStyle,border:{right:thin,top:thin,bottom:isLast?null:thin}});
-      set(`B${r}`,vals[0]||0,{...dataStyle,border:{left:thin,right:thin,top:thin,bottom:isLast?null:thin}});
-      set(`C${r}`,vals[1]||0,{...dataStyle,border:{left:thin,right:thin,top:thin,bottom:isLast?null:thin}});
-      set(`D${r}`,vals[2]||0,{...dataStyle,border:{left:thin,right:thin,top:thin,bottom:isLast?null:thin}});
-      set(`E${r}`,{f:`SUM(B${r}:D${r})`},{...dataStyle,border:{left:thin,top:thin,bottom:isLast?null:thin}});
-    });
-
-    // ── Filas 7-15: Datos sección 2 ──
-    ["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral"].forEach((src,i)=>{
-      const r=7+i,v=data.bySource[src]||[0,0,0];
-      set(`G${r}`,src,{...dataStyle,border:{right:thin,top:thin,bottom:thin}});
-      set(`H${r}`,v[0]||0,{...dataStyle,border:allBorder});
-      set(`I${r}`,v[1]||0,{...dataStyle,border:allBorder});
-      set(`J${r}`,v[2]||0,{...dataStyle,border:allBorder});
-      set(`K${r}`,{f:`SUM(H${r}:J${r})`},{...dataStyle,border:{left:thin,top:thin,bottom:thin}});
-    });
-    set("G16","Total New Leads",{font:{bold:true},border:{top:thin,right:thin}});
-    set("H16",{f:"SUM(H7:H15)"},{});
-    set("I16",{f:"SUM(I7:I15)"},{border:{left:thin,right:thin,top:thin}});
-    set("J16",{f:"SUM(J7:J15)"},{border:{left:thin,right:thin,top:thin}});
-    set("K16",{f:"SUM(K7:K15)"},{border:{left:thin,top:thin}});
-
-    // ── Fila 19: Separador (fila vacía) ──
-    
-    // ── Fila 20: Sección 3 header ──
-    set("A20","3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});
-
-    // ── Fila 21: Headers sección 3 ──
-    const sec3Headers = [
-      "Patient Name","Language","Pipeline","Lead Source","Campaign",
-      "Coordinator / Staff","Doctor",
-      "Paid Online Consult","Paid In-Person Consult",
-      "Treatment Proposal","Proposal Status","Treatment Status",
-      "Medical Report Status","Next Step / Remarks","Contact / CRM ID"
+    const kpiRows=[
+      ["New Patients / Leads",              data.kpi.newLeads],
+      ["Scheduled Appointments",            data.kpi.ScheduledAppointments],
+      ["Scheduled Appts. for Today",        data.kpi.scheduledToday],
+      ["Appointments Attended",             data.kpi.AppointmentsAttended],
+      ["No Shows",                          data.kpi.noShows],
+      ["Awaiting Medical Reports",          data.kpi.awaitingMedical],
+      ["Treatment Proposals Sent",          data.kpi.proposalsSent],
+      ["Proposals Accepted",                data.kpi.proposalsAccepted],
+      ["Treatment Confirmed",               data.kpi.treatmentConfirmed],
+      ["Treatments Done",                   data.kpi.treatmentsDone],
     ];
-    sec3Headers.forEach((h,i)=>set(`${XlsxBuilder.colName(i)}21`,h,hdr));
+    kpiRows.forEach(([label,vals],i)=>{
+      const r=7+i;
+      set(`A${r}`,label,{...ds,border:{right:thin,top:thin,bottom:thin}});
+      set(`B${r}`,vals[0]||0,{...ds,border:allBorder});
+      set(`C${r}`,vals[1]||0,{...ds,border:allBorder});
+      set(`D${r}`,vals[2]||0,{...ds,border:allBorder});
+      set(`E${r}`,{f:`SUM(B${r}:D${r})`},{...ds,border:allBorder});
+    });
 
-    // ── Filas 22+: Datos sección 3 (TODOS los leads filtrados) ──
-    for(let rr=22; rr<=sec3End; rr++){
-      const p=data.patients[rr-22];
+    ["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Direct Social Media","Walk-in Colombia","Referral"].forEach((src,i)=>{
+    const r=7+i,v=data.bySource[src]||[0,0,0];
+    set(`G${r}`,src,{...ds,border:{right:thin,top:thin,bottom:thin,left:thin}});
+    set(`H${r}`,v[0]||0,{...ds,border:allBorder});
+    set(`I${r}`,v[1]||0,{...ds,border:allBorder});
+    set(`J${r}`,v[2]||0,{...ds,border:allBorder});
+    set(`K${r}`,{f:`SUM(H${r}:J${r})`},{...ds,border:allBorder});
+    });
+    set("G16","Total New Leads",{font:{bold:true},border:{top:thin,right:thin,bottom:thin,left:thin}});
+    set("H16",{f:"SUM(H7:H15)"},{font:{bold:true},border:allBorder});
+    set("I16",{f:"SUM(I7:I15)"},{font:{bold:true},border:allBorder});
+    set("J16",{f:"SUM(J7:J15)"},{font:{bold:true},border:allBorder});
+    set("K16",{f:"SUM(K7:K15)"},{font:{bold:true},border:allBorder});
+
+    set("A18","3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});
+
+    const sec3H=["Patient Name","Language","Pipeline","Lead Source","Campaign",
+      "Coordinator / Staff","Doctor","Paid Online Consult","Paid In-Person Consult",
+      "Treatment Proposal","Proposal Status","Treatment Status",
+      "Medical Report Status","Next Step / Remarks","Contact / CRM ID"];
+    sec3H.forEach((h,i)=>set(`${XlsxBuilder.colName(i)}19`,h,hdr));
+
+    for(let rr=dataStartRow;rr<=sec3End;rr++){
+      const p=data.patients[rr-dataStartRow];
       for(let ci=0;ci<15;ci++){
         const col=XlsxBuilder.colName(ci);
-        const colLetter=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"][ci];
-        set(`${col}${rr}`,p?p[colLetter]||"":"",{...dataStyle,border:allBorder});
+        const key=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"][ci];
+        set(`${col}${rr}`,p?p[key]||"":"",{...ds,border:allBorder});
       }
     }
 
-    // ── Sección 4: Doctor-wise performance ──
     set(`A${sec4Start}`,"4. DOCTOR-WISE DAILY PERFORMANCE",{font:{bold:true,color:C.white},fill:C.sec4Bg,align:{wrapText:true}});
-    ["Doctor","Discovery Calls","Medilink Calls","Online Consults","In-Person Consults","Proposals Sent","Treatments Done","Notes"].forEach((h,i)=>
-      set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`,h,{...hdr,fill:C.headerBg})
-    );
+    ["Doctor","Scheduled Appts.","Appts. Attended","Online Consults","In-Person Consults","Proposals Sent","Treatments Done","Notes"].forEach((h,i)=>
+      set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`,h,{...hdr}));
+    
     for(let i=0;i<3;i++){
       const rr=sec4DataStart+i,doc=data.doctors[i]||[""];
       set(`A${rr}`,doc[0]||"",{border:allBorder});
       ["B","C","D","E","F","G","H"].forEach(col=>set(`${col}${rr}`,doc[1]&&col!=="H"?doc[1][col]||"":"",{border:allBorder}));
     }
-    set(`A${sec4TotalRow}`,"Total",{border:allBorder});
-    ["B","C","D","E","F","G"].forEach(col=>set(`${col}${sec4TotalRow}`,{f:`SUM(${col}${sec4DataStart}:${col}${sec4DataStart+2})`},{border:allBorder}));
+    set(`A${sec4TotalRow}`,"Total",{font:{bold:true},border:allBorder});
+    ["B","C","D","E","F","G"].forEach(col=>set(`${col}${sec4TotalRow}`,{f:`SUM(${col}${sec4DataStart}:${col}${sec4DataStart+2})`},{font:{bold:true},border:allBorder}));
     set(`H${sec4TotalRow}`,"",{border:allBorder});
 
-    // ── Listas de validación (columna Q en adelante) ──
     const lists={
       Q:["Language","English","Spanish"],
       R:["Market","International","Local Colombia"],
       S:["Lead Source","Website","Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral"],
-      T:["Campaign","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Organic Website","Social Media Campaign","Email Campaign","Referral"],
-      U:["Doctor","Dr. Camilo White","Dr. Sandra Fernandez"],
+      T:["Campaign","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Organic Website"],
+      U:["Doctor","Dra. Sandra Fernandez","Dr. Camilo White","Dr. 3"],
       V:["Call Status","Booked","Completed","No Show","Rescheduled","Cancelled","Pending","Not Applicable"],
       W:["Proposal Status","Not Sent","Sent","Accepted","Rejected","Pending Decision","Follow-up Required"],
       X:["Treatment Status","Not Confirmed","Confirmed","Scheduled","Done","Cancelled"],
       Y:["Medical Report Status","Not Required","Awaiting Medical Report","Received","Reviewed","Incomplete"],
     };
-    const listsHdrStyle={font:{bold:true},fill:"D9EAD3"};
+    const lhdr={font:{bold:true},fill:"D9EAD3"};
     for(const col in lists){
       const items=lists[col];
-      set(`${col}1`,items[0],listsHdrStyle);
+      set(`${col}1`,items[0],lhdr);
       items.slice(1).forEach((v,i)=>set(`${col}${2+i}`,v));
     }
 
     return xb.build();
   }
 
+  // ══════════════════════════════════════════════════════
+  // XLSXBUILDER + ZIP
+  // ══════════════════════════════════════════════════════
   function styleKey(s){return JSON.stringify(s);}
-  class XlsxBuilder {
+  class XlsxBuilder{
     constructor(){this.sharedStrings=[];this.sharedStringsMap=new Map();this.fonts=[{name:'Carlito',size:11,bold:false,color:null}];this.fontsMap=new Map([[styleKey(this.fonts[0]),0]]);this.fills=[{patternType:'none'},{patternType:'gray125'}];this.fillsMap=new Map([[styleKey(this.fills[0]),0],[styleKey(this.fills[1]),1]]);this.borders=[{}];this.bordersMap=new Map([[styleKey({}),0]]);this.styles=[{fontId:0,fillId:0,borderId:0,numFmtId:0,align:{horizontal:null,vertical:null,wrapText:true}}];this.stylesMap=new Map([[styleKey(this.styles[0]),0]]);this.numFmts=[];this.nextNumFmtId=164;this.sheets=[];}
     _sid(text){const s=String(text==null?'':text);if(this.sharedStringsMap.has(s))return this.sharedStringsMap.get(s);const id=this.sharedStrings.length;this.sharedStrings.push(s);this.sharedStringsMap.set(s,id);return id;}
     _fontId(font){const f={name:font.name||'Carlito',size:font.size||11,bold:!!font.bold,color:font.color||null};const k=styleKey(f);if(this.fontsMap.has(k))return this.fontsMap.get(k);const id=this.fonts.length;this.fonts.push(f);this.fontsMap.set(k,id);return id;}
@@ -3776,10 +3872,48 @@ window.anExportXlsx = function() {
     _borderId(border){const b=border||{};const norm={left:b.left||null,right:b.right||null,top:b.top||null,bottom:b.bottom||null};const k=styleKey(norm);if(this.bordersMap.has(k))return this.bordersMap.get(k);const id=this.borders.length;this.borders.push(norm);this.bordersMap.set(k,id);return id;}
     _numFmtId(code){if(!code)return 0;const ex=this.numFmts.find(n=>n.code===code);if(ex)return ex.id;const id=this.nextNumFmtId++;this.numFmts.push({id,code});return id;}
     _styleId(style){const fontId=this._fontId(style.font||{});const fillId=this._fillId(style.fill);const borderId=this._borderId(style.border);const numFmtId=this._numFmtId(style.numFmt);const align=style.align!==undefined?style.align:{horizontal:null,vertical:null,wrapText:true};const full={fontId,fillId,borderId,numFmtId,align};const k=styleKey(full);if(this.stylesMap.has(k))return this.stylesMap.get(k);const id=this.styles.length;this.styles.push(full);this.stylesMap.set(k,id);return id;}
-    addSheet({name,colWidths={},rowHeights={},merges=[],dataValidations=[],freezePanes=null}){const sheet={name,cells:{},colWidths,rowHeights,merges,dataValidations,freezePanes};this.sheets.push(sheet);return sheet;}
-    setCell(sheet,ref,value,style){const sId=style?this._styleId(style):0;let cell;if(value&&typeof value==='object'&&'f' in value){cell={f:value.f,s:sId};}else if(typeof value==='number'){cell={v:value,t:'n',s:sId};}else if(value==null||value===''){cell={s:sId};}else{cell={v:this._sid(value),t:'s',s:sId};}sheet.cells[ref]=cell;}
+    addSheet({name,colWidths={},rowHeights={},merges=[],dataValidations=[]}){const sheet={name,cells:{},colWidths,rowHeights,merges,dataValidations};this.sheets.push(sheet);return sheet;}
+    setCell(sheet,ref,value,style){const sId=style?this._styleId(style):0;let cell;if(value&&typeof value==='object'&&'f' in value){cell={f:value.f,s:sId};}else if(typeof value==='number'){cell={v:value,t:'n',s:sId};}else if(value==null||value==''){cell={s:sId};}else{cell={v:this._sid(value),t:'s',s:sId};}sheet.cells[ref]=cell;}
     static colName(n){let r='';let x=n;do{r=String.fromCharCode(65+(x%26))+r;x=Math.floor(x/26)-1;}while(x>=0);return r;}
-    build(){const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const fontsXml=`<fonts count="${this.fonts.length}">${this.fonts.map(f=>{let s='<font>';if(f.bold)s+='<b/>';s+=`<sz val="${f.size}"/>`;if(f.color)s+=`<color rgb="FF${f.color.replace('#','').toUpperCase()}"/>`;s+=`<name val="${esc(f.name)}"/>`;s+='</font>';return s;}).join('')}</fonts>`;const fillsXml=`<fills count="${this.fills.length}">${this.fills.map(f=>{if(f.patternType==='none')return '<fill><patternFill patternType="none"/></fill>';if(f.patternType==='gray125')return '<fill><patternFill patternType="gray125"/></fill>';return `<fill><patternFill patternType="solid"><fgColor rgb="FF${f.fgColor.replace('#','').toUpperCase()}"/><bgColor indexed="64"/></patternFill></fill>`;}).join('')}</fills>`;const bordersXml=`<borders count="${this.borders.length}">${this.borders.map(b=>{const mk=(side)=>b[side]?`<${side} style="${b[side]}"><color indexed="64"/></${side}>`:`<${side}/>`;return `<border>${mk('left')}${mk('right')}${mk('top')}${mk('bottom')}<diagonal/></border>`;}).join('')}</borders>`;const cellXfsXml=`<cellXfs count="${this.styles.length}">${this.styles.map(s=>{const a=s.align;let ax='';if(a&&(a.horizontal||a.vertical||a.wrapText)){const at=[];if(a.horizontal)at.push(`horizontal="${a.horizontal}"`);if(a.vertical)at.push(`vertical="${a.vertical}"`);if(a.wrapText)at.push('wrapText="1"');ax=`<alignment ${at.join(' ')}/>`;}return `<xf numFmtId="${s.numFmtId}" fontId="${s.fontId}" fillId="${s.fillId}" borderId="${s.borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" ${s.numFmtId?'applyNumberFormat="1"':''} ${ax?'applyAlignment="1"':''}>${ax}</xf>`;}).join('')}</cellXfs>`;const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fontsXml}${fillsXml}${bordersXml}<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>${cellXfsXml}<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;const sst=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${this.sharedStrings.length}" uniqueCount="${this.sharedStrings.length}">${this.sharedStrings.map(s=>`<si><t xml:space="preserve">${esc(s)}</t></si>`).join('')}</sst>`;const worksheets=this.sheets.map((sheet)=>{const rowsMap={};for(const ref in sheet.cells){const m=ref.match(/^([A-Z]+)(\d+)$/);const rr=parseInt(m[2],10);if(!rowsMap[rr])rowsMap[rr]=[];rowsMap[rr].push({ref,col:m[1],...sheet.cells[ref]});}const colIndex=(colStr)=>{let n=0;for(let i=0;i<colStr.length;i++)n=n*26+(colStr.charCodeAt(i)-64);return n-1;};const maxRow=Math.max(0,...Object.keys(rowsMap).map(Number));let sheetData='';for(let rr=1;rr<=maxRow;rr++){const cells=(rowsMap[rr]||[]).sort((a,b)=>colIndex(a.col)-colIndex(b.col));if(!cells.length)continue;const rh=sheet.rowHeights[rr]?` ht="${sheet.rowHeights[rr]}" customHeight="1"`:'';let rowXml=`<row r="${rr}"${rh}>`;for(const c of cells){if('f' in c)rowXml+=`<c r="${c.ref}" s="${c.s}"><f>${esc(c.f)}</f></c>`;else if(c.t==='n')rowXml+=`<c r="${c.ref}" s="${c.s}"><v>${c.v}</v></c>`;else if(c.t==='s')rowXml+=`<c r="${c.ref}" s="${c.s}" t="s"><v>${c.v}</v></c>`;else rowXml+=`<c r="${c.ref}" s="${c.s}"/>`;}rowXml+='</row>';sheetData+=rowXml;}const colsXml=Object.keys(sheet.colWidths).length?`<cols>${Object.entries(sheet.colWidths).map(([col,width])=>{const idx=colIndex(col)+1;return `<col min="${idx}" max="${idx}" width="${width}" customWidth="1"/>`;}).join('')}</cols>`:'';const mergesXml=sheet.merges.length?`<mergeCells count="${sheet.merges.length}">${sheet.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:'';const dvXml=sheet.dataValidations.length?`<dataValidations count="${sheet.dataValidations.length}">${sheet.dataValidations.map(dv=>`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${dv.sqref}"><formula1>${esc(dv.formula1)}</formula1></dataValidation>`).join('')}</dataValidations>`:'';return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews>${colsXml}<sheetData>${sheetData}</sheetData>${mergesXml}${dvXml}</worksheet>`;});const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${this.sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${this.sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${this.sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${this.sheets.length+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`;const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${this.sheets.map((s,i)=>`<sheet name="${esc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`;const files=[{name:'[Content_Types].xml',data:ct},{name:'_rels/.rels',data:rootRels},{name:'xl/_rels/workbook.xml.rels',data:wbRels},{name:'xl/workbook.xml',data:wb},{name:'xl/styles.xml',data:styles},{name:'xl/sharedStrings.xml',data:sst},...worksheets.map((xml,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:xml}))];return makeZip(files);}
+    build(){
+      const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const fontsXml=`<fonts count="${this.fonts.length}">${this.fonts.map(f=>{let s='<font>';if(f.bold)s+='<b/>';s+=`<sz val="${f.size}"/>`;if(f.color)s+=`<color rgb="FF${f.color.replace('#','').toUpperCase()}"/>`;s+=`<name val="${esc(f.name)}"/>`;s+='</font>';return s;}).join('')}</fonts>`;
+      const fillsXml=`<fills count="${this.fills.length}">${this.fills.map(f=>{if(f.patternType==='none')return '<fill><patternFill patternType="none"/></fill>';if(f.patternType==='gray125')return '<fill><patternFill patternType="gray125"/></fill>';return `<fill><patternFill patternType="solid"><fgColor rgb="FF${f.fgColor.replace('#','').toUpperCase()}"/><bgColor indexed="64"/></patternFill></fill>`;}).join('')}</fills>`;
+      const bordersXml=`<borders count="${this.borders.length}">${this.borders.map(b=>{const mk=side=>b[side]?`<${side} style="${b[side]}"><color indexed="64"/></${side}>`:`<${side}/>`;return `<border>${mk('left')}${mk('right')}${mk('top')}${mk('bottom')}<diagonal/></border>`;}).join('')}</borders>`;
+      const cellXfsXml=`<cellXfs count="${this.styles.length}">${this.styles.map(s=>{const a=s.align;let ax='';if(a&&(a.horizontal||a.vertical||a.wrapText)){const at=[];if(a.horizontal)at.push(`horizontal="${a.horizontal}"`);if(a.vertical)at.push(`vertical="${a.vertical}"`);if(a.wrapText)at.push('wrapText="1"');ax=`<alignment ${at.join(' ')}/>`;}return `<xf numFmtId="${s.numFmtId}" fontId="${s.fontId}" fillId="${s.fillId}" borderId="${s.borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" ${s.numFmtId?'applyNumberFormat="1"':''} ${ax?'applyAlignment="1"':''}>${ax}</xf>`;}).join('')}</cellXfs>`;
+      const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fontsXml}${fillsXml}${bordersXml}<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>${cellXfsXml}<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+      const sst=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${this.sharedStrings.length}" uniqueCount="${this.sharedStrings.length}">${this.sharedStrings.map(s=>`<si><t xml:space="preserve">${esc(s)}</t></si>`).join('')}</sst>`;
+      const worksheets=this.sheets.map(sheet=>{
+        const rowsMap={};
+        for(const ref in sheet.cells){const m=ref.match(/^([A-Z]+)(\d+)$/);const rr=parseInt(m[2],10);if(!rowsMap[rr])rowsMap[rr]=[];rowsMap[rr].push({ref,col:m[1],...sheet.cells[ref]});}
+        const colIndex=colStr=>{let n=0;for(let i=0;i<colStr.length;i++)n=n*26+(colStr.charCodeAt(i)-64);return n-1;};
+        const maxRow=Math.max(0,...Object.keys(rowsMap).map(Number));
+        let sheetData='';
+        for(let rr=1;rr<=maxRow;rr++){
+          const cells=(rowsMap[rr]||[]).sort((a,b)=>colIndex(a.col)-colIndex(b.col));
+          if(!cells.length)continue;
+          const rh=sheet.rowHeights[rr]?` ht="${sheet.rowHeights[rr]}" customHeight="1"`:'';
+          let rowXml=`<row r="${rr}"${rh}>`;
+          for(const c of cells){
+            if('f' in c)rowXml+=`<c r="${c.ref}" s="${c.s}"><f>${esc(c.f)}</f></c>`;
+            else if(c.t==='n')rowXml+=`<c r="${c.ref}" s="${c.s}"><v>${c.v}</v></c>`;
+            else if(c.t==='s')rowXml+=`<c r="${c.ref}" s="${c.s}" t="s"><v>${c.v}</v></c>`;
+            else rowXml+=`<c r="${c.ref}" s="${c.s}"/>`;
+          }
+          rowXml+='</row>';sheetData+=rowXml;
+        }
+        const colsXml=Object.keys(sheet.colWidths).length?`<cols>${Object.entries(sheet.colWidths).map(([col,width])=>{const idx=colIndex(col)+1;return `<col min="${idx}" max="${idx}" width="${width}" customWidth="1"/>`;}).join('')}</cols>`:'';
+        const mergesXml=sheet.merges.length?`<mergeCells count="${sheet.merges.length}">${sheet.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:'';
+        const dvXml=sheet.dataValidations.length?`<dataValidations count="${sheet.dataValidations.length}">${sheet.dataValidations.map(dv=>`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${dv.sqref}"><formula1>${esc(dv.formula1)}</formula1></dataValidation>`).join('')}</dataValidations>`:'';
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews>${colsXml}<sheetData>${sheetData}</sheetData>${mergesXml}${dvXml}</worksheet>`;
+      });
+      const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${this.sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+      const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+      const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${this.sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${this.sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${this.sheets.length+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`;
+      const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${this.sheets.map((s,i)=>`<sheet name="${esc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`;
+      const files=[{name:'[Content_Types].xml',data:ct},{name:'_rels/.rels',data:rootRels},{name:'xl/_rels/workbook.xml.rels',data:wbRels},{name:'xl/workbook.xml',data:wb},{name:'xl/styles.xml',data:styles},{name:'xl/sharedStrings.xml',data:sst},...worksheets.map((xml,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:xml}))];
+      return makeZip(files);
+    }
   }
 
   function makeZip(files){const enc=new TextEncoder();const parts=[];const cd=[];let off=0;for(const{name,data}of files){const nb=enc.encode(name),db=typeof data==="string"?enc.encode(data):data,c=crc32(db),s=db.length;const lh=new Uint8Array(30+nb.length);const lv=new DataView(lh.buffer);lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(8,0,true);lv.setUint32(14,c,true);lv.setUint32(18,s,true);lv.setUint32(22,s,true);lv.setUint16(26,nb.length,true);lh.set(nb,30);parts.push(lh,db);const cr=new Uint8Array(46+nb.length);const cv=new DataView(cr.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint32(16,c,true);cv.setUint32(20,s,true);cv.setUint32(24,s,true);cv.setUint16(28,nb.length,true);cv.setUint32(42,off,true);cr.set(nb,46);cd.push(cr);off+=30+nb.length+s;}const cdb=concat(cd),csz=cdb.length,coff=off;const eocd=new Uint8Array(22);const ev=new DataView(eocd.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);ev.setUint32(12,csz,true);ev.setUint32(16,coff,true);return concat([...parts,cdb,eocd]);}
@@ -3787,29 +3921,27 @@ window.anExportXlsx = function() {
   function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++){c^=bytes[i];for(let j=0;j<8;j++)c=(c&1)?(c>>>1)^0xEDB88320:c>>>1;}return(c^0xFFFFFFFF)>>>0;}
   function bytesToBase64(bytes){let b="";for(let i=0;i<bytes.length;i++)b+=String.fromCharCode(bytes[i]);return btoa(b);}
 
-  // ── Hook switchMainView ──────────────────────────────────────────
-  const _orig = window.switchMainView;
-  window.switchMainView = function(view, btn) {
-    if (view === "analytics") {
+  // ── Hook switchMainView ──
+  const _orig=window.switchMainView;
+  window.switchMainView=function(view,btn){
+    if(view==="analytics"){
       document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));
       document.querySelectorAll(".main-tab").forEach(b=>b.classList.remove("active"));
       document.getElementById("view-analytics")?.classList.add("active");
-      if (btn) btn.classList.add("active");
+      if(btn)btn.classList.add("active");
       renderAnalytics();
-    } else {
-      _orig(view, btn);
-    }
+    }else{_orig(view,btn);}
   };
 
-  // ── Init ─────────────────────────────────────────────────────────
-  waitForApp(() => {
-    const _origInit = window.iniciarApp;
-    window.iniciarApp = function() {
+  // ── Init ──
+  waitForApp(()=>{
+    const _origInit=window.iniciarApp;
+    window.iniciarApp=function(){
       _origInit();
       injectTab();
       injectView();
     };
-    if (document.getElementById("app").style.display !== "none") {
+    if(document.getElementById("app").style.display!=="none"){
       injectTab();
       injectView();
     }
