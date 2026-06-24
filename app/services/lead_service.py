@@ -829,7 +829,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
     else:
         raise ValueError("Rol no autorizado")
 
-    # ══════════════════════════════════════════════════════════════
+        # ══════════════════════════════════════════════════════════════
     # ✅ FLAGS DE EMBUDO (NUNCA SE DESACTIVAN)
     # ══════════════════════════════════════════════════════════════
     
@@ -840,7 +840,7 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
             updates["fecha_primer_contacto"] = now.strftime("%Y-%m-%d")
     
     # Cita asistida - también activa evaluacion_realizada
-    if updates.get("appointment_status") == "Attended":
+    if updates.get("appointment_status") in ("Attended", "Completed", "completed"):
         updates["cita_asistida"] = True
         updates["evaluacion_realizada"] = True
         if not lead.get("fecha_cita_asistida"):
@@ -848,12 +848,18 @@ def update_lead_status(conn, lead_id: int, usuario_id: int, data):
         if not lead.get("fecha_evaluacion"):
             updates["fecha_evaluacion"] = now.strftime("%Y-%m-%d")
     
-    # Propuesta enviada - solo si ya asistió
+    # Propuesta enviada - SIEMPRE que el doctor envíe propuesta
     if updates.get("sales_status") == "Treatment Proposal Sent" or updates.get("medical_status") == "Treatment Proposal Sent":
-        if lead.get("cita_asistida") or updates.get("cita_asistida"):
-            updates["propuesta_enviada"] = True
-            if not lead.get("fecha_propuesta_enviada"):
-                updates["fecha_propuesta_enviada"] = now.strftime("%Y-%m-%d")
+        updates["propuesta_enviada"] = True
+        if not lead.get("cita_asistida"):
+            updates["cita_asistida"] = True
+            updates["evaluacion_realizada"] = True
+        if not lead.get("fecha_propuesta_enviada"):
+            updates["fecha_propuesta_enviada"] = now.strftime("%Y-%m-%d")
+        if not lead.get("fecha_cita_asistida"):
+            updates["fecha_cita_asistida"] = now.strftime("%Y-%m-%d")
+        if not lead.get("fecha_evaluacion"):
+            updates["fecha_evaluacion"] = now.strftime("%Y-%m-%d")
     
     # Propuesta aceptada - solo si ya asistió
     if updates.get("treatment_confirmed") is True:

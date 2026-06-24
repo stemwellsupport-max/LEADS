@@ -127,7 +127,8 @@ def limpiar_notificaciones_por_estado(conn, lead_id):
         tipos_a_limpiar.append(NOTIF_CITA_NO_SHOW)
     if appointment_status and appointment_status != "Canceled":
         tipos_a_limpiar.extend([NOTIF_CITA_CANCELADA, NOTIF_TRATAMIENTO_CANCELADO])
-        # REGLA ADICIONAL: Si el asesor ya movió el lead a otro estado 
+    
+    # REGLA ADICIONAL: Si el asesor ya movió el lead a otro estado 
     # (No Answer, Callback, etc.) → limpiar notificaciones de No Show/Cancel
     if sales_status in ("No Answer", "Callback", "First Contact", "New Lead", "Scheduled Appointment"):
         tipos_a_limpiar.extend([
@@ -272,23 +273,16 @@ def detectar_citas_no_show(conn):
     return creadas
 
 def detectar_citas_canceladas(conn):
-    """
-    Detecta leads con appointment_status 'Canceled'.
-    SOLO notifica si el sales_status es 'Cancelled Appointment'.
-    """
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT l.id, l.nombre, l.asesor_id
-        FROM leads l
-        WHERE l.appointment_status = 'Canceled'
-          AND l.asesor_id IS NOT NULL
-          AND l.sales_status = 'Cancelled Appointment'  -- ← SOLO si sigue en Cancelled
-          AND l.sales_status NOT IN ('Lost', 'Won')
-    """)
-    leads = cur.fetchall()
-    cur.close()
-
-    # ... resto igual ...
+    cur=conn.cursor()
+    cur.execute("SELECT l.id,l.nombre,l.asesor_id FROM leads l WHERE l.appointment_status='Canceled' AND l.asesor_id IS NOT NULL AND l.sales_status NOT IN ('Lost','Won')")
+    leads=cur.fetchall(); cur.close()
+    creadas=0
+    for l in leads:
+        lid,nombre,aid=l
+        if not notificacion_existe(conn,lid,NOTIF_CITA_CANCELADA,aid):
+            if crear_notificacion(conn,lid,NOTIF_CITA_CANCELADA,"❌ Cita cancelada",f"❌ La cita de {nombre} fue cancelada. Contacta al paciente.",aid,nombre): creadas+=1
+    if creadas>0: print(f"   📋 [ASESOR] Canceladas: {creadas}")
+    return creadas
 
 def detectar_treatment_confirmed_pendientes(conn):
     cur=conn.cursor()
