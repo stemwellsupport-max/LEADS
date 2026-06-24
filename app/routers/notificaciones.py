@@ -9,6 +9,7 @@ from app.services.notification_service import (
     contar_pendientes,
     resolver_notificacion,
     resolver_todas,
+    resolver_notificaciones_por_tipo,
     detectar_y_crear_notificaciones,
     diagnosticar_asignaciones
 )
@@ -30,15 +31,65 @@ def _get_conn():
     )
 
 
+# Tipos de notificaciones que deben eliminarse en cascada
+TIPOS_RELACIONADOS = {
+    'cita_no_show': [
+        'cita_no_show', 'cita_cancelada', 'cita_vencida_doctor',
+        'tratamiento_cancelado', 'lead_devuelto_asesor'
+    ],
+    'cita_cancelada': [
+        'cita_no_show', 'cita_cancelada', 'cita_vencida_doctor',
+        'tratamiento_cancelado', 'lead_devuelto_asesor'
+    ],
+    'tratamiento_cancelado': [
+        'tratamiento_cancelado', 'cita_cancelada', 'cita_no_show',
+        'lead_devuelto_asesor'
+    ],
+    'lead_devuelto_asesor': [
+        'lead_devuelto_asesor', 'cita_no_show', 'cita_cancelada',
+        'tratamiento_cancelado'
+    ],
+    'cita_vencida_doctor': [
+        'cita_vencida_doctor', 'cita_no_show', 'cita_cancelada'
+    ],
+    'pending_evaluation_vencida': [
+        'pending_evaluation_vencida', 'cita_vencida_doctor'
+    ],
+    'treatment_proposal_sin_respuesta': [
+        'treatment_proposal_sin_respuesta'
+    ],
+    'treatment_confirmed_pendiente': [
+        'treatment_confirmed_pendiente'
+    ],
+    'callback_pendiente': [
+        'callback_pendiente', 'llamada_pendiente'
+    ],
+    'llamada_pendiente': [
+        'callback_pendiente', 'llamada_pendiente'
+    ],
+}
+
+
+from datetime import datetime, timedelta
+
+_ULTIMA_DETECCION = None
+
 @router.get("")
 def obtener_notificaciones(usuario_id: int, solo_pendientes: bool = Query(True)):
-    """Lista notificaciones del usuario."""
+    global _ULTIMA_DETECCION
+    
     conn = _get_conn()
     try:
-        nuevas = detectar_y_crear_notificaciones(conn)
+        ahora = datetime.now()
+        
+        # Solo detectar cada 5 minutos
+        if _ULTIMA_DETECCION is None or (ahora - _ULTIMA_DETECCION) > timedelta(minutes=5):
+            detectar_y_crear_notificaciones(conn)
+            _ULTIMA_DETECCION = ahora
+        
         notifs = listar_notificaciones(conn, usuario_id, solo_pendientes)
         pendientes = contar_pendientes(conn, usuario_id)
-        return {"notificaciones": notifs, "pendientes": pendientes, "nuevas_creadas": nuevas}
+        return {"notificaciones": notifs, "pendientes": pendientes, "nuevas_creadas": 0}
     except Exception as e:
         raise HTTPException(500, f"Error: {str(e)}")
     finally:
@@ -47,30 +98,67 @@ def obtener_notificaciones(usuario_id: int, solo_pendientes: bool = Query(True))
 
 @router.put("/{notificacion_id}/resolver")
 def resolver_una_notificacion(notificacion_id: int, data: dict):
-    """Marca una notificación como resuelta."""
+    """
+    Elimina una notificación y sus relacionadas del mismo lead.
+    """
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         raise HTTPException(400, "usuario_id es obligatorio")
+    
     conn = _get_conn()
     try:
+        # Obtener info de la notificación antes de eliminarla
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT lead_id, tipo FROM notificaciones WHERE id=%s AND usuario_id=%s",
+            (notificacion_id, usuario_id)
+        )
+        row = cur.fetchone()
+        cur.close()
+        
+        if not row:
+            raise HTTPException(404, "Notificación no encontrada")
+        
+        lead_id, tipo = row[0], row[1]
+        
+        # Eliminar la notificación específica
         ok = resolver_notificacion(conn, notificacion_id, usuario_id)
+        
+        # Eliminar notificaciones relacionadas del mismo lead
+        eliminadas_extra = 0
+        if tipo in TIPOS_RELACIONADOS:
+            eliminadas_extra = resolver_notificaciones_por_tipo(
+                conn, lead_id, TIPOS_RELACIONADOS[tipo]
+            )
+        
         if not ok:
             raise HTTPException(404, "No encontrada")
-        return {"ok": True, "pendientes": contar_pendientes(conn, usuario_id)}
+        
+        pendientes = contar_pendientes(conn, usuario_id)
+        return {
+            "ok": True,
+            "pendientes": pendientes,
+            "eliminadas": 1 + eliminadas_extra,
+            "lead_id": lead_id
+        }
     finally:
         conn.close()
 
 
 @router.put("/resolver-todas")
 def resolver_todas_notificaciones(data: dict):
-    """Resuelve todas las notificaciones pendientes de un usuario."""
+    """Elimina todas las notificaciones pendientes de un usuario."""
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         raise HTTPException(400, "usuario_id es obligatorio")
+    
     conn = _get_conn()
     try:
         resueltas = resolver_todas(conn, usuario_id)
-        return {"resueltas": resueltas, "pendientes": 0}
+        return {
+            "resueltas": resueltas,
+            "pendientes": 0
+        }
     finally:
         conn.close()
 
@@ -80,7 +168,10 @@ def diagnosticar():
     """Endpoint de diagnóstico."""
     conn = _get_conn()
     try:
-        return {"estado": "completado", "diagnostico": diagnosticar_asignaciones(conn)}
+        return {
+            "estado": "completado",
+            "diagnostico": diagnosticar_asignaciones(conn)
+        }
     finally:
         conn.close()
 
@@ -91,6 +182,9 @@ def forzar_deteccion():
     conn = _get_conn()
     try:
         nuevas = detectar_y_crear_notificaciones(conn)
-        return {"estado": "completado", "nuevas_notificaciones": nuevas}
+        return {
+            "estado": "completado",
+            "nuevas_notificaciones": nuevas
+        }
     finally:
         conn.close()

@@ -2922,15 +2922,58 @@ if(h<24)return h+"h ago";
 return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
 }
 
-async function resolverNotif(id){
-await fetch(API+"/api/notificaciones/"+id+"/resolver",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});
-cargarNotificaciones();
+async function resolverNotif(id) {
+    try {
+        const res = await fetch(API + "/api/notificaciones/" + id + "/resolver", {
+            method: "PUT",
+            headers: H,
+            body: JSON.stringify({ usuario_id: usuario.id })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            actualizarBadge(data.pendientes);
+            
+            if (data.pendientes === 0) {
+                document.getElementById("notificationDropdown").style.display = "none";
+                notifGruposExpandidos = {};
+                document.getElementById("notifList").innerHTML = '<p class="notif-empty">✨ All clear — No pending notifications</p>';
+                actualizarBanner([]);
+            } else {
+                await cargarNotificaciones();
+            }
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast("❌ " + (err.detail || "Error"), true);
+        }
+    } catch (e) {
+        console.error("Error:", e);
+    }
 }
 
-async function resolverTodasNotif(){
-await fetch(API+"/api/notificaciones/resolver-todas",{method:"PUT",headers:H,body:JSON.stringify({usuario_id:usuario.id})});
-notifGruposExpandidos={};
-cargarNotificaciones();
+async function resolverTodasNotif() {
+    try {
+        const res = await fetch(API + "/api/notificaciones/resolver-todas", {
+            method: "PUT",
+            headers: H,
+            body: JSON.stringify({ usuario_id: usuario.id })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById("notificationDropdown").style.display = "none";
+            notifGruposExpandidos = {};
+            actualizarBadge(0);
+            document.getElementById("notifList").innerHTML = '<p class="notif-empty">✨ All clear — No pending notifications</p>';
+            actualizarBanner([]);
+            toast("✅ " + data.resueltas + " notificaciones resueltas");
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast("❌ " + (err.detail || "Error"), true);
+        }
+    } catch (e) {
+        console.error("Error:", e);
+    }
 }
 
 function irALeadNotif(lid){

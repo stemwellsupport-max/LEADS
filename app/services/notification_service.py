@@ -32,33 +32,53 @@ def crear_notificacion(conn, lead_id, tipo, asunto, mensaje, usuario_id, lead_na
         cur.close()
 
 def resolver_notificacion(conn, notificacion_id, usuario_id):
+    """Elimina una notificación de la tabla."""
     cur = conn.cursor()
-    cur.execute("UPDATE notificaciones SET estado='resuelta', resuelta_por=%s, fecha_resolucion=NOW() WHERE id=%s", (usuario_id, notificacion_id))
+    cur.execute(
+        "DELETE FROM notificaciones WHERE id=%s AND usuario_id=%s",
+        (notificacion_id, usuario_id)
+    )
     ok = cur.rowcount > 0
     conn.commit()
     cur.close()
     return ok
 
+
 def resolver_todas(conn, usuario_id):
+    """Elimina todas las notificaciones pendientes de un usuario."""
     cur = conn.cursor()
-    cur.execute("UPDATE notificaciones SET estado='resuelta', resuelta_por=%s, fecha_resolucion=NOW() WHERE usuario_id=%s AND estado='pendiente'", (usuario_id, usuario_id))
+    cur.execute(
+        "DELETE FROM notificaciones WHERE usuario_id=%s AND estado='pendiente'",
+        (usuario_id,)
+    )
     count = cur.rowcount
     conn.commit()
     cur.close()
     return count
+
 
 def resolver_notificaciones_lead(conn, lead_id):
+    """Elimina todas las notificaciones de un lead."""
     cur = conn.cursor()
-    cur.execute("UPDATE notificaciones SET estado='resuelta', resuelta_por=usuario_id, fecha_resolucion=NOW() WHERE lead_id=%s AND estado='pendiente'", (lead_id,))
+    cur.execute(
+        "DELETE FROM notificaciones WHERE lead_id=%s AND estado='pendiente'",
+        (lead_id,)
+    )
     count = cur.rowcount
     conn.commit()
     cur.close()
     return count
 
+
 def resolver_notificaciones_por_tipo(conn, lead_id, tipos):
-    if not tipos: return 0
+    """Elimina notificaciones pendientes de un lead por tipos específicos."""
+    if not tipos:
+        return 0
     cur = conn.cursor()
-    cur.execute("UPDATE notificaciones SET estado='resuelta', resuelta_por=usuario_id, fecha_resolucion=NOW() WHERE lead_id=%s AND estado='pendiente' AND tipo=ANY(%s)", (lead_id, tipos))
+    cur.execute(
+        "DELETE FROM notificaciones WHERE lead_id=%s AND estado='pendiente' AND tipo = ANY(%s)",
+        (lead_id, tipos)
+    )
     count = cur.rowcount
     conn.commit()
     cur.close()
@@ -211,28 +231,79 @@ def detectar_treatment_proposal_sin_respuesta(conn):
     return creadas
 
 def detectar_citas_vencidas_doctor(conn):
-    creadas=0; doctores_notificados=set()
-    cur=conn.cursor()
-    cur.execute("SELECT ad.lead_id,ad.doctor_id,ad.fecha_inicio,l.nombre,l.doctor_id FROM agenda_doctor ad JOIN leads l ON ad.lead_id=l.id WHERE ad.fecha_inicio<=NOW() AND l.medical_status='Pending Evaluation' AND l.sales_status IN ('Scheduled Appointment','Appointment Scheduled','Rescheduled Appointment') AND l.sales_status NOT IN ('Lost','Won')")
-    for c in cur.fetchall():
-        lid,did,f,nombre,ldid=c; fid=ldid or did
-        if not fid: continue
-        k=(lid,NOTIF_CITA_VENCIDA_DOCTOR,fid)
-        if k in doctores_notificados: continue
-        doctores_notificados.add(k)
-        if not notificacion_existe(conn,lid,NOTIF_CITA_VENCIDA_DOCTOR,fid):
-            if crear_notificacion(conn,lid,NOTIF_CITA_VENCIDA_DOCTOR,"⚠️ Cita vencida",f"{nombre} tuvo cita el {f.strftime('%d/%m/%Y %H:%M')} y sigue en Pending Evaluation.",fid,nombre): creadas+=1
-    cur.execute("SELECT l.id,l.nombre,l.doctor_id,l.treatment_date FROM leads l WHERE l.treatment_date IS NOT NULL AND l.treatment_date<=NOW() AND l.medical_status='Pending Evaluation' AND l.doctor_id IS NOT NULL AND l.sales_status IN ('Scheduled Appointment','Appointment Scheduled','Rescheduled Appointment') AND l.sales_status NOT IN ('Lost','Won') AND NOT EXISTS (SELECT 1 FROM agenda_doctor ad WHERE ad.lead_id=l.id AND ad.fecha_inicio=l.treatment_date)")
-    for c in cur.fetchall():
-        lid,nombre,did,td=c
-        if not did: continue
-        k=(lid,NOTIF_CITA_VENCIDA_DOCTOR,did)
-        if k in doctores_notificados: continue
-        doctores_notificados.add(k)
-        if not notificacion_existe(conn,lid,NOTIF_CITA_VENCIDA_DOCTOR,did):
-            if crear_notificacion(conn,lid,NOTIF_CITA_VENCIDA_DOCTOR,"⚠️ Cita vencida",f"{nombre} tenía cita el {td.strftime('%d/%m/%Y %H:%M')} y sigue en Pending Evaluation.",did,nombre): creadas+=1
+    """
+    Detecta leads con citas vencidas que siguen en Pending Evaluation.
+    SOLO crea una notificación si NO existe ya una pendiente del mismo tipo.
+    Usa DISTINCT ON para evitar duplicados del mismo lead.
+    """
+    creadas = 0
+    cur = conn.cursor()
+    
+    # Buscar citas vencidas en agenda_doctor - solo la más reciente por lead
+    cur.execute("""
+        SELECT DISTINCT ON (ad.lead_id) 
+            ad.lead_id, ad.doctor_id, ad.fecha_inicio, l.nombre
+        FROM agenda_doctor ad 
+        JOIN leads l ON ad.lead_id = l.id 
+        WHERE ad.fecha_inicio <= NOW() 
+          AND l.medical_status = 'Pending Evaluation' 
+          AND l.sales_status IN ('Scheduled Appointment', 'Rescheduled Appointment') 
+          AND l.sales_status NOT IN ('Lost', 'Won')
+        ORDER BY ad.lead_id, ad.fecha_inicio DESC
+    """)
+    
+    for row in cur.fetchall():
+        lid, did, fecha, nombre = row
+        
+        if not did:
+            continue
+        
+        # Solo crear si NO existe ya una pendiente
+        if not notificacion_existe(conn, lid, NOTIF_CITA_VENCIDA_DOCTOR, did):
+            nid = crear_notificacion(
+                conn, lid, NOTIF_CITA_VENCIDA_DOCTOR,
+                "⚠️ Cita vencida sin gestionar",
+                f"⚠️ {nombre} tuvo cita el {fecha.strftime('%d/%m/%Y %H:%M')} y sigue en Pending Evaluation.",
+                did, nombre
+            )
+            if nid:
+                creadas += 1
+    
+    # También buscar en leads sin agenda_doctor
+    cur.execute("""
+        SELECT l.id, l.nombre, l.doctor_id, l.treatment_date 
+        FROM leads l 
+        WHERE l.treatment_date IS NOT NULL 
+          AND l.treatment_date <= NOW() 
+          AND l.medical_status = 'Pending Evaluation' 
+          AND l.doctor_id IS NOT NULL 
+          AND l.sales_status IN ('Scheduled Appointment', 'Rescheduled Appointment') 
+          AND l.sales_status NOT IN ('Lost', 'Won')
+          AND NOT EXISTS (
+              SELECT 1 FROM agenda_doctor ad WHERE ad.lead_id = l.id
+          )
+    """)
+    
+    for row in cur.fetchall():
+        lid, nombre, did, td = row
+        
+        if not did:
+            continue
+        
+        if not notificacion_existe(conn, lid, NOTIF_CITA_VENCIDA_DOCTOR, did):
+            nid = crear_notificacion(
+                conn, lid, NOTIF_CITA_VENCIDA_DOCTOR,
+                "⚠️ Cita vencida sin gestionar",
+                f"⚠️ {nombre} tenía cita el {td.strftime('%d/%m/%Y %H:%M')} y sigue en Pending Evaluation.",
+                did, nombre
+            )
+            if nid:
+                creadas += 1
+    
     cur.close()
-    if creadas>0: print(f"   📋 [DOCTOR] Citas vencidas: {creadas}")
+    
+    if creadas > 0:
+        print(f"   📋 [DOCTOR] Citas vencidas: {creadas} nuevas")
     return creadas
 
 def detectar_citas_no_show(conn):
