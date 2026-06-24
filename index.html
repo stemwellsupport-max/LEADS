@@ -2957,11 +2957,11 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// ANALYTICS MODULE v19 — 3 FUNNELS + PIPELINE + CITAS POR MES
+// ANALYTICS MODULE v20 — 3 FUNNELS + PIPELINE + APPTS BY MONTH
 // ══════════════════════════════════════════════════════════════════
 (function () {
 
-  // ── TRANSICIONES VÁLIDAS ──────────────────────────────────────
+  // ── VALID TRANSITIONS ──────────────────────────────────────────
   const TRANSICIONES_VALIDAS = {
     "New Lead":                  ["First Contact", "No Answer", "Callback", "Scheduled Appointment", "Lost"],
     "First Contact":             ["Callback", "Scheduled Appointment", "No Answer", "Lost"],
@@ -2974,15 +2974,15 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
   // ── PIPELINE STAGES ──────────────────────────────────────────
   const PIPELINE_STAGES = [
-    { nombre: "New Lead",                  color: "#3b82f6", icon: "🆕", desc: "Lead nuevo" },
-    { nombre: "1er Contacto",              color: "#6366f1", icon: "📞", desc: "Primer contacto" },
-    { nombre: "Cita Agendada",             color: "#22c55e", icon: "📅", desc: "Cita agendada" },
-    { nombre: "Cita Asistida",             color: "#14b8a6", icon: "✅", desc: "Cita asistida" },
-    { nombre: "Propuesta Enviada",         color: "#a855f7", icon: "💎", desc: "Propuesta enviada" },
-    { nombre: "Propuesta Aceptada",        color: "#06b6d4", icon: "🤝", desc: "Propuesta aceptada" },
-    { nombre: "Tratamiento Iniciado",      color: "#f59e0b", icon: "🚀", desc: "Tratamiento iniciado" },
-    { nombre: "Won",                       color: "#4ade80", icon: "🏆", desc: "Venta cerrada" },
-    { nombre: "Lost",                      color: "#dc2626", icon: "💀", desc: "Lead perdido" },
+    { nombre: "New Lead",                  color: "#3b82f6", icon: "🆕", desc: "New lead" },
+    { nombre: "1er Contacto",              color: "#6366f1", icon: "📞", desc: "First contact" },
+    { nombre: "Cita Agendada",             color: "#22c55e", icon: "📅", desc: "Appointment booked" },
+    { nombre: "Cita Asistida",             color: "#14b8a6", icon: "✅", desc: "Appointment attended" },
+    { nombre: "Propuesta Enviada",         color: "#a855f7", icon: "💎", desc: "Proposal sent" },
+    { nombre: "Propuesta Aceptada",        color: "#06b6d4", icon: "🤝", desc: "Proposal accepted" },
+    { nombre: "Tratamiento Iniciado",      color: "#f59e0b", icon: "🚀", desc: "Treatment started" },
+    { nombre: "Won",                       color: "#4ade80", icon: "🏆", desc: "Closed sale" },
+    { nombre: "Lost",                      color: "#dc2626", icon: "💀", desc: "Lost lead" },
   ];
 
   // ── helpers ─────────────────────────────────────────────────────
@@ -3000,7 +3000,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   const DAY_LABELS   = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
   const YEARS_LIST   = ["2024","2025","2026"];
 
-  // ── Estilos ─────────────────────────────────────────────────────
+  // ── Styles ─────────────────────────────────────────────────────
   const style = document.createElement("style");
   style.textContent = `
     #view-analytics{padding:1rem}
@@ -3109,32 +3109,32 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     div.innerHTML = `
       <div class="an-toolbar">
         <div class="an-filters">
-          <span class="an-filter-label">📅 Período:</span>
+          <span class="an-filter-label">📅 Period:</span>
           <select class="an-select" id="an-year-sel" onchange="anYearChange(this.value)">
-            <option value="all">Todos los años</option>
+            <option value="all">All years</option>
             ${YEARS_LIST.map(y=>`<option value="${y}" ${y==="2026"?"selected":""}>${y}</option>`).join("")}
           </select>
           <select class="an-select" id="an-month-sel" onchange="anMonthChange(this.value)">
-            <option value="all">Todos los meses</option>
+            <option value="all">All months</option>
             ${MONTHS_LABEL.slice(1).map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}
           </select>
-          <span class="an-filter-badge" id="an-filter-badge">Mostrando <span>datos 2026</span></span>
+          <span class="an-filter-badge" id="an-filter-badge">Showing <span>2026 data</span></span>
           <button class="an-refresh" onclick="anRefresh()">🔄 Reset</button>
         </div>
-        <button class="btn-export-xlsx" onclick="window.anExportXlsx && window.anExportXlsx()">📥 Descargar Reporte (.xlsx)</button>
+        <button class="btn-export-xlsx" onclick="window.anExportXlsx && window.anExportXlsx()">📥 Download Report (.xlsx)</button>
       </div>
-      <div class="an-section-label">📊 KPIs Globales (desde BD)</div>
+      <div class="an-section-label">📊 Global KPIs (from DB)</div>
       <div class="an-kpi-row" id="an-kpis-global"></div>
-      <div class="an-section-label" id="an-kpi-month-label">📅 KPIs del Mes Seleccionado</div>
+      <div class="an-section-label" id="an-kpi-month-label">📅 KPIs for Selected Period</div>
       <div class="an-kpi-row" id="an-kpis-month"></div>
-      <div class="an-section-label">🔽 Funnel de Conversión Real</div>
+      <div class="an-section-label">🔽 Conversion Funnel</div>
       <div class="an-funnel-grid" id="an-funnels"></div>
-      <div class="an-section-label">🔄 Pipeline de Ventas (Transiciones Válidas)</div>
+      <div class="an-section-label">🔄 Sales Pipeline (Valid Transitions)</div>
       <div id="an-pipeline"></div>
       <div id="an-transiciones"></div>
-      <div class="an-section-label">📆 Resumen de Citas por Mes (treatment_date)</div>
+      <div class="an-section-label">📆 Appointments Summary by Month (treatment_date)</div>
       <div class="an-grid" id="an-appt-table-wrap"></div>
-      <div class="an-section-label">📋 Breakdown CRM</div>
+      <div class="an-section-label">📋 CRM Breakdown</div>
       <div class="an-grid" id="an-charts"></div>
       <div class="an-section-label">⚡ Performance</div>
       <div class="an-grid" id="an-perf"></div>
@@ -3159,6 +3159,35 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     });
   }
 
+  // ── Source Classification — explicit priority order ────────────
+  // Returns one of the 10 known source keys
+  function classifySource(lead) {
+    const canal  = String(lead.canal  || "").toLowerCase().trim();
+    const pais   = String(lead.pais   || "").toLowerCase().trim();
+    const pipe   = String(lead.pipeline || "").toLowerCase().trim();
+
+    // 1. Channel-based rules (checked first — most specific)
+    if (/\bweb(site)?\b|sitio\s*web|organic/.test(canal))          return "Website";
+    if (/facebook|fb(?!\w)|instagram|ig(?!\w)|social/.test(canal)) return "Social Media";
+    if (/email|correo/.test(canal))                                  return "Email";
+    if (/whatsapp|llamada|call(?!\s*center)/.test(canal))            return "Call / WhatsApp";
+    if (/walk\s*[-–]?\s*in|presencial|en\s*cl[ií]nica/.test(canal)) return "Walk-in Colombia";
+    if (/refer(ral|ido|encia)/.test(canal))                          return "Referral";
+
+    // 2. Country-based campaign rules
+    if (/estados\s*unidos|united\s*states|\bus(a)?\b/.test(pais))   return "US Targeted Campaign";
+    if (/canad[aá]/.test(pais))                                      return "Canada Targeted Campaign";
+    if (/colombia/.test(pais))                                       return "Local Campaign";
+
+    // 3. Pipeline-based fallback
+    if (/\bus\b|united\s*states|english.*int/.test(pipe))            return "US Targeted Campaign";
+    if (/canada/.test(pipe))                                         return "Canada Targeted Campaign";
+    if (/local|colombia/.test(pipe))                                 return "Local Campaign";
+
+    // 4. Truly unknown
+    return "Other / Unknown";
+  }
+
   const isScheduled    = l => l.consulta_agendada === true || ["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status);
   const isAttended     = l => l.cita_asistida === true || l.appointment_status === "Attended";
   const isProposal     = l => l.propuesta_enviada === true || ["Treatment Proposal Sent"].includes(l.sales_status) || ["Treatment Proposal Sent"].includes(l.medical_status);
@@ -3168,7 +3197,6 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   const isNoShow       = l => l.appointment_status === "No Show";
   const isInProgress   = l => l.tratamiento_iniciado === true || ["Treatment in Progress","Treatment Confirmed"].includes(l.sales_status) || ["In Treatment","Treatment Scheduled"].includes(l.medical_status);
   const isPropAccepted = l => l.propuesta_aceptada === true || l.treatment_confirmed === true;
-  const hadProposal    = l => isProposal(l) || isPropAccepted(l) || isWon(l) || isInProgress(l);
 
   function updateFilterBadge(count) {
     const badge = document.getElementById("an-filter-badge");
@@ -3180,7 +3208,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       if (anYear  !== "all") parts.push(anYear);
       label = `${count} leads · ${parts.join(" ")}`;
     }
-    badge.innerHTML = `Mostrando <span>${label}</span>`;
+    badge.innerHTML = `Showing <span>${label}</span>`;
   }
 
   window.anYearChange  = v => { anYear=v;  renderAnalytics(); };
@@ -3195,7 +3223,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   };
 
   function calcularTotalesBD() {
-    const L = typeof todosLeads !== "undefined" ? todosLeads : [];
+    const L = getFilteredLeads();
     return {
       total_leads: L.length,
       agendados: L.filter(l => l.consulta_agendada === true).length,
@@ -3210,7 +3238,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   }
 
   function calcularCitasPorMes() {
-    const L = typeof todosLeads !== "undefined" ? todosLeads : [];
+    const L = getFilteredLeads();
     const porMes = {};
     L.forEach(l => {
       if (!l.treatment_date) return;
@@ -3246,62 +3274,66 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       { campo: "tratamiento_iniciado", fecha: "fecha_tratamiento_inicio", status: "Treatment in Progress" },
       { campo: "tratamiento_completado", fecha: "fecha_won", status: "Won" },
     ];
+    
     const hitosAlcanzados = hitos.filter(h => lead[h.campo] === true);
+    
     for (let i = 1; i < hitosAlcanzados.length; i++) {
       const prev = hitosAlcanzados[i-1];
       const curr = hitosAlcanzados[i];
       const fechaPrev = lead[prev.fecha];
       const fechaCurr = lead[curr.fecha];
-      if (fechaPrev && fechaCurr && new Date(fechaCurr) < new Date(fechaPrev)) {
-        transicionesInvalidas.push({ from: prev.status, to: curr.status, fecha: fechaCurr });
+      
+      // Solo validar si AMBAS fechas existen
+      if (fechaPrev && fechaCurr) {
+        const dPrev = new Date(String(fechaPrev).slice(0,10));
+        const dCurr = new Date(String(fechaCurr).slice(0,10));
+        
+        // Solo reportar si la diferencia es mayor a 1 día (tolerancia)
+        const diffDays = Math.floor((dPrev - dCurr) / 86400000);
+        if (diffDays > 1) {
+          transicionesInvalidas.push({ 
+            from: prev.status, 
+            to: curr.status, 
+            fecha: fechaCurr,
+            fechaPrev: fechaPrev 
+          });
+        }
       }
     }
+    
     return { valido: transicionesInvalidas.length === 0, transicionesInvalidas };
-  }
+}
 
   function analizarPipeline(leads) {
     const pipeline = {};
-    PIPELINE_STAGES.forEach(stage => { 
-        pipeline[stage.nombre] = { count: 0, bloqueados: 0, color: stage.color, icon: stage.icon, desc: stage.desc }; 
+    PIPELINE_STAGES.forEach(stage => {
+      pipeline[stage.nombre] = { count: 0, bloqueados: 0, color: stage.color, icon: stage.icon, desc: stage.desc };
     });
-    
     leads.forEach(lead => {
-        let status = "New Lead";
-        
-        if (lead.tratamiento_completado === true || lead.sales_status === "Won") {
-            status = "Won";
-        } else if (lead.sales_status === "Lost") {
-            status = "Lost";
-        } else if (lead.tratamiento_iniciado === true) {
-            status = "Tratamiento Iniciado";
-        } else if (lead.propuesta_aceptada === true) {
-            status = "Propuesta Aceptada";
-        } else if (lead.propuesta_enviada === true) {
-            status = "Propuesta Enviada";
-        } else if (lead.cita_asistida === true) {
-            status = "Cita Asistida";
-        } else if (lead.consulta_agendada === true) {
-            status = "Cita Agendada";
-        } else if (lead.primer_contacto === true) {
-            status = "1er Contacto";
+      let status = "New Lead";
+      if (lead.tratamiento_completado === true || lead.sales_status === "Won") status = "Won";
+      else if (lead.sales_status === "Lost") status = "Lost";
+      else if (lead.tratamiento_iniciado === true) status = "Tratamiento Iniciado";
+      else if (lead.propuesta_aceptada === true) status = "Propuesta Aceptada";
+      else if (lead.propuesta_enviada === true) status = "Propuesta Enviada";
+      else if (lead.cita_asistida === true) status = "Cita Asistida";
+      else if (lead.consulta_agendada === true) status = "Cita Agendada";
+      else if (lead.primer_contacto === true) status = "1er Contacto";
+      if (pipeline[status]) {
+        pipeline[status].count++;
+        const lastChange = lead.fecha_actualizacion || lead.fecha_creacion;
+        if (lastChange && status !== "Won" && status !== "Lost") {
+          const daysSinceChange = Math.floor((new Date() - new Date(lastChange)) / 86400000);
+          if (daysSinceChange > 7) pipeline[status].bloqueados++;
         }
-        
-        if (pipeline[status]) {
-            pipeline[status].count++;
-            const lastChange = lead.fecha_actualizacion || lead.fecha_creacion;
-            if (lastChange && status !== "Won" && status !== "Lost") {
-                const daysSinceChange = Math.floor((new Date() - new Date(lastChange)) / 86400000);
-                if (daysSinceChange > 7) pipeline[status].bloqueados++;
-            }
-        }
+      }
     });
-    
     return pipeline;
   }
 
   function buildPipelineView(pipeline) {
     const maxCount = Math.max(...Object.values(pipeline).map(p => p.count), 1);
-    let html = `<div class="an-card" style="grid-column:1/-1"><h4>🔄 Pipeline de Ventas — Basado en Campos Booleanos de la BD</h4><div class="an-pipeline-wrap">`;
+    let html = `<div class="an-card" style="grid-column:1/-1"><h4>🔄 Sales Pipeline — Based on Boolean Fields in DB</h4><div class="an-pipeline-wrap">`;
     PIPELINE_STAGES.forEach((stage) => {
       const data = pipeline[stage.nombre];
       const count = data?.count || 0;
@@ -3312,7 +3344,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
         <div class="an-pipeline-header"><span style="font-size:1.4rem">${stage.icon}</span><span>${stage.nombre}</span></div>
         <div class="an-pipeline-bar" style="background:${stage.color};min-height:${height}px">
           <div class="an-pipeline-count">${count}</div><div class="an-pipeline-desc">${stage.desc}</div>
-          ${bloqueados > 0 ? `<div class="an-pipeline-blocked">⚠️ ${bloqueados} bloqueados</div>` : ''}
+          ${bloqueados > 0 ? `<div class="an-pipeline-blocked">⚠️ ${bloqueados} stalled</div>` : ''}
         </div>
         ${validas.length > 0 ? `<div class="an-pipeline-routes">${validas.slice(0,3).map(sig => {
           const sigStage = PIPELINE_STAGES.find(s => s.nombre === sig);
@@ -3320,7 +3352,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
         }).join('')}${validas.length > 3 ? `<span style="font-size:.5rem;color:var(--text3)">+${validas.length-3}</span>` : ''}</div>` : `<div style="font-size:.6rem;color:var(--text3);margin-top:4px">Final</div>`}
       </div>`;
     });
-    html += `</div><div style="font-size:.64rem;color:var(--text3);margin-top:12px;border-top:1px solid var(--border);padding-top:10px">💡 Altura = proporción al máximo (${maxCount}) · Flechas = transiciones permitidas · ⚠️ = leads >7 días sin cambios</div></div>`;
+    html += `</div><div style="font-size:.64rem;color:var(--text3);margin-top:12px;border-top:1px solid var(--border);padding-top:10px">💡 Height = proportion to maximum (${maxCount}) · Arrows = allowed transitions · ⚠️ = leads >7 days without changes</div></div>`;
     return html;
   }
 
@@ -3330,28 +3362,27 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       const validacion = validarFlujoLead(lead);
       if (!validacion.valido) {
         validacion.transicionesInvalidas.forEach(t => {
-          invalidas.push({ lead: lead.nombre || lead.name || `#${lead.id}` || "Sin nombre", from: t.from, to: t.to, fecha: t.fecha });
+          invalidas.push({ lead: lead.nombre || lead.name || `#${lead.id}` || "No name", from: t.from, to: t.to, fecha: t.fecha });
         });
       }
     });
     if (invalidas.length === 0) {
-      return `<div class="an-card" style="grid-column:1/-1"><h4>✅ Validación de Fechas (Hitos del Lead)</h4><div style="text-align:center;padding:2rem;color:#22c55e;font-size:.9rem">✅ Todas las fechas de hitos están en orden cronológico correcto</div></div>`;
+      return `<div class="an-card" style="grid-column:1/-1"><h4>✅ Date Validation (Lead Milestones)</h4><div style="text-align:center;padding:2rem;color:#22c55e;font-size:.9rem">✅ All milestone dates are in correct chronological order</div></div>`;
     }
-    return `<div class="an-card" style="grid-column:1/-1"><h4>⚠️ Inconsistencias en Fechas de Hitos (${invalidas.length})</h4><div style="overflow-x:auto;max-height:350px;overflow-y:auto"><table class="an-appt-table"><thead><tr><th>Lead</th><th>Hito Anterior</th><th>Hito Siguiente</th><th>Fecha</th></tr></thead><tbody>${invalidas.slice(0,50).map(t => `<tr><td style="font-weight:500">${t.lead}</td><td style="color:#f59e0b">${t.from}</td><td style="color:#ef4444;font-weight:600">${t.to}</td><td style="font-size:.7rem">${t.fecha}</td></tr>`).join('')}</tbody></table>${invalidas.length > 50 ? `<div style="text-align:center;padding:.5rem;color:var(--text3);font-size:.7rem">... y ${invalidas.length-50} más</div>` : ''}</div></div>`;
+    return `<div class="an-card" style="grid-column:1/-1"><h4>⚠️ Milestone Date Inconsistencies (${invalidas.length})</h4><div style="overflow-x:auto;max-height:350px;overflow-y:auto"><table class="an-appt-table"><thead><tr><th>Lead</th><th>Previous Milestone</th><th>Next Milestone</th><th>Date</th></tr></thead><tbody>${invalidas.slice(0,50).map(t => `<tr><td style="font-weight:500">${t.lead}</td><td style="color:#f59e0b">${t.from}</td><td style="color:#ef4444;font-weight:600">${t.to}</td><td style="font-size:.7rem">${t.fecha}</td></tr>`).join('')}</tbody></table>${invalidas.length > 50 ? `<div style="text-align:center;padding:.5rem;color:var(--text3);font-size:.7rem">... and ${invalidas.length-50} more</div>` : ''}</div></div>`;
   }
 
   function buildFunnel(steps, title) {
     const max = Math.max(1, ...steps.map(s => s.count));
-    
     const neonColors = [
-        { bg: "linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)", glow: "0 0 30px rgba(59,130,246,0.6), 0 8px 32px rgba(59,130,246,0.3)", border: "rgba(96,165,250,0.5)" },
-        { bg: "linear-gradient(180deg, #6366f1 0%, #4338ca 100%)", glow: "0 0 30px rgba(99,102,241,0.6), 0 8px 32px rgba(99,102,241,0.3)", border: "rgba(129,140,248,0.5)" },
-        { bg: "linear-gradient(180deg, #14b8a6 0%, #0d9488 100%)", glow: "0 0 30px rgba(20,184,166,0.6), 0 8px 32px rgba(20,184,166,0.3)", border: "rgba(45,212,191,0.5)" },
-        { bg: "linear-gradient(180deg, #22c55e 0%, #16a34a 100%)", glow: "0 0 30px rgba(34,197,94,0.6), 0 8px 32px rgba(34,197,94,0.3)", border: "rgba(74,222,128,0.5)" },
-        { bg: "linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)", glow: "0 0 30px rgba(168,85,247,0.6), 0 8px 32px rgba(168,85,247,0.3)", border: "rgba(192,132,252,0.5)" },
-        { bg: "linear-gradient(180deg, #06b6d4 0%, #0891b2 100%)", glow: "0 0 30px rgba(6,182,212,0.6), 0 8px 32px rgba(6,182,212,0.3)", border: "rgba(34,211,238,0.5)" },
-        { bg: "linear-gradient(180deg, #f59e0b 0%, #d97706 100%)", glow: "0 0 30px rgba(245,158,11,0.6), 0 8px 32px rgba(245,158,11,0.3)", border: "rgba(251,191,36,0.5)" },
-        { bg: "linear-gradient(180deg, #4ade80 0%, #22c55e 100%)", glow: "0 0 30px rgba(74,222,128,0.6), 0 8px 32px rgba(74,222,128,0.3)", border: "rgba(134,239,172,0.5)" },
+      { bg: "linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)", glow: "0 0 30px rgba(59,130,246,0.6), 0 8px 32px rgba(59,130,246,0.3)", border: "rgba(96,165,250,0.5)" },
+      { bg: "linear-gradient(180deg, #6366f1 0%, #4338ca 100%)", glow: "0 0 30px rgba(99,102,241,0.6), 0 8px 32px rgba(99,102,241,0.3)", border: "rgba(129,140,248,0.5)" },
+      { bg: "linear-gradient(180deg, #14b8a6 0%, #0d9488 100%)", glow: "0 0 30px rgba(20,184,166,0.6), 0 8px 32px rgba(20,184,166,0.3)", border: "rgba(45,212,191,0.5)" },
+      { bg: "linear-gradient(180deg, #22c55e 0%, #16a34a 100%)", glow: "0 0 30px rgba(34,197,94,0.6), 0 8px 32px rgba(34,197,94,0.3)", border: "rgba(74,222,128,0.5)" },
+      { bg: "linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)", glow: "0 0 30px rgba(168,85,247,0.6), 0 8px 32px rgba(168,85,247,0.3)", border: "rgba(192,132,252,0.5)" },
+      { bg: "linear-gradient(180deg, #06b6d4 0%, #0891b2 100%)", glow: "0 0 30px rgba(6,182,212,0.6), 0 8px 32px rgba(6,182,212,0.3)", border: "rgba(34,211,238,0.5)" },
+      { bg: "linear-gradient(180deg, #f59e0b 0%, #d97706 100%)", glow: "0 0 30px rgba(245,158,11,0.6), 0 8px 32px rgba(245,158,11,0.3)", border: "rgba(251,191,36,0.5)" },
+      { bg: "linear-gradient(180deg, #4ade80 0%, #22c55e 100%)", glow: "0 0 30px rgba(74,222,128,0.6), 0 8px 32px rgba(74,222,128,0.3)", border: "rgba(134,239,172,0.5)" },
     ];
 
     let html = `
@@ -3362,74 +3393,58 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       <div style="padding:0 2rem 1.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:0;">`;
 
     steps.forEach((s, i) => {
-        const colors = neonColors[i % neonColors.length];
-        const wPct = Math.max(10, (s.count / max) * 100);
-        const prev = i > 0 ? steps[i - 1].count : s.count;
-        const drop = i > 0 ? prev - s.count : 0;
-        const pctOfPrev = prev > 0 && i > 0 ? Math.round((s.count / prev) * 100) : 100;
-        const pctOfMax = max > 0 ? Math.round((s.count / max) * 100) : 0;
-        
-        html += `
-        <div style="width:100%;display:flex;flex-direction:column;align-items:center;position:relative;margin-bottom:${i < steps.length - 1 ? '-2px' : '0'};">
-          
-          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:3px;padding:0 10px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:.78rem;font-weight:700;color:var(--text);letter-spacing:.3px;">${s.label}</span>
-              ${drop > 0 ? `<span style="font-size:.62rem;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.12);padding:3px 10px;border-radius:20px;">-${drop} (${100-pctOfPrev}%)</span>` : ''}
-            </div>
-            <span style="font-size:.7rem;font-weight:600;color:var(--text3);">${s.sub || ''}</span>
+      const colors = neonColors[i % neonColors.length];
+      const wPct = Math.max(10, (s.count / max) * 100);
+      const prev = i > 0 ? steps[i - 1].count : s.count;
+      const drop = i > 0 ? prev - s.count : 0;
+      const pctOfPrev = prev > 0 && i > 0 ? Math.round((s.count / prev) * 100) : 100;
+      const pctOfMax = max > 0 ? Math.round((s.count / max) * 100) : 0;
+
+      html += `
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;position:relative;margin-bottom:${i < steps.length - 1 ? '-2px' : '0'};">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:3px;padding:0 10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:.78rem;font-weight:700;color:var(--text);letter-spacing:.3px;">${s.label}</span>
+            ${drop > 0 ? `<span style="font-size:.62rem;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.12);padding:3px 10px;border-radius:20px;">-${drop} (${100-pctOfPrev}%)</span>` : ''}
           </div>
-          
-          <div style="width:${wPct}%;position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.3));">
-            
-            <div style="
-              background:${colors.bg};
-              height:52px;
-              border-radius:12px;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              gap:14px;
-              position:relative;
-              box-shadow:${colors.glow};
-              border:1.5px solid ${colors.border};
-              border-bottom:3px solid rgba(0,0,0,0.3);
-              transform:perspective(500px) rotateX(3deg);
-              transition:all 0.3s cubic-bezier(.4,0,.2,1);
-            ">
-              <div style="position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);border-radius:2px;"></div>
-              
-              <div style="position:absolute;left:3px;top:15%;bottom:15%;width:4px;background:rgba(255,255,255,0.2);border-radius:4px;"></div>
-              
-              <span style="font-size:1.1rem;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.5);font-family:'DM Mono',monospace;z-index:1;">${s.count.toLocaleString()}</span>
-              
-              <div style="display:flex;gap:8px;z-index:1;">
-                <span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,0.95);background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;backdrop-filter:blur(4px);">${pctOfMax}%</span>
-                ${i > 0 ? `<span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,0.95);background:rgba(0,0,0,0.25);padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;">${pctOfPrev}% conv</span>` : ''}
-              </div>
+          <span style="font-size:.7rem;font-weight:600;color:var(--text3);">${s.sub || ''}</span>
+        </div>
+        <div style="width:${wPct}%;position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.3));">
+          <div style="
+            background:${colors.bg};
+            height:52px;
+            border-radius:12px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:14px;
+            position:relative;
+            box-shadow:${colors.glow};
+            border:1.5px solid ${colors.border};
+            border-bottom:3px solid rgba(0,0,0,0.3);
+            transform:perspective(500px) rotateX(3deg);
+            transition:all 0.3s cubic-bezier(.4,0,.2,1);
+          ">
+            <div style="position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);border-radius:2px;"></div>
+            <div style="position:absolute;left:3px;top:15%;bottom:15%;width:4px;background:rgba(255,255,255,0.2);border-radius:4px;"></div>
+            <span style="font-size:1.1rem;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.5);font-family:'DM Mono',monospace;z-index:1;">${s.count.toLocaleString()}</span>
+            <div style="display:flex;gap:8px;z-index:1;">
+              <span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,0.95);background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;backdrop-filter:blur(4px);">${pctOfMax}%</span>
+              ${i > 0 ? `<span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,0.95);background:rgba(0,0,0,0.25);padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;">${pctOfPrev}% conv</span>` : ''}
             </div>
-            
-            <div style="
-              width:90%;
-              margin:0 auto;
-              height:6px;
-              background:rgba(0,0,0,0.4);
-              border-radius:0 0 50% 50%;
-              filter:blur(6px);
-              margin-top:-2px;
-            "></div>
           </div>
-          
-          ${i < steps.length - 1 ? `
-          <div style="display:flex;flex-direction:column;align-items:center;margin:2px 0;">
-            <div style="width:3px;height:10px;background:linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));border-radius:3px;"></div>
-            <div style="width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;margin:-1px 0;">
-              <div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3);"></div>
-            </div>
-            <div style="width:3px;height:10px;background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.2));border-radius:3px;"></div>
+          <div style="width:90%;margin:0 auto;height:6px;background:rgba(0,0,0,0.4);border-radius:0 0 50% 50%;filter:blur(6px);margin-top:-2px;"></div>
+        </div>
+        ${i < steps.length - 1 ? `
+        <div style="display:flex;flex-direction:column;align-items:center;margin:2px 0;">
+          <div style="width:3px;height:10px;background:linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));border-radius:3px;"></div>
+          <div style="width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;margin:-1px 0;">
+            <div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3);"></div>
           </div>
-          ` : ''}
-        </div>`;
+          <div style="width:3px;height:10px;background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.2));border-radius:3px;"></div>
+        </div>
+        ` : ''}
+      </div>`;
     });
 
     html += `
@@ -3438,26 +3453,26 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
         <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center;">
           <span style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:6px;">
             <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:linear-gradient(180deg,#3b82f6,#1d4ed8);"></span>
-            % = proporción al máximo (${max.toLocaleString()})
+            % = proportion to maximum (${max.toLocaleString()})
           </span>
           <span style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:6px;">
             <span style="color:#ef4444;font-weight:700;">-X</span>
-            = caída vs etapa anterior
+            = drop vs previous stage
           </span>
           <span style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:6px;">
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);"></span>
-            conv = conversión vs etapa anterior
+            conv = conversion vs previous stage
           </span>
         </div>
       </div>
     </div>`;
-    
+
     return html;
   }
 
   function buildApptTable(citasPorMes) {
     const months = Object.keys(citasPorMes).sort();
-    if (months.length === 0) return `<div class="an-card" style="grid-column:span 2"><h4>📆 Citas por Mes</h4><p class="an-no-data">No hay datos de citas (treatment_date vacío)</p></div>`;
+    if (months.length === 0) return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month</h4><p class="an-no-data">No appointment data (treatment_date empty)</p></div>`;
     let totals = {total_citas:0,nuevas:0,reagendadas:0,attended:0,no_show:0,cancelled:0,active:0,proposal:0,won:0};
     let rows = months.map(m => {
       const d = citasPorMes[m];
@@ -3472,15 +3487,15 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
         <td style="color:#f97316">${d.no_show} <span style="color:var(--text3);font-size:.65rem">(${nsPct})</span></td>
         <td style="color:#ef4444">${d.cancelled}</td><td style="color:#a855f7">${d.proposal}</td><td style="color:#4ade80">${d.won}</td></tr>`;
     }).join("");
-    return `<div class="an-card" style="grid-column:span 2"><h4>📆 Citas por Mes (calculado de treatment_date en BD)</h4><div style="overflow-x:auto"><table class="an-appt-table">
-      <thead><tr><th>Mes</th><th>Total</th><th style="color:#14b8a6">Nuevas</th><th style="color:#f59e0b">Reagend.</th><th style="color:#6366f1">Pend.</th><th style="color:#22c55e">Atendidas</th><th style="color:#f97316">No Show</th><th style="color:#ef4444">Cancel.</th><th style="color:#a855f7">Prop.</th><th style="color:#4ade80">Won</th></tr></thead>
+    return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month (from treatment_date in DB)</h4><div style="overflow-x:auto"><table class="an-appt-table">
+      <thead><tr><th>Month</th><th>Total</th><th style="color:#14b8a6">New</th><th style="color:#f59e0b">Rescheduled</th><th style="color:#6366f1">Pending</th><th style="color:#22c55e">Attended</th><th style="color:#f97316">No Show</th><th style="color:#ef4444">Cancelled</th><th style="color:#a855f7">Proposal</th><th style="color:#4ade80">Won</th></tr></thead>
       <tbody>${rows}<tr class="tot-row"><td>TOTAL</td><td style="font-weight:700">${totals.total_citas}</td><td style="color:#14b8a6;font-weight:700">${totals.nuevas}</td><td style="color:#f59e0b;font-weight:700">${totals.reagendadas}</td><td style="color:#6366f1;font-weight:700">${totals.active}</td><td style="color:#22c55e;font-weight:700">${totals.attended}</td><td style="color:#f97316;font-weight:700">${totals.no_show}</td><td style="color:#ef4444;font-weight:700">${totals.cancelled}</td><td style="color:#a855f7;font-weight:700">${totals.proposal}</td><td style="color:#4ade80;font-weight:700">${totals.won}</td></tr></tbody></table></div></div>`;
   }
 
   function buildStackedApptChart(citasPorMes) {
     const months = Object.keys(citasPorMes).sort();
     if (months.length === 0) return "";
-    const segs = [{key:"attended",color:"#22c55e",label:"Atendidas"},{key:"no_show",color:"#f97316",label:"No Show"},{key:"cancelled",color:"#ef4444",label:"Canceladas"},{key:"active",color:"#6366f1",label:"Pendientes"}];
+    const segs = [{key:"attended",color:"#22c55e",label:"Attended"},{key:"no_show",color:"#f97316",label:"No Show"},{key:"cancelled",color:"#ef4444",label:"Cancelled"},{key:"active",color:"#6366f1",label:"Pending"}];
     const maxTotal = Math.max(...months.map(m=>citasPorMes[m].total_citas));
     const rows = months.map(m => {
       const d = citasPorMes[m];
@@ -3490,20 +3505,20 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       const barW = maxTotal>0 ? ((d.total_citas/maxTotal)*100).toFixed(0) : 0;
       return `<div class="an-stacked-row"><div class="an-stacked-label">${MONTH_SHORT[mm]} ${yyyy.slice(2)}</div><div class="an-stacked-bar" style="width:${barW}%">${bars}</div><div class="an-stacked-total">${d.total_citas}</div></div>`;
     }).join("");
-    return `<div class="an-card"><h4>📊 Composición de Citas por Mes</h4>${rows}<div class="an-legend">${segs.map(s=>`<div class="an-legend-item"><div class="an-legend-dot" style="background:${s.color}"></div>${s.label}</div>`).join("")}</div></div>`;
+    return `<div class="an-card"><h4>📊 Appointment Composition by Month</h4>${rows}<div class="an-legend">${segs.map(s=>`<div class="an-legend-item"><div class="an-legend-dot" style="background:${s.color}"></div>${s.label}</div>`).join("")}</div></div>`;
   }
 
   function buildBars(title, obj, showPct) {
     const sorted = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10);
     const max = Math.max(...sorted.map(e=>e[1]),1);
     const total = sorted.reduce((s,[,v])=>s+v,0)||1;
-    if (!sorted.length) return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">Sin datos</p></div>`;
+    if (!sorted.length) return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;
     return `<div class="an-card"><h4>${title}</h4>${sorted.map(([l,n],i)=>`<div class="an-bar-row"><div class="an-bar-label" title="${l}">${l}</div><div class="an-bar-wrap"><div class="an-bar-fill" style="width:${(n/max*100).toFixed(1)}%;background:${PAL[i%PAL.length]}"></div></div><div class="an-bar-val">${n}</div>${showPct?`<div class="an-bar-pct">${((n/total)*100).toFixed(0)}%</div>`:""}</div>`).join("")}</div>`;
   }
 
   function buildSemCard(sem) {
-    const items=[{icon:"🟢",n:sem.verde,lbl:"Activo (≤1d)",c:"#22c55e"},{icon:"🟡",n:sem.amarillo,lbl:"Seguimiento (2-3d)",c:"#f59e0b"},{icon:"🔴",n:sem.rojo,lbl:"Vencido (>3d)",c:"#ef4444"},{icon:"⚫",n:sem.neutral,lbl:"New/Won/Lost",c:"var(--text2)"}];
-    return `<div class="an-card"><h4>🚦 Semáforo CRM</h4><div class="an-semaforo-grid">${items.map(it=>`<div class="an-sem-card"><div class="an-sem-icon">${it.icon}</div><div class="an-sem-num" style="color:${it.c}">${it.n}</div><div class="an-sem-label">${it.lbl}</div></div>`).join("")}</div></div>`;
+    const items=[{icon:"🟢",n:sem.verde,lbl:"Active (≤1d)",c:"#22c55e"},{icon:"🟡",n:sem.amarillo,lbl:"Follow-up (2-3d)",c:"#f59e0b"},{icon:"🔴",n:sem.rojo,lbl:"Overdue (>3d)",c:"#ef4444"},{icon:"⚫",n:sem.neutral,lbl:"New/Won/Lost",c:"var(--text2)"}];
+    return `<div class="an-card"><h4>🚦 CRM Traffic Light</h4><div class="an-semaforo-grid">${items.map(it=>`<div class="an-sem-card"><div class="an-sem-icon">${it.icon}</div><div class="an-sem-num" style="color:${it.c}">${it.n}</div><div class="an-sem-label">${it.lbl}</div></div>`).join("")}</div></div>`;
   }
 
   function buildDayHeatmap(L) {
@@ -3511,73 +3526,79 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     L.forEach(l=>{const d=getAdmDate(l);if(!d)return;dayActivity[(d.getDay()+6)%7]++;});
     const maxDay=Math.max(...dayActivity,1);
     const colors=["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe"];
-    return `<div class="an-card"><h4>📅 Actividad por Día de la Semana</h4><div class="an-heatmap-labels">${DAY_LABELS.map(d=>`<div class="an-heat-label">${d}</div>`).join("")}</div><div class="an-heatmap">${dayActivity.map((n,i)=>{const intensity=maxDay?Math.floor((n/maxDay)*6):0;const bg=n===0?"var(--bg3)":colors[intensity];return`<div class="an-heat-cell" style="background:${bg}" title="${DAY_LABELS[i]}: ${n}">${n||""}</div>`;}).join("")}</div></div>`;
+    return `<div class="an-card"><h4>📅 Activity by Day of Week</h4><div class="an-heatmap-labels">${DAY_LABELS.map(d=>`<div class="an-heat-label">${d}</div>`).join("")}</div><div class="an-heatmap">${dayActivity.map((n,i)=>{const intensity=maxDay?Math.floor((n/maxDay)*6):0;const bg=n===0?"var(--bg3)":colors[intensity];return`<div class="an-heat-cell" style="background:${bg}" title="${DAY_LABELS[i]}: ${n}">${n||""}</div>`;}).join("")}</div></div>`;
   }
 
   function renderAnalytics() {
     const L = getFilteredLeads();
     const total = L.length;
-    const allLeads = typeof todosLeads !== "undefined" ? todosLeads : [];
     updateFilterBadge(total);
 
     const totalesBD = calcularTotalesBD();
     const citasPorMes = calcularCitasPorMes();
 
-    // KPIs Globales
+    // Global KPIs
     const globalKpis = [
-      { n: totalesBD.total_leads,  l: "Total Leads BD",     c:"#3b82f6", sub:"en base de datos" },
-      { n: totalesBD.agendados,    l: "Citas Agendadas",    c:"#14b8a6", sub:`${((totalesBD.agendados/totalesBD.total_leads)*100).toFixed(1)}% del total` },
-      { n: totalesBD.attended,     l: "Citas Atendidas",    c:"#22c55e", sub:`${totalesBD.agendados>0?((totalesBD.attended/totalesBD.agendados)*100).toFixed(1):"—"}% de agendados` },
-      { n: totalesBD.no_show,      l: "No Show",            c:"#f97316", sub:`${totalesBD.agendados>0?((totalesBD.no_show/totalesBD.agendados)*100).toFixed(1):"—"}%` },
-      { n: totalesBD.cancelled,    l: "Canceladas",         c:"#ef4444", sub:`${totalesBD.agendados>0?((totalesBD.cancelled/totalesBD.agendados)*100).toFixed(1):"—"}%` },
-      { n: totalesBD.proposal_sent,l: "Propuestas Enviadas",c:"#a855f7", sub:`${totalesBD.attended>0?((totalesBD.proposal_sent/totalesBD.attended)*100).toFixed(1):"—"}% de atendidos` },
-      { n: totalesBD.won,          l: "Won (Cerrados)",     c:"#4ade80", sub:`${totalesBD.proposal_sent>0?((totalesBD.won/totalesBD.proposal_sent)*100).toFixed(1):"—"}% de propuestas` },
-      { n: totalesBD.lost,         l: "Lost (Perdidos)",    c:"#dc2626", sub:`${((totalesBD.lost/totalesBD.total_leads)*100).toFixed(1)}% del total` },
+      { n: totalesBD.total_leads,   l: "Total Leads",           c:"#3b82f6", sub:"in database" },
+      { n: totalesBD.agendados,     l: "Scheduled Appts.",      c:"#14b8a6", sub:`${((totalesBD.agendados/Math.max(totalesBD.total_leads,1))*100).toFixed(1)}% of total` },
+      { n: totalesBD.attended,      l: "Attended Appts.",       c:"#22c55e", sub:`${totalesBD.agendados>0?((totalesBD.attended/totalesBD.agendados)*100).toFixed(1):"—"}% of scheduled` },
+      { n: totalesBD.no_show,       l: "No Shows",              c:"#f97316", sub:`${totalesBD.agendados>0?((totalesBD.no_show/totalesBD.agendados)*100).toFixed(1):"—"}%` },
+      { n: totalesBD.cancelled,     l: "Cancelled",             c:"#ef4444", sub:`${totalesBD.agendados>0?((totalesBD.cancelled/totalesBD.agendados)*100).toFixed(1):"—"}%` },
+      { n: totalesBD.proposal_sent, l: "Proposals Sent",        c:"#a855f7", sub:`${totalesBD.attended>0?((totalesBD.proposal_sent/totalesBD.attended)*100).toFixed(1):"—"}% of attended` },
+      { n: totalesBD.won,           l: "Won (Closed)",          c:"#4ade80", sub:`${totalesBD.proposal_sent>0?((totalesBD.won/totalesBD.proposal_sent)*100).toFixed(1):"—"}% of proposals` },
+      { n: totalesBD.lost,          l: "Lost",                  c:"#dc2626", sub:`${((totalesBD.lost/Math.max(totalesBD.total_leads,1))*100).toFixed(1)}% of total` },
     ];
     document.getElementById("an-kpis-global").innerHTML = globalKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div>${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}</div>`).join("");
 
-    // KPIs del mes
+    // Period KPIs
     const mkLabel = document.getElementById("an-kpi-month-label");
-    if (mkLabel) mkLabel.textContent = anMonth !== "all" && anYear !== "all" ? `📅 KPIs de Leads con admission_date en ${MONTHS_LABEL[parseInt(anMonth)]} ${anYear}` : "📅 KPIs del Período Seleccionado";
+    if (mkLabel) {
+      if (anMonth !== "all" && anYear !== "all") {
+        mkLabel.textContent = `📅 KPIs — Leads with admission_date in ${MONTHS_LABEL[parseInt(anMonth)]} ${anYear}`;
+      } else if (anYear !== "all") {
+        mkLabel.textContent = `📅 KPIs — Leads with admission_date in ${anYear}`;
+      } else {
+        mkLabel.textContent = "📅 KPIs — Selected Period";
+      }
+    }
     const monthKpis = [
       { n: total, l: "Total Leads", c:"#3b82f6" },
-      { n: L.filter(l=>l.consulta_agendada===true).length, l:"Agendados", c:"#14b8a6" },
-      { n: L.filter(l=>l.cita_asistida===true).length, l:"Atendidos", c:"#22c55e" },
-      { n: L.filter(l=>l.propuesta_enviada===true).length, l:"Propuestas", c:"#a855f7" },
+      { n: L.filter(l=>l.consulta_agendada===true).length, l:"Scheduled", c:"#14b8a6" },
+      { n: L.filter(l=>l.cita_asistida===true).length, l:"Attended", c:"#22c55e" },
+      { n: L.filter(l=>l.propuesta_enviada===true).length, l:"Proposals", c:"#a855f7" },
       { n: L.filter(l=>l.tratamiento_completado===true||l.sales_status==="Won").length, l:"Won", c:"#4ade80" },
       { n: L.filter(l=>l.sales_status==="Lost").length, l:"Lost", c:"#dc2626" },
     ];
     document.getElementById("an-kpis-month").innerHTML = monthKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div></div>`).join("");
 
-    // ── 3 FUNNELS ─────────────────────────────────────────────
+    // Funnels
     const funnelSalesData = [
-      { label:"Total Leads",       count:total, color:"#3b82f6", sub:"admission_date" },
-      { label:"1er Contacto",      count:L.filter(l=>l.primer_contacto===true).length, color:"#6366f1", sub:"primer_contacto = true" },
-      { label:"Cita Agendada",     count:L.filter(l=>l.consulta_agendada===true).length, color:"#14b8a6", sub:"consulta_agendada = true" },
-      { label:"Cita Asistida",     count:L.filter(l=>l.cita_asistida===true).length, color:"#22c55e", sub:"cita_asistida = true" },
+      { label:"Total Leads",         count:total, sub:"admission_date" },
+      { label:"First Contact",        count:L.filter(l=>l.primer_contacto===true).length, sub:"primer_contacto = true" },
+      { label:"Appointment Booked",   count:L.filter(l=>l.consulta_agendada===true).length, sub:"consulta_agendada = true" },
+      { label:"Appointment Attended", count:L.filter(l=>l.cita_asistida===true).length, sub:"cita_asistida = true" },
     ];
-
     const funnelClinicalData = [
-      { label:"Cita Asistida",        count:allLeads.filter(l=>l.cita_asistida===true).length, color:"#22c55e", sub:"cita_asistida = true" },
-      { label:"Evaluación Realizada", count:allLeads.filter(l=>l.evaluacion_realizada===true).length, color:"#6366f1", sub:"evaluacion_realizada = true" },
-      { label:"Propuesta Enviada",    count:allLeads.filter(l=>l.propuesta_enviada===true).length, color:"#a855f7", sub:"propuesta_enviada = true" },
-      { label:"Propuesta Aceptada",   count:allLeads.filter(l=>l.propuesta_aceptada===true).length, color:"#06b6d4", sub:"propuesta_aceptada = true" },
-      { label:"Tratamiento Iniciado", count:allLeads.filter(l=>l.tratamiento_iniciado===true).length, color:"#f59e0b", sub:"tratamiento_iniciado = true" },
-      { label:"Won",                  count:allLeads.filter(l=>l.tratamiento_completado===true).length, color:"#4ade80", sub:"tratamiento_completado = true" },
+      { label:"Appointment Attended",  count:L.filter(l=>l.cita_asistida===true).length, sub:"cita_asistida = true" },
+      { label:"Evaluation Done",       count:L.filter(l=>l.evaluacion_realizada===true).length, sub:"evaluacion_realizada = true" },
+      { label:"Proposal Sent",         count:L.filter(l=>l.propuesta_enviada===true).length, sub:"propuesta_enviada = true" },
+      { label:"Proposal Accepted",     count:L.filter(l=>l.propuesta_aceptada===true).length, sub:"propuesta_aceptada = true" },
+      { label:"Treatment Started",     count:L.filter(l=>l.tratamiento_iniciado===true).length, sub:"tratamiento_iniciado = true" },
+      { label:"Won",                   count:L.filter(l=>l.tratamiento_completado===true).length, sub:"tratamiento_completado = true" },
     ];
-
+    const totalAgendadas = L.filter(l => l.consulta_agendada === true).length;
     const funnelApptData = [
-      { label:"Citas Agendadas", count:allLeads.filter(l=>l.consulta_agendada===true).length, color:"#14b8a6", sub:"consulta_agendada = true" },
-      { label:"Confirmadas",     count:allLeads.filter(l=>l.appointment_status==="Confirmed"||l.cita_confirmada===true).length, color:"#f59e0b", sub:"appointment_status = Confirmed" },
-      { label:"Asistidas",       count:allLeads.filter(l=>l.cita_asistida===true).length, color:"#22c55e", sub:"cita_asistida = true" },
-      { label:"No Show",         count:allLeads.filter(l=>l.appointment_status==="No Show").length, color:"#f97316", sub:"appointment_status = No Show" },
-      { label:"Canceladas",      count:allLeads.filter(l=>l.appointment_status==="Canceled"||["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status)).length, color:"#ef4444", sub:"appointment_status = Canceled" },
+      { label:"Scheduled Appts.",  count: totalAgendadas, sub:"consulta_agendada = true" },
+      { label:"→ Attended",        count:L.filter(l => l.consulta_agendada === true && l.cita_asistida === true).length, sub:"attended from scheduled" },
+      { label:"→ No Show",         count:L.filter(l => l.consulta_agendada === true && l.appointment_status === "No Show").length, sub:"no-shows from scheduled" },
+      { label:"→ Cancelled",       count:L.filter(l => l.consulta_agendada === true && (l.appointment_status === "Canceled" || ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status))).length, sub:"cancelled from scheduled" },
+      { label:"→ Pending",         count:L.filter(l => l.consulta_agendada === true && !l.cita_asistida && l.appointment_status !== "No Show" && l.appointment_status !== "Canceled" && !["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status)).length, sub:"no status defined yet" },
     ];
 
-    document.getElementById("an-funnels").innerHTML = 
-      buildFunnel(funnelSalesData, "📞 Sales Funnel (admission_date)") +
-      buildFunnel(funnelClinicalData, "🏥 Clinical Funnel (totales BD)") +
-      buildFunnel(funnelApptData, "📅 Appointments Flow (totales BD)");
+    document.getElementById("an-funnels").innerHTML =
+      buildFunnel(funnelSalesData, "📞 Sales Funnel") +
+      buildFunnel(funnelClinicalData, "🏥 Clinical Funnel") +
+      buildFunnel(funnelApptData, "📅 Appointments Breakdown");
 
     // Pipeline
     const pipeline = analizarPipeline(L);
@@ -3604,11 +3625,11 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     });
     document.getElementById("an-charts").innerHTML = [
       buildBars("Sales Status", cnt("sales_status"), true),
-      buildBars("Por Canal", cnt("canal"), true),
-      buildBars("Por Categoría", cnt("categoria"), true),
-      buildBars("Por Pipeline", cnt("pipeline"), true),
-      buildBars("Por Doctor", cnt("consultation_with"), false),
-      buildBars("Por País", cnt("pais"), false),
+      buildBars("By Channel", cnt("canal"), true),
+      buildBars("By Category", cnt("categoria"), true),
+      buildBars("By Pipeline", cnt("pipeline"), true),
+      buildBars("By Doctor", cnt("consultation_with"), false),
+      buildBars("By Country", cnt("pais"), false),
     ].join("");
     document.getElementById("an-perf").innerHTML = [buildSemCard(sem), buildDayHeatmap(L)].join("");
   }
@@ -3625,7 +3646,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   };
 
   // ══════════════════════════════════════════════════════════════════
-  // XLSX BUILDER — Generador de archivos .xlsx en el navegador
+  // XLSX BUILDER
   // ══════════════════════════════════════════════════════════════════
   function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++){c^=bytes[i];for(let j=0;j<8;j++)c=(c&1)?(c>>>1)^0xEDB88320:c>>>1;}return(c^0xFFFFFFFF)>>>0;}
   function concat(arrays){const t=arrays.reduce((s,a)=>s+a.length,0);const o=new Uint8Array(t);let off=0;for(const a of arrays){o.set(a,off);off+=a.length;}return o;}
@@ -3644,51 +3665,39 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   static colName(n){let r="";let x=n;do{r=String.fromCharCode(65+(x%26))+r;x=Math.floor(x/26)-1;}while(x>=0);return r;}
   build(){const esc=(s)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");const fontsXml=`<fonts count="${this.fonts.length}">${this.fonts.map(f=>{let s="<font>";if(f.bold)s+="<b/>";s+=`<sz val="${f.size}"/>`;if(f.color)s+=`<color rgb="FF${f.color.replace("#","").toUpperCase()}"/>`;s+=`<name val="${esc(f.name)}"/>`;s+="</font>";return s;}).join("")}</fonts>`;const fillsXml=`<fills count="${this.fills.length}">${this.fills.map(f=>{if(f.patternType==="none")return'<fill><patternFill patternType="none"/></fill>';if(f.patternType==="gray125")return'<fill><patternFill patternType="gray125"/></fill>';return`<fill><patternFill patternType="solid"><fgColor rgb="FF${f.fgColor.replace("#","").toUpperCase()}"/><bgColor indexed="64"/></patternFill></fill>`;}).join("")}</fills>`;const bordersXml=`<borders count="${this.borders.length}">${this.borders.map(b=>{const mk=(side)=>b[side]?`<${side} style="${b[side]}"><color indexed="64"/></${side}>`:`<${side}/>`;return`<border>${mk("left")}${mk("right")}${mk("top")}${mk("bottom")}<diagonal/></border>`;}).join("")}</borders>`;const cellXfsXml=`<cellXfs count="${this.styles.length}">${this.styles.map(s=>{const a=s.align;let ax="";if(a&&(a.horizontal||a.vertical||a.wrapText)){const at=[];if(a.horizontal)at.push(`horizontal="${a.horizontal}"`);if(a.vertical)at.push(`vertical="${a.vertical}"`);if(a.wrapText)at.push('wrapText="1"');ax=`<alignment ${at.join(" ")}/>`;}return`<xf numFmtId="${s.numFmtId}" fontId="${s.fontId}" fillId="${s.fillId}" borderId="${s.borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" ${s.numFmtId?'applyNumberFormat="1"':""} ${ax?'applyAlignment="1"':""}>${ax}</xf>`;}).join("")}</cellXfs>`;const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fontsXml}${fillsXml}${bordersXml}<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>${cellXfsXml}<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;const sst=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${this.sharedStrings.length}" uniqueCount="${this.sharedStrings.length}">${this.sharedStrings.map(s=>`<si><t xml:space="preserve">${esc(s)}</t></si>`).join("")}</sst>`;const worksheets=this.sheets.map((sheet)=>{const rowsMap={};for(const ref in sheet.cells){const m=ref.match(/^([A-Z]+)(\d+)$/);const rr=parseInt(m[2],10);if(!rowsMap[rr])rowsMap[rr]=[];rowsMap[rr].push({ref,col:m[1],...sheet.cells[ref]});}const colIndex=(colStr)=>{let n=0;for(let i=0;i<colStr.length;i++)n=n*26+(colStr.charCodeAt(i)-64);return n-1;};const maxRow=Math.max(0,...Object.keys(rowsMap).map(Number));let sheetData="";for(let rr=1;rr<=maxRow;rr++){const cells=(rowsMap[rr]||[]).sort((a,b)=>colIndex(a.col)-colIndex(b.col));if(!cells.length)continue;const rh=sheet.rowHeights[rr]?` ht="${sheet.rowHeights[rr]}" customHeight="1"`:"";let rowXml=`<row r="${rr}"${rh}>`;for(const c of cells){if("f"in c)rowXml+=`<c r="${c.ref}" s="${c.s}"><f>${esc(c.f)}</f></c>`;else if(c.t==="n")rowXml+=`<c r="${c.ref}" s="${c.s}"><v>${c.v}</v></c>`;else if(c.t==="s")rowXml+=`<c r="${c.ref}" s="${c.s}" t="s"><v>${c.v}</v></c>`;else rowXml+=`<c r="${c.ref}" s="${c.s}"/>`;}rowXml+="</row>";sheetData+=rowXml;}const colsXml=Object.keys(sheet.colWidths).length?`<cols>${Object.entries(sheet.colWidths).map(([col,width])=>{const idx=colIndex(col)+1;return`<col min="${idx}" max="${idx}" width="${width}" customWidth="1"/>`;}).join("")}</cols>`:"";const mergesXml=sheet.merges.length?`<mergeCells count="${sheet.merges.length}">${sheet.merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:"";const dvXml=sheet.dataValidations.length?`<dataValidations count="${sheet.dataValidations.length}">${sheet.dataValidations.map(dv=>`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${dv.sqref}"><formula1>${esc(dv.formula1)}</formula1></dataValidation>`).join("")}</dataValidations>`:"";return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews>${colsXml}<sheetData>${sheetData}</sheetData>${mergesXml}${dvXml}</worksheet>`;});const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${this.sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${this.sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${this.sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${this.sheets.length+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`;const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${this.sheets.map((s,i)=>`<sheet name="${esc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`;const files=[{name:"[Content_Types].xml",data:ct},{name:"_rels/.rels",data:rootRels},{name:"xl/_rels/workbook.xml.rels",data:wbRels},{name:"xl/workbook.xml",data:wb},{name:"xl/styles.xml",data:styles},{name:"xl/sharedStrings.xml",data:sst},...worksheets.map((xml,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:xml}))];return makeZip(files);}}
 
-// ══════════════════════════════════════════════════════════════════
-// EXPORT XLSX — Formato Daily Report oficial (v11) adaptado a v19
-// ══════════════════════════════════════════════════════════════════
-window.anExportXlsx = function() {
+  // ══════════════════════════════════════════════════════════════════
+  // EXPORT XLSX — Official Daily Report format
+  // ══════════════════════════════════════════════════════════════════
+  window.anExportXlsx = function() {
+    // Uses getFilteredLeads() — always respects active year/month filters
     const L = getFilteredLeads();
-    const allLeads = typeof todosLeads !== "undefined" ? todosLeads : [];
     const today = new Date();
     const dateStr = today.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const prepBy = typeof usuario !== "undefined" ? usuario.nombre : "—";
+    const prepBy = typeof usuario !== "undefined" ? (usuario.nombre || usuario.name || "—") : "—";
 
+    // Build period label from current filter state
     let periodLabel = "All Time";
     if (anYear !== "all" || anMonth !== "all") {
       const parts = [];
       if (anMonth !== "all") parts.push(MONTHS_LABEL[parseInt(anMonth)]);
-      if (anYear !== "all") parts.push(anYear);
+      if (anYear  !== "all") parts.push(anYear);
       periodLabel = parts.join(" ");
     }
 
-    const totalesBD = calcularTotalesBD();
-    const pipeline = analizarPipeline(L);
+    // ── Pipeline helpers ───────────────────────────────────────────
+    const getPipe = (l) => String(l.pipeline || "").toLowerCase();
+    const isEngInt  = (l) => { const p = getPipe(l); return p.includes("english") || (!p.includes("spanish") && !p.includes("local")); };
+    const isSpInt   = (l) => { const p = getPipe(l); return p.includes("spanish") && !p.includes("local"); };
+    const isLocal   = (l) => { const p = getPipe(l); return p.includes("local"); };
 
-    // ── Helpers para columnas del reporte ──
-    const getPipe = (l) => l.pipeline || "";
-    const isEngInt = (l) => {
-      const p = getPipe(l).toLowerCase();
-      return p.includes("english") || (!p.includes("spanish") && !p.includes("local"));
-    };
-    const isSpInt = (l) => {
-      const p = getPipe(l).toLowerCase();
-      return p.includes("spanish") && !p.includes("local");
-    };
-    const isLocal = (l) => {
-      const p = getPipe(l).toLowerCase();
-      return p.includes("local");
-    };
-    
-    // bucket3: [English Int, Spanish Int, Local Colombia]
     const bucket3 = (fn) => {
       let e = 0, s = 0, lc = 0;
       L.forEach(lead => {
         if (!fn(lead)) return;
-        if (isEngInt(lead)) e++;
-        else if (isSpInt(lead)) s++;
-        else if (isLocal(lead)) lc++;
-        else e++;
+        if      (isEngInt(lead)) e++;
+        else if (isSpInt(lead))  s++;
+        else if (isLocal(lead))  lc++;
+        else                     e++; // unknown pipeline → English International
       });
       return [e, s, lc];
     };
@@ -3698,136 +3707,101 @@ window.anExportXlsx = function() {
       return String(v).slice(0, 10) === today.toISOString().slice(0, 10);
     };
 
-    // ── KPI definitions ──
-    const isScheduled   = l => l.consulta_agendada === true;
-    const isAttended    = l => l.cita_asistida === true;
-    const isCancelled   = l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled";
-    const isNoShow      = l => l.appointment_status === "No Show";
-    // Pending = agendada pero no atendida, no cancelada, no no-show
-    const isPending     = l => isScheduled(l) && !isAttended(l) && !isCancelled(l) && !isNoShow(l);
-    const isProposal    = l => l.propuesta_enviada === true;
-    const isAccepted    = l => l.propuesta_aceptada === true;
-    const isInTreatment = l => l.tratamiento_iniciado === true;
-    const isWon         = l => l.tratamiento_completado === true || l.sales_status === "Won";
+    const _isSched    = l => l.consulta_agendada === true;
+    const _isAtt      = l => l.cita_asistida === true;
+    const _isCan      = l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled";
+    const _isNS       = l => l.appointment_status === "No Show";
+    const _isPend     = l => _isSched(l) && !_isAtt(l) && !_isCan(l) && !_isNS(l);
+    const _isProp     = l => l.propuesta_enviada === true;
+    const _isAcc      = l => l.propuesta_aceptada === true;
+    const _isInTreat  = l => l.tratamiento_iniciado === true;
+    const _isWon      = l => l.tratamiento_completado === true || l.sales_status === "Won";
 
     const kpi = {
       newLeads:           bucket3(() => true),
-      scheduledAppts:     bucket3(isScheduled),
-      scheduledToday:     bucket3(l => isScheduled(l) && isToday(l.treatment_date)),
-      attendedAppts:      bucket3(isAttended),
-      cancelledAppts:     bucket3(isCancelled),
-      pendingAppts:       bucket3(isPending),
-      noShows:            bucket3(isNoShow),
+      scheduledAppts:     bucket3(_isSched),
+      scheduledToday:     bucket3(l => _isSched(l) && isToday(l.treatment_date)),
+      attendedAppts:      bucket3(_isAtt),
+      cancelledAppts:     bucket3(_isCan),
+      pendingAppts:       bucket3(_isPend),
+      noShows:            bucket3(_isNS),
       awaitingMedical:    bucket3(l => l.medical_status === "Awaiting Medical Report"),
-      proposalsSent:      bucket3(isProposal),
-      proposalsAccepted:  bucket3(isAccepted),
-      treatmentConfirmed: bucket3(isInTreatment),
-      treatmentsDone:     bucket3(isWon),
+      proposalsSent:      bucket3(_isProp),
+      proposalsAccepted:  bucket3(_isAcc),
+      treatmentConfirmed: bucket3(_isInTreat),
+      treatmentsDone:     bucket3(_isWon),
     };
 
-    // ── Sección 2: Lead Source / Campaign ──
-        // ── Sección 2: Lead Source / Campaign ──
-    const sourceOrder = ["Website", "US Targeted Campaign", "Canada Targeted Campaign", "Local Campaign", "Email", "Call / WhatsApp", "Social Media", "Walk-in Colombia", "Referral"];
+    // ── Section 2: Lead Source / Campaign ─────────────────────────
+    // Source order defines display order in the report
+    const SOURCE_ORDER = [
+      "Website",
+      "US Targeted Campaign",
+      "Canada Targeted Campaign",
+      "Local Campaign",
+      "Email",
+      "Call / WhatsApp",
+      "Social Media",
+      "Walk-in Colombia",
+      "Referral",
+      "Other / Unknown",
+    ];
     const bySource = {};
-    sourceOrder.forEach(k => { bySource[k] = [0, 0, 0]; });
-    
+    SOURCE_ORDER.forEach(k => { bySource[k] = [0, 0, 0]; });
+
     L.forEach(l => {
-      const canal = (l.canal || "").toLowerCase();
-      
-      // Determinar fuente por país primero (campañas pagadas)
-      const pais = (l.pais || "").toLowerCase();
-      let src = null;
-      
-      if (pais.includes("estados unidos") || pais === "us" || pais === "usa") {
-        src = "US Targeted Campaign";
-      } else if (pais.includes("canad")) {
-        src = "Canada Targeted Campaign";
-      } else if (pais.includes("colombia")) {
-        src = "Local Campaign";
-      }
-      
-      // Si no es campaña pagada por país, determinar por canal
-      if (!src) {
-        // Social Media = SOLO Facebook e Instagram
-        if (canal.includes("facebook") || canal.includes("instagram") || canal === "fb" || canal === "ig") {
-          src = "Social Media";
-        } else if (canal.includes("email") || canal.includes("correo")) {
-          src = "Email";
-        } else if (canal.includes("whatsapp") || canal.includes("call") || canal.includes("llamada")) {
-          src = "Call / WhatsApp";
-        } else if (canal.includes("walk")) {
-          src = "Walk-in Colombia";
-        } else if (canal.includes("refer")) {
-          src = "Referral";
-        } else {
-          src = "Website";
-        }
-      }
-      
-      if (bySource[src]) {
-        if (isEngInt(l)) bySource[src][0]++;
-        else if (isSpInt(l)) bySource[src][1]++;
-        else if (isLocal(l)) bySource[src][2]++;
-        else bySource[src][0]++;
-      }
+      const src = classifySource(l);
+      if (!bySource[src]) bySource[src] = [0, 0, 0];
+      if      (isEngInt(l)) bySource[src][0]++;
+      else if (isSpInt(l))  bySource[src][1]++;
+      else if (isLocal(l))  bySource[src][2]++;
+      else                  bySource[src][0]++; // unknown pipeline → English International
     });
 
-    // ── Sección 3: Pacientes ──
+    // ── Section 3: Patient rows ────────────────────────────────────
     const patients = L.map(l => {
-      const pipe = getPipe(l);
+      const pipe = String(l.pipeline || "");
       const lang = pipe.toLowerCase().includes("spanish") ? "Spanish" : "English";
       const market = pipe.toLowerCase().includes("local") ? "Local Colombia" : "International";
-      const comentario = (l.comentarios || l.notas || l.remarks || "").replace(/\n/g, " ").substring(0, 120);
-      
+      const remarks = (l.comentarios || l.notas || l.remarks || "").replace(/\n/g, " ").substring(0, 120);
       return {
-        A: l.nombre || "",
+        A: l.nombre || l.name || "",
         B: lang,
         C: market,
         D: l.canal || "",
-        E: "",
+        E: "",                                // Campaign (manual)
         F: l.asesor_nombre || "",
         G: l.doctor_nombre || "",
-        H: "",
-        I: "",
-        J: isProposal(l) ? "Sent" : "",
-        K: isAccepted(l) ? "Accepted" : (isProposal(l) ? "Sent" : "Not Sent"),
-        L: isInTreatment(l) ? "Confirmed" : "Not Confirmed",
+        H: "",                                // Paid Online Consult (manual)
+        I: "",                                // Paid In-Person Consult (manual)
+        J: _isProp(l) ? "Sent" : "Not Sent",
+        K: _isAcc(l) ? "Accepted" : (_isProp(l) ? "Sent" : "Not Sent"),
+        L: _isInTreat(l) ? "Confirmed" : "Not Confirmed",
         M: l.medical_status || "Not Required",
-        N: comentario,
+        N: remarks,
         O: l.medilink_numero || String(l.id || ""),
       };
     });
 
-    // ── Sección 4: Doctors ──
-    const docNames = [...new Set(L.map(l => l.doctor_nombre).filter(Boolean))];
-    const docList = (docNames.length ? docNames : ["Dr. Camilo White", "Dr. Sandra Fernandez", "Dr. 3"]).slice(0, 3);
+    // ── Section 4: Doctor performance ─────────────────────────────
+    const docNames = [...new Set(L.map(l => l.doctor_nombre || l.consultation_with).filter(Boolean))];
+    const docList = docNames.slice(0, 3);
+    while (docList.length < 3) docList.push("");
     const doctors = docList.map(name => {
-      const dl = L.filter(l => l.doctor_nombre === name);
+      if (!name) return ["", {}];
+      const dl = L.filter(l => (l.doctor_nombre || l.consultation_with) === name);
       return [name, {
-        // B = Scheduled Appts. (agendadas)
-        B: dl.filter(isScheduled).length || "",
-        // C = Attended Appts. (atendidas)
-        C: dl.filter(isAttended).length || "",
+        B: dl.filter(_isSched).length  || "",
+        C: dl.filter(_isAtt).length    || "",
         D: "",
         E: "",
-        // F = Proposals Sent
-        F: dl.filter(isProposal).length || "",
-        // G = Treatments Done (Won)
-        G: dl.filter(isWon).length || "",
+        F: dl.filter(_isProp).length   || "",
+        G: dl.filter(_isWon).length    || "",
       }];
     });
 
-    // ── Generar XLSX ──
-    const wbBytes = generateXlsxBytes({
-      reportDate: dateStr,
-      preparedBy: prepBy,
-      periodLabel,
-      kpi,
-      bySource,
-      patients,
-      doctors,
-    });
-    
+    // ── Build and download ─────────────────────────────────────────
+    const wbBytes = generateXlsxBytes({ reportDate: dateStr, preparedBy: prepBy, periodLabel, kpi, bySource, sourceOrder: SOURCE_ORDER, patients, doctors });
     const b64 = bytesToBase64(wbBytes);
     const a = document.createElement("a");
     a.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + b64;
@@ -3838,7 +3812,7 @@ window.anExportXlsx = function() {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  // GENERADOR XLSX — Formato Daily Report oficial
+  // XLSX GENERATOR
   // ══════════════════════════════════════════════════════════════════
   function generateXlsxBytes(data) {
     const C = {
@@ -3849,13 +3823,20 @@ window.anExportXlsx = function() {
     const allBorder = { left: thin, right: thin, top: thin, bottom: thin };
     const xb = new XlsxBuilder();
 
-    const numLeads = data.patients.length;
-    const dataStartRow = 22;  // movido porque ahora hay 12 KPIs (filas 7-18)
-    const sec3End = dataStartRow + Math.max(numLeads, 1) - 1;
-    const sec4Start = sec3End + 2;
+    const sourceOrder = data.sourceOrder || Object.keys(data.bySource);
+    const numSources  = sourceOrder.length;           // dynamic — could be 9 or 10
+    const numLeads    = data.patients.length;
+    const kpiCount    = 12;
+    const kpiLastRow  = 6 + kpiCount;                // row 18 when kpiCount=12
+    const sec2LastRow = 6 + numSources;               // e.g. row 16 for 10 sources
+    const sec2TotalRow = sec2LastRow + 1;             // totals row
+
+    const dataStartRow = Math.max(kpiLastRow, sec2TotalRow) + 3; // gap after both sections
+    const sec3End      = dataStartRow + Math.max(numLeads, 1) - 1;
+    const sec4Start    = sec3End + 2;
     const sec4HeaderRow = sec4Start + 1;
     const sec4DataStart = sec4HeaderRow + 1;
-    const sec4TotalRow = sec4DataStart + 3;
+    const sec4TotalRow  = sec4DataStart + 3;
 
     const sheet = xb.addSheet({
       name: "Daily Report",
@@ -3866,7 +3847,8 @@ window.anExportXlsx = function() {
       },
       rowHeights: { 1: 22, 2: 20, 5: 20 },
       merges: [
-        "A1:O1", "A4:E4", "G5:K5", `A${sec4Start}:H${sec4Start}`
+        "A1:O1", "A4:E4", `G5:K5`,
+        `A${sec4Start}:H${sec4Start}`
       ],
       dataValidations: [
         { sqref: `B${dataStartRow}:B${sec3End}`, formula1: "$Q$2:$Q$3" },
@@ -3882,59 +3864,51 @@ window.anExportXlsx = function() {
     });
 
     const set = (ref, val, style) => xb.setCell(sheet, ref, val, style);
-    const hdr = {
-      font: { bold: true, color: C.white },
-      fill: C.headerBg,
-      align: { horizontal: "center", vertical: "center", wrapText: true }
-    };
-    const ds = { align: { wrapText: true } };
+    const hdr = { font: { bold: true, color: C.white }, fill: C.headerBg, align: { horizontal: "center", vertical: "center", wrapText: true } };
+    const ds  = { align: { wrapText: true } };
 
-    // ── Fila 1: Título ──
-    set("A1", "STEM CELL CLINIC COLOMBIA - DAILY ACTIVITY REPORT", {
+    // ── Row 1: Title ──────────────────────────────────────────────
+    set("A1", "STEM CELL CLINIC COLOMBIA — DAILY ACTIVITY REPORT", {
       font: { bold: true, size: 14, color: C.white },
       fill: C.titleBg,
       align: { horizontal: "center", vertical: "center", wrapText: true }
     });
 
-    // ── Fila 2: Info ──
+    // ── Row 2: Report info ────────────────────────────────────────
     const inf = { font: { bold: true }, fill: C.infoBg };
     set("A2", "Report Date:", inf); set("B2", data.reportDate, inf);
     set("C2", "", inf);
     set("D2", "Prepared By:", inf); set("E2", data.preparedBy, inf);
     set("F2", "", inf);
-    set("G2", "Department:", inf); set("H2", "Stem Cell Clinic - Colombia", inf);
+    set("G2", "Department:", inf); set("H2", "Stem Cell Clinic — Colombia", inf);
     set("I2", "Period:", inf); set("J2", data.periodLabel, inf);
 
-    // ── Fila 4: Sección 1 header ──
+    // ── Row 4: Section 1 label ────────────────────────────────────
     set("A4", "1. DAILY MANAGEMENT SUMMARY", {
-      font: { bold: true, color: C.white },
-      fill: C.sec1Bg,
+      font: { bold: true, color: C.white }, fill: C.sec1Bg,
       align: { horizontal: "left", wrapText: true }
     });
 
-    // ── Fila 5: Headers sección 1 (A-E) + Sección 2 header (G-K) ──
+    // ── Row 5: Section headers ────────────────────────────────────
     ["Activity / KPI", "English International", "Spanish International", "Local Colombia", "Total"].forEach((t, i) =>
-      set(`${"ABCDE"[i]}5`, t, { ...hdr })
+      set(`${"ABCDE"[i]}5`, t, hdr)
     );
     set("G5", "2. LEAD SOURCE & CAMPAIGN SUMMARY", {
-      font: { bold: true, color: C.white },
-      fill: C.sec2Bg,
-      align: { wrapText: true }
+      font: { bold: true, color: C.white }, fill: C.sec2Bg, align: { wrapText: true }
     });
-
-    // ── Fila 6: Headers sección 2 ──
+    // Row 6: Section 2 column headers
     ["Lead Source / Campaign", "English Int.", "Spanish Int.", "Local Colombia", "Total"].forEach((t, i) =>
-      set(`${"GHIJK"[i]}6`, t, { ...hdr })
+      set(`${"GHIJK"[i]}6`, t, hdr)
     );
 
-    // ── Filas 7-18: KPIs (12 filas) ──
+    // ── KPI rows (start at row 7) ─────────────────────────────────
     const kpiRows = [
       ["New Patients / Leads",       data.kpi.newLeads],
-      ["Scheduled Appts.",           data.kpi.scheduledAppts],
+      ["Scheduled Appointments",     data.kpi.scheduledAppts],
       ["Scheduled Calls for Today",  data.kpi.scheduledToday],
-      ["Attended Appts.",            data.kpi.attendedAppts],
-      ["Cancelled Appts.",           data.kpi.cancelledAppts],
-      ["Pending Appts.",             data.kpi.pendingAppts],
+      ["Attended Appointments",      data.kpi.attendedAppts],
+      ["Cancelled Appointments",     data.kpi.cancelledAppts],
+      ["Pending Appointments",       data.kpi.pendingAppts],
       ["No Shows",                   data.kpi.noShows],
       ["Awaiting Medical Reports",   data.kpi.awaitingMedical],
       ["Treatment Proposals Sent",   data.kpi.proposalsSent],
@@ -3951,34 +3925,29 @@ window.anExportXlsx = function() {
       set(`E${r}`, { f: `SUM(B${r}:D${r})` }, { ...ds, border: allBorder });
     });
 
-    // ── Filas 7-15: Sección 2 data (9 fuentes) ──
-    ["Website", "US Targeted Campaign", "Canada Targeted Campaign", "Local Campaign", "Email", "Call / WhatsApp", "Social Media", "Walk-in Colombia", "Referral"].forEach((src, i) => {
+    // ── Section 2 data rows ───────────────────────────────────────
+    sourceOrder.forEach((src, i) => {
       const r = 7 + i;
       const v = data.bySource[src] || [0, 0, 0];
-      set(`G${r}`, src, { ...ds, border: { right: thin, top: thin, bottom: thin, left: thin } });
-      set(`H${r}`, v[0] || 0, { ...ds, border: allBorder });
-      set(`I${r}`, v[1] || 0, { ...ds, border: allBorder });
-      set(`J${r}`, v[2] || 0, { ...ds, border: allBorder });
+      set(`G${r}`, src,        { ...ds, border: { right: thin, top: thin, bottom: thin, left: thin } });
+      set(`H${r}`, v[0] || 0,  { ...ds, border: allBorder });
+      set(`I${r}`, v[1] || 0,  { ...ds, border: allBorder });
+      set(`J${r}`, v[2] || 0,  { ...ds, border: allBorder });
       set(`K${r}`, { f: `SUM(H${r}:J${r})` }, { ...ds, border: allBorder });
     });
+    // Section 2 totals
+    set(`G${sec2TotalRow}`, "Total New Leads", { font: { bold: true }, border: allBorder });
+    set(`H${sec2TotalRow}`, { f: `SUM(H7:H${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
+    set(`I${sec2TotalRow}`, { f: `SUM(I7:I${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
+    set(`J${sec2TotalRow}`, { f: `SUM(J7:J${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
+    set(`K${sec2TotalRow}`, { f: `SUM(K7:K${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
 
-    // ── Fila 16: Total sección 2 ──
-    set("G16", "Total New Leads", { font: { bold: true }, border: { top: thin, right: thin, bottom: thin, left: thin } });
-    set("H16", { f: "SUM(H7:H15)" }, { font: { bold: true }, border: allBorder });
-    set("I16", { f: "SUM(I7:I15)" }, { font: { bold: true }, border: allBorder });
-    set("J16", { f: "SUM(J7:J15)" }, { font: { bold: true }, border: allBorder });
-    set("K16", { f: "SUM(K7:K15)" }, { font: { bold: true }, border: allBorder });
-
-    // ── Fila 18 (ahora 20 después de 12 KPIs): Sección 3 header ──
-    const sec3LabelRow = dataStartRow - 2;  // fila 20
-    const sec3HeaderRow = dataStartRow - 1;  // fila 21
+    // ── Section 3 label & header ──────────────────────────────────
+    const sec3LabelRow  = dataStartRow - 2;
+    const sec3HeaderRow = dataStartRow - 1;
     set(`A${sec3LabelRow}`, "3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)", {
-      font: { bold: true, color: C.white },
-      fill: C.sec3Bg,
-      align: { wrapText: true }
+      font: { bold: true, color: C.white }, fill: C.sec3Bg, align: { wrapText: true }
     });
-
-    // ── Headers sección 3 ──
     const sec3H = [
       "Patient Name", "Language", "Pipeline", "Lead Source", "Campaign",
       "Coordinator / Staff", "Doctor", "Paid Online Consult", "Paid In-Person Consult",
@@ -3987,51 +3956,50 @@ window.anExportXlsx = function() {
     ];
     sec3H.forEach((h, i) => set(`${XlsxBuilder.colName(i)}${sec3HeaderRow}`, h, hdr));
 
-    // ── Sección 3 data ──
+    // Patient data rows
     for (let rr = dataStartRow; rr <= sec3End; rr++) {
       const p = data.patients[rr - dataStartRow];
       for (let ci = 0; ci < 15; ci++) {
         const col = XlsxBuilder.colName(ci);
-        const key = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"][ci];
-        set(`${col}${rr}`, p ? p[key] || "" : "", { ...ds, border: allBorder });
+        const key = "ABCDEFGHIJKLMNO"[ci];
+        set(`${col}${rr}`, p ? (p[key] ?? "") : "", { ...ds, border: allBorder });
       }
     }
 
-    // ── Sección 4: Doctor-wise ──
+    // ── Section 4: Doctor performance ────────────────────────────
     set(`A${sec4Start}`, "4. DOCTOR-WISE DAILY PERFORMANCE", {
-      font: { bold: true, color: C.white },
-      fill: C.sec4Bg,
-      align: { wrapText: true }
+      font: { bold: true, color: C.white }, fill: C.sec4Bg, align: { wrapText: true }
     });
-    // Headers actualizados: Scheduled Appts. y Attended Appts.
     ["Doctor", "Scheduled Appts.", "Attended Appts.", "Online Consults", "In-Person Consults", "Proposals Sent", "Treatments Done", "Notes"].forEach((h, i) =>
-      set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`, h, { ...hdr })
+      set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`, h, hdr)
     );
     for (let i = 0; i < 3; i++) {
-      const rr = sec4DataStart + i;
-      const doc = data.doctors[i] || [""];
+      const rr  = sec4DataStart + i;
+      const doc = data.doctors[i] || ["", {}];
       set(`A${rr}`, doc[0] || "", { border: allBorder });
-      ["B", "C", "D", "E", "F", "G", "H"].forEach(col =>
-        set(`${col}${rr}`, doc[1] && col !== "H" ? doc[1][col] || "" : "", { border: allBorder })
-      );
+      ["B","C","D","E","F","G","H"].forEach(col => {
+        const val = (col !== "H" && doc[1]) ? (doc[1][col] ?? "") : "";
+        set(`${col}${rr}`, val, { border: allBorder });
+      });
     }
+    // Totals row
     set(`A${sec4TotalRow}`, "Total", { font: { bold: true }, border: allBorder });
-    ["B", "C", "D", "E", "F", "G"].forEach(col =>
+    ["B","C","D","E","F","G"].forEach(col =>
       set(`${col}${sec4TotalRow}`, { f: `SUM(${col}${sec4DataStart}:${col}${sec4DataStart + 2})` }, { font: { bold: true }, border: allBorder })
     );
     set(`H${sec4TotalRow}`, "", { border: allBorder });
 
-    // ── Listas de validación ──
+    // ── Validation lists (hidden columns Q–Y) ─────────────────────
     const lists = {
-      Q: ["Language", "English", "Spanish"],
-      R: ["Market", "International", "Local Colombia"],
-      S: ["Lead Source", "Website", "Campaign", "Email", "Call / WhatsApp", "Social Media", "Walk-in Colombia", "Referral"],
-      T: ["Campaign", "US Targeted Campaign", "Canada Targeted Campaign", "Local Campaign", "Organic Website"],
-      U: ["Doctor", "Dr. Camilo White", "Dr. Sandra Fernandez", "Dr. 3"],
-      V: ["Call Status", "Booked", "Completed", "No Show", "Rescheduled", "Cancelled", "Pending", "Not Applicable"],
-      W: ["Proposal Status", "Not Sent", "Sent", "Accepted", "Rejected", "Pending Decision", "Follow-up Required"],
-      X: ["Treatment Status", "Not Confirmed", "Confirmed", "Scheduled", "Done", "Cancelled"],
-      Y: ["Medical Report Status", "Not Required", "Awaiting Medical Report", "Received", "Reviewed", "Incomplete"],
+      Q: ["Language",             "English", "Spanish"],
+      R: ["Market",               "International", "Local Colombia"],
+      S: ["Lead Source",          "Website", "Campaign", "Email", "Call / WhatsApp", "Social Media", "Walk-in Colombia", "Referral", "Other / Unknown"],
+      T: ["Campaign",             "US Targeted Campaign", "Canada Targeted Campaign", "Local Campaign", "Organic / Direct"],
+      U: ["Doctor",               "Dr. Camilo White", "Dr. Sandra Fernandez", "Dr. 3"],
+      V: ["Call Status",          "Booked", "Completed", "No Show", "Rescheduled", "Cancelled", "Pending", "Not Applicable"],
+      W: ["Proposal Status",      "Not Sent", "Sent", "Accepted", "Rejected", "Pending Decision", "Follow-up Required"],
+      X: ["Treatment Status",     "Not Confirmed", "Confirmed", "Scheduled", "Done", "Cancelled"],
+      Y: ["Medical Report Status","Not Required", "Awaiting Medical Report", "Received", "Reviewed", "Incomplete"],
     };
     const lhdr = { font: { bold: true }, fill: "D9EAD3" };
     for (const col in lists) {
@@ -4043,6 +4011,9 @@ window.anExportXlsx = function() {
     return xb.build();
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  // INIT
+  // ══════════════════════════════════════════════════════════════════
   waitForApp(() => {
     const _origInit = window.iniciarApp;
     window.iniciarApp = function() {
@@ -4050,7 +4021,7 @@ window.anExportXlsx = function() {
       injectTab();
       injectView();
     };
-    if (document.getElementById("app").style.display !== "none") {
+    if (document.getElementById("app") && document.getElementById("app").style.display !== "none") {
       injectTab();
       injectView();
     }
