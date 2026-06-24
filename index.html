@@ -2957,35 +2957,24 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// ANALYTICS MODULE v20 — 3 FUNNELS + PIPELINE + APPTS BY MONTH
+// ANALYTICS MODULE v21
 // ══════════════════════════════════════════════════════════════════
 (function () {
 
-  // ── VALID TRANSITIONS ──────────────────────────────────────────
-  const TRANSICIONES_VALIDAS = {
-    "New Lead":                  ["First Contact", "No Answer", "Callback", "Scheduled Appointment", "Lost"],
-    "First Contact":             ["Callback", "Scheduled Appointment", "No Answer", "Lost"],
-    "No Answer":                 ["Callback", "First Contact", "Lost", "Scheduled Appointment"],
-    "Callback":                  ["First Contact", "Scheduled Appointment", "Lost", "No Answer"],
-    "Scheduled Appointment":     ["Callback", "Lost", "No Answer", "Rescheduled Appointment", "Cancelled Appointment", "Treatment Proposal Sent"],
-    "Rescheduled Appointment":   ["Callback", "Lost", "No Answer", "Scheduled Appointment", "Cancelled Appointment"],
-    "Cancelled Appointment":     ["Scheduled Appointment", "Callback", "Lost", "No Answer"],
-  };
-
   // ── PIPELINE STAGES ──────────────────────────────────────────
   const PIPELINE_STAGES = [
-    { nombre: "New Lead",                  color: "#3b82f6", icon: "🆕", desc: "New lead" },
-    { nombre: "1er Contacto",              color: "#6366f1", icon: "📞", desc: "First contact" },
-    { nombre: "Cita Agendada",             color: "#22c55e", icon: "📅", desc: "Appointment booked" },
-    { nombre: "Cita Asistida",             color: "#14b8a6", icon: "✅", desc: "Appointment attended" },
-    { nombre: "Propuesta Enviada",         color: "#a855f7", icon: "💎", desc: "Proposal sent" },
-    { nombre: "Propuesta Aceptada",        color: "#06b6d4", icon: "🤝", desc: "Proposal accepted" },
-    { nombre: "Tratamiento Iniciado",      color: "#f59e0b", icon: "🚀", desc: "Treatment started" },
-    { nombre: "Won",                       color: "#4ade80", icon: "🏆", desc: "Closed sale" },
-    { nombre: "Lost",                      color: "#dc2626", icon: "💀", desc: "Lost lead" },
+    { nombre: "New Lead",             color: "#3b82f6", icon: "🆕", desc: "New lead" },
+    { nombre: "1er Contacto",         color: "#6366f1", icon: "📞", desc: "First contact" },
+    { nombre: "Cita Agendada",        color: "#22c55e", icon: "📅", desc: "Appointment booked" },
+    { nombre: "Cita Asistida",        color: "#14b8a6", icon: "✅", desc: "Appointment attended" },
+    { nombre: "Propuesta Enviada",    color: "#a855f7", icon: "💎", desc: "Proposal sent" },
+    { nombre: "Propuesta Aceptada",   color: "#06b6d4", icon: "🤝", desc: "Proposal accepted" },
+    { nombre: "Tratamiento Iniciado", color: "#f59e0b", icon: "🚀", desc: "Treatment started" },
+    { nombre: "Won",                  color: "#4ade80", icon: "🏆", desc: "Closed sale" },
+    { nombre: "Lost",                 color: "#dc2626", icon: "💀", desc: "Lost lead" },
   ];
 
-  // ── helpers ─────────────────────────────────────────────────────
+  // ── helpers ──────────────────────────────────────────────────
   function waitForApp(cb) {
     const id = setInterval(() => {
       if (typeof todosLeads !== "undefined" && typeof usuario !== "undefined") {
@@ -3000,78 +2989,55 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   const DAY_LABELS   = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
   const YEARS_LIST   = ["2024","2025","2026"];
 
-  // ── Styles ─────────────────────────────────────────────────────
+  // ── Styles ───────────────────────────────────────────────────
   const style = document.createElement("style");
   style.textContent = `
     #view-analytics{padding:1rem}
     .an-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:1.2rem;margin-bottom:1.5rem}
-    .an-funnel-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin-bottom:1.5rem}
-    @media(min-width:1200px){.an-funnel-grid{grid-template-columns:1fr 1fr}}
-    .an-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:transform .2s ease,box-shadow .2s ease}
-    .an-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)}
+    .an-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;box-shadow:0 2px 8px rgba(0,0,0,.08)}
     .an-card h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:1.2rem;font-weight:600;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border);padding-bottom:.8rem}
     .an-bar-row{display:flex;align-items:center;gap:.7rem;margin-bottom:.55rem}
     .an-bar-label{font-size:.75rem;color:var(--text2);width:180px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
-    .an-bar-wrap{flex:1;background:var(--bg3);border-radius:6px;height:10px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.1)}
-    .an-bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .an-bar-wrap{flex:1;background:var(--bg3);border-radius:6px;height:10px;overflow:hidden}
+    .an-bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
     .an-bar-val{font-size:.75rem;color:var(--text2);width:36px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0;font-weight:600}
     .an-bar-pct{font-size:.7rem;color:var(--text3);width:40px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0}
     .an-kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.8rem;margin-bottom:1.5rem}
-    .an-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.3rem;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .2s ease,box-shadow .2s ease}
-    .an-kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+    .an-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.3rem;position:relative;overflow:hidden}
     .an-kpi::before{content:'';position:absolute;inset:0;opacity:.06;background:var(--an-kpi-color,#3b82f6);border-radius:14px}
     .an-kpi-num{font-size:2rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--an-kpi-color,var(--accent));line-height:1;position:relative;z-index:1}
     .an-kpi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);margin-top:.4rem;position:relative;z-index:1;font-weight:600}
     .an-kpi-sub{font-size:.68rem;color:var(--text3);margin-top:.3rem;font-family:'DM Mono',monospace;position:relative;z-index:1}
-    .an-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;padding:1rem 1.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .an-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;padding:1rem 1.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:16px}
     .an-filters{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
     .an-filter-label{font-size:.75rem;color:var(--text2);font-weight:600;white-space:nowrap;margin-right:.2rem}
-    .an-select{padding:.4rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:.8rem;cursor:pointer;font-weight:500;transition:border-color .2s ease;min-width:120px}
+    .an-select{padding:.4rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:.8rem;cursor:pointer;font-weight:500;min-width:120px}
     .an-select:hover{border-color:var(--accent)}
-    .an-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+    .an-select:focus{outline:none;border-color:var(--accent)}
     .an-filter-badge{font-size:.74rem;padding:.3rem .9rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-weight:500}
     .an-filter-badge span{color:var(--accent);font-weight:700}
-    .btn-export-xlsx{padding:.5rem 1.4rem;background:linear-gradient(135deg,#166534,#1a7f3d);color:#4ade80;border:1px solid #16a34a44;border-radius:10px;cursor:pointer;font-family:inherit;font-size:.84rem;font-weight:600;white-space:nowrap;transition:all .2s ease;box-shadow:0 2px 6px rgba(22,163,74,.2)}
-    .btn-export-xlsx:hover{background:linear-gradient(135deg,#14532d,#166534);transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,.3)}
+    .btn-export-xlsx{padding:.5rem 1.4rem;background:linear-gradient(135deg,#166534,#1a7f3d);color:#4ade80;border:1px solid #16a34a44;border-radius:10px;cursor:pointer;font-family:inherit;font-size:.84rem;font-weight:600;white-space:nowrap}
+    .btn-export-xlsx:hover{background:linear-gradient(135deg,#14532d,#166534)}
     .an-semaforo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
-    .an-sem-card{background:var(--bg3);border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border);transition:transform .2s ease}
-    .an-sem-card:hover{transform:scale(1.02)}
+    .an-sem-card{background:var(--bg3);border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)}
     .an-sem-icon{font-size:1.8rem}
     .an-sem-num{font-size:1.6rem;font-weight:700;font-family:'DM Mono',monospace;margin:.3rem 0}
     .an-sem-label{font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;font-weight:500}
-    .an-refresh{padding:.35rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:500;transition:all .2s ease}
-    .an-refresh:hover{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.08)}
+    .an-refresh{padding:.35rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:500}
+    .an-refresh:hover{border-color:var(--accent);color:var(--accent)}
     .an-no-data{color:var(--text2);font-size:.84rem;text-align:center;padding:2rem}
     .an-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:.5rem}
-    .an-heat-cell{height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.85);font-weight:600;transition:transform .2s ease}
-    .an-heat-cell:hover{transform:scale(1.1);z-index:2}
+    .an-heat-cell{height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.85);font-weight:600}
     .an-heatmap-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
     .an-heat-label{font-size:.68rem;color:var(--text2);text-align:center;font-weight:600}
     .an-section-label{font-size:.78rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin:1.8rem 0 .8rem;font-weight:700;padding-left:4px;display:flex;align-items:center;gap:.7rem}
     .an-section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
-    .an-funnel-outer{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:2px}
-    .an-funnel-step{width:100%;display:flex;align-items:center;gap:16px;margin-bottom:0;min-height:50px}
-    .an-funnel-lbl-wrap{width:200px;min-width:200px;text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-    .an-funnel-lbl{font-size:.8rem;font-weight:600;color:var(--text);line-height:1.3;white-space:nowrap}
-    .an-funnel-sublbl{font-size:.62rem;color:var(--text3);white-space:nowrap}
-    .an-funnel-drop{font-size:.65rem;font-weight:700;color:#ef4444;white-space:nowrap;background:rgba(239,68,68,.1);padding:2px 8px;border-radius:4px}
-    .an-funnel-bar-wrap{flex:1;display:flex;align-items:center}
-    .an-funnel-bar{width:100%;height:48px;display:flex;align-items:center;justify-content:flex-start;padding-left:20px;gap:16px;border-radius:0 24px 24px 0;transition:width .6s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.2);position:relative}
-    .an-funnel-bar::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(255,255,255,.4);border-radius:2px}
-    .an-funnel-num{font-size:1.2rem;font-weight:700;color:white;text-shadow:0 2px 4px rgba(0,0,0,.4);font-family:'DM Mono',monospace;min-width:50px}
-    .an-funnel-pct{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.95);background:rgba(255,255,255,.2);padding:5px 12px;border-radius:8px;font-family:'DM Mono',monospace}
-    .an-funnel-conv{font-size:.68rem;font-weight:600;color:rgba(255,255,255,.8);background:rgba(0,0,0,.15);padding:3px 10px;border-radius:6px;font-family:'DM Mono',monospace}
-    .an-funnel-connector{width:3px;height:8px;background:rgba(255,255,255,.08);margin-left:216px;border-radius:2px}
-    .an-funnel-note{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:.64rem;color:var(--text3);line-height:1.6}
     .an-pipeline-wrap{display:flex;gap:10px;overflow-x:auto;padding:1rem 0;align-items:stretch;min-height:340px}
     .an-pipeline-col{flex:1;min-width:140px;display:flex;flex-direction:column;align-items:center;gap:8px}
     .an-pipeline-header{font-size:.72rem;font-weight:700;color:var(--text);text-align:center;margin-bottom:4px;display:flex;flex-direction:column;align-items:center;gap:4px}
     .an-pipeline-bar{width:85%;border-radius:14px 14px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 10px;box-shadow:0 6px 20px rgba(0,0,0,.2);transition:all .3s ease;position:relative}
     .an-pipeline-count{font-size:2rem;font-weight:700;color:white;font-family:'DM Mono',monospace;line-height:1}
     .an-pipeline-desc{font-size:.6rem;color:rgba(255,255,255,.85);text-align:center;margin-top:6px}
-    .an-pipeline-blocked{margin-top:8px;background:rgba(0,0,0,.35);padding:4px 12px;border-radius:10px;font-size:.6rem;color:#fbbf24;font-weight:600}
-    .an-pipeline-routes{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap;justify-content:center}
-    .an-pipeline-route{font-size:.52rem;padding:2px 7px;border-radius:5px;border:1px solid;white-space:nowrap}
     .an-appt-table{width:100%;border-collapse:collapse;font-size:.76rem;border-radius:8px;overflow:hidden}
     .an-appt-table th,.an-appt-table td{padding:.5rem .7rem;text-align:right;border-bottom:1px solid rgba(255,255,255,.06)}
     .an-appt-table th{color:var(--text2);font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;font-weight:700;border-bottom:2px solid var(--border);text-align:right;background:var(--bg3)}
@@ -3080,16 +3046,48 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     .an-appt-table .tot-row td{font-weight:700;border-top:2px solid var(--border);color:var(--text);background:rgba(59,130,246,.08)}
     .an-stacked-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
     .an-stacked-label{font-size:.72rem;color:var(--text2);width:60px;flex-shrink:0;text-align:right;font-weight:600}
-    .an-stacked-bar{flex:1;display:flex;height:20px;border-radius:6px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.1)}
+    .an-stacked-bar{flex:1;display:flex;height:20px;border-radius:6px;overflow:hidden}
     .an-stacked-seg{height:100%;transition:width .6s ease}
     .an-stacked-total{font-size:.72rem;color:var(--text2);width:32px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0;font-weight:600}
     .an-legend{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:.8rem}
     .an-legend-item{display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:var(--text2)}
-    .an-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .an-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+    /* ── NEW FUNNEL STYLES ─────────────────────────────────── */
+    .an-funnel-v2-wrap{display:flex;gap:2rem;align-items:stretch;margin-bottom:1.5rem;flex-wrap:wrap}
+    .an-funnel-v2{flex:1;min-width:320px;background:linear-gradient(180deg,rgba(59,130,246,.04) 0%,rgba(0,0,0,.15) 100%);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+    .an-funnel-v2-header{padding:1.2rem 1.6rem .8rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .an-funnel-v2-header h4{font-size:.85rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);font-weight:700;margin:0}
+    .an-funnel-v2-body{padding:1.4rem 1.6rem}
+    .an-fv2-step{margin-bottom:4px}
+    .an-fv2-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;padding:0 2px}
+    .an-fv2-label{font-size:.78rem;font-weight:600;color:var(--text)}
+    .an-fv2-conv{font-size:.7rem;color:var(--text3);font-family:'DM Mono',monospace}
+    .an-fv2-bar-outer{background:rgba(255,255,255,.05);border-radius:12px;height:44px;position:relative;overflow:hidden}
+    .an-fv2-bar-inner{height:100%;border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;transition:width .7s cubic-bezier(.34,1.56,.64,1);position:relative}
+    .an-fv2-bar-inner::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent);border-radius:12px 12px 0 0;pointer-events:none}
+    .an-fv2-count{font-size:1.1rem;font-weight:700;color:white;font-family:'DM Mono',monospace;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+    .an-fv2-pct{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.9);background:rgba(0,0,0,.25);padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace}
+    .an-fv2-connector{width:2px;height:10px;background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.04));margin:0 auto 4px}
+    .an-fv2-note{font-size:.64rem;color:var(--text3);padding:.8rem 1.6rem 1.2rem;border-top:1px solid rgba(255,255,255,.05);line-height:1.6}
+
+    /* ── APPT BAR CHART ─────────────────────────────────────── */
+    .an-appt-bars-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:1.2rem;margin-bottom:1.5rem}
+    .an-horiz-bar-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.7rem}
+    .an-horiz-label{font-size:.78rem;color:var(--text2);width:120px;flex-shrink:0;font-weight:500;text-align:right}
+    .an-horiz-track{flex:1;background:rgba(255,255,255,.06);border-radius:8px;height:32px;position:relative;overflow:hidden}
+    .an-horiz-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:12px;gap:10px;transition:width .7s ease}
+    .an-horiz-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.1),transparent);pointer-events:none}
+    .an-horiz-num{font-size:.82rem;font-weight:700;color:white;font-family:'DM Mono',monospace}
+    .an-horiz-pct-badge{font-size:.68rem;color:rgba(255,255,255,.85);background:rgba(0,0,0,.2);padding:2px 8px;border-radius:12px;font-family:'DM Mono',monospace}
+
+    /* ── EXTRA FILTER BAR ───────────────────────────────────── */
+    .an-extra-filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;padding:.8rem 1.2rem;background:var(--bg2);border:1px solid var(--border);border-radius:12px}
+    .an-extra-label{font-size:.72rem;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
   `;
   document.head.appendChild(style);
 
-  let anYear = "2026", anMonth = "all", anWeek = "all";
+  let anYear = "2026", anMonth = "all", anDoctor = "all", anAsesor = "all";
 
   function injectTab() {
     const tabs = document.querySelector(".main-tabs");
@@ -3123,19 +3121,37 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
         </div>
         <button class="btn-export-xlsx" onclick="window.anExportXlsx && window.anExportXlsx()">📥 Download Report (.xlsx)</button>
       </div>
-      <div class="an-section-label">📊 Global KPIs (from DB)</div>
+
+      <div class="an-extra-filters">
+        <span class="an-extra-label">👤 Filter by:</span>
+        <select class="an-select" id="an-doctor-sel" onchange="anDoctorChange(this.value)">
+          <option value="all">All Doctors</option>
+        </select>
+        <select class="an-select" id="an-asesor-sel" onchange="anAsesorChange(this.value)">
+          <option value="all">All Advisors</option>
+        </select>
+      </div>
+
+      <div class="an-section-label">📊 Global KPIs</div>
       <div class="an-kpi-row" id="an-kpis-global"></div>
       <div class="an-section-label" id="an-kpi-month-label">📅 KPIs for Selected Period</div>
       <div class="an-kpi-row" id="an-kpis-month"></div>
+
       <div class="an-section-label">🔽 Conversion Funnel</div>
-      <div class="an-funnel-grid" id="an-funnels"></div>
-      <div class="an-section-label">🔄 Sales Pipeline (Valid Transitions)</div>
+      <div id="an-funnels"></div>
+
+      <div class="an-section-label">📊 Appointments Breakdown</div>
+      <div id="an-appt-bars"></div>
+
+      <div class="an-section-label">🔄 Sales Pipeline</div>
       <div id="an-pipeline"></div>
-      <div id="an-transiciones"></div>
-      <div class="an-section-label">📆 Appointments Summary by Month (treatment_date)</div>
+
+      <div class="an-section-label">📆 Appointments Summary by Month</div>
       <div class="an-grid" id="an-appt-table-wrap"></div>
+
       <div class="an-section-label">📋 CRM Breakdown</div>
       <div class="an-grid" id="an-charts"></div>
+
       <div class="an-section-label">⚡ Performance</div>
       <div class="an-grid" id="an-perf"></div>
     `;
@@ -3148,55 +3164,63 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     return new Date(String(d).slice(0,10));
   }
 
+  // Base population: filtered by admission_date + doctor + asesor
   function getFilteredLeads() {
     const L = typeof todosLeads !== "undefined" ? todosLeads : [];
     return L.filter(l => {
       const d = getAdmDate(l);
-      if (!d) return anYear === "all" && anMonth === "all";
-      if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
-      if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
+      if (anYear  !== "all" || anMonth !== "all") {
+        if (!d) return false;
+        if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
+        if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
+      }
+      if (anDoctor !== "all" && String(l.doctor_id) !== String(anDoctor)) return false;
+      if (anAsesor !== "all" && String(l.asesor_id) !== String(anAsesor)) return false;
       return true;
     });
   }
 
-  // ── Source Classification — explicit priority order ────────────
-  // Returns one of the 10 known source keys
+  // Appointment population: filtered by treatment_date + doctor + asesor
+  function getApptFilteredLeads() {
+    const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
+    return ALL.filter(l => {
+      if (anYear !== "all" || anMonth !== "all") {
+        if (!l.treatment_date) return false;
+        const d = new Date(String(l.treatment_date).slice(0,10));
+        if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
+        if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
+      }
+      if (anDoctor !== "all" && String(l.doctor_id) !== String(anDoctor)) return false;
+      if (anAsesor !== "all" && String(l.asesor_id) !== String(anAsesor)) return false;
+      return true;
+    });
+  }
+
   function classifySource(lead) {
     const canal  = String(lead.canal  || "").toLowerCase().trim();
     const pais   = String(lead.pais   || "").toLowerCase().trim();
     const pipe   = String(lead.pipeline || "").toLowerCase().trim();
-
-    // 1. Channel-based rules (checked first — most specific)
     if (/\bweb(site)?\b|sitio\s*web|organic/.test(canal))          return "Website";
     if (/facebook|fb(?!\w)|instagram|ig(?!\w)|social/.test(canal)) return "Social Media";
     if (/email|correo/.test(canal))                                  return "Email";
     if (/whatsapp|llamada|call(?!\s*center)/.test(canal))            return "Call / WhatsApp";
     if (/walk\s*[-–]?\s*in|presencial|en\s*cl[ií]nica/.test(canal)) return "Walk-in Colombia";
     if (/refer(ral|ido|encia)/.test(canal))                          return "Referral";
-
-    // 2. Country-based campaign rules
     if (/estados\s*unidos|united\s*states|\bus(a)?\b/.test(pais))   return "US Targeted Campaign";
     if (/canad[aá]/.test(pais))                                      return "Canada Targeted Campaign";
     if (/colombia/.test(pais))                                       return "Local Campaign";
-
-    // 3. Pipeline-based fallback
     if (/\bus\b|united\s*states|english.*int/.test(pipe))            return "US Targeted Campaign";
     if (/canada/.test(pipe))                                         return "Canada Targeted Campaign";
     if (/local|colombia/.test(pipe))                                 return "Local Campaign";
-
-    // 4. Truly unknown
     return "Other / Unknown";
   }
 
-  const isScheduled    = l => l.consulta_agendada === true || ["Scheduled Appointment","Rescheduled Appointment"].includes(l.sales_status);
-  const isAttended     = l => l.cita_asistida === true || l.appointment_status === "Attended";
-  const isProposal     = l => l.propuesta_enviada === true || ["Treatment Proposal Sent"].includes(l.sales_status) || ["Treatment Proposal Sent"].includes(l.medical_status);
-  const isWon          = l => l.tratamiento_completado === true || l.sales_status === "Won";
-  const isLost         = l => l.sales_status === "Lost";
-  const isCancelled    = l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled";
-  const isNoShow       = l => l.appointment_status === "No Show";
-  const isInProgress   = l => l.tratamiento_iniciado === true || ["Treatment in Progress","Treatment Confirmed"].includes(l.sales_status) || ["In Treatment","Treatment Scheduled"].includes(l.medical_status);
-  const isPropAccepted = l => l.propuesta_aceptada === true || l.treatment_confirmed === true;
+  const _isAtt   = l => l.cita_asistida === true || l.appointment_status === "Attended";
+  const _isCan   = l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled";
+  const _isNS    = l => l.appointment_status === "No Show";
+  const _isProp  = l => l.propuesta_enviada === true;
+  const _isAcc   = l => l.propuesta_aceptada === true;
+  const _isWon   = l => l.tratamiento_completado === true || l.sales_status === "Won" || l.tratamiento_iniciado === true || l.treatment_confirmed === true;
 
   function updateFilterBadge(count) {
     const badge = document.getElementById("an-filter-badge");
@@ -3211,301 +3235,303 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     badge.innerHTML = `Showing <span>${label}</span>`;
   }
 
-  window.anYearChange  = v => { anYear=v;  renderAnalytics(); };
-  window.anMonthChange = v => { anMonth=v; renderAnalytics(); };
-  window.anRefresh     = () => {
-    anYear="2026"; anMonth="all"; anWeek="all";
+  function populateDoctorAsesorSelects() {
+    const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
+    const doctors = {}, asesores = {};
+    ALL.forEach(l => {
+      if (l.doctor_id && l.doctor_nombre) doctors[l.doctor_id] = l.doctor_nombre;
+      if (l.asesor_id && l.asesor_nombre)  asesores[l.asesor_id]  = l.asesor_nombre;
+    });
+    const dSel = document.getElementById("an-doctor-sel");
+    const aSel = document.getElementById("an-asesor-sel");
+    if (dSel && dSel.options.length <= 1) {
+      Object.entries(doctors).forEach(([id, nombre]) => {
+        const o = document.createElement("option"); o.value = id; o.textContent = nombre; dSel.appendChild(o);
+      });
+    }
+    if (aSel && aSel.options.length <= 1) {
+      Object.entries(asesores).forEach(([id, nombre]) => {
+        const o = document.createElement("option"); o.value = id; o.textContent = nombre; aSel.appendChild(o);
+      });
+    }
+  }
+
+  window.anYearChange   = v => { anYear=v;   renderAnalytics(); };
+  window.anMonthChange  = v => { anMonth=v;  renderAnalytics(); };
+  window.anDoctorChange = v => { anDoctor=v; renderAnalytics(); };
+  window.anAsesorChange = v => { anAsesor=v; renderAnalytics(); };
+  window.anRefresh = () => {
+    anYear="2026"; anMonth="all"; anDoctor="all"; anAsesor="all";
     const ySel = document.getElementById("an-year-sel");
     const mSel = document.getElementById("an-month-sel");
+    const dSel = document.getElementById("an-doctor-sel");
+    const aSel = document.getElementById("an-asesor-sel");
     if(ySel) ySel.value="2026";
     if(mSel) mSel.value="all";
+    if(dSel) dSel.value="all";
+    if(aSel) aSel.value="all";
     renderAnalytics();
   };
 
   function calcularTotalesBD() {
-    const L = getFilteredLeads();
+    const L  = getFilteredLeads();
+    const LA = getApptFilteredLeads();
     return {
-      total_leads: L.length,
-      agendados: L.filter(l => l.consulta_agendada === true).length,
-      attended: L.filter(l => l.cita_asistida === true).length,
-      no_show: L.filter(l => l.appointment_status === "No Show").length,
-      cancelled: L.filter(l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled").length,
-      proposal_sent: L.filter(l => l.propuesta_enviada === true).length,
-      won: L.filter(l => l.tratamiento_completado === true || l.sales_status === "Won").length,
-      lost: L.filter(l => l.sales_status === "Lost").length,
-      in_progress: L.filter(l => l.tratamiento_iniciado === true).length,
+      total_leads:   L.length,
+      lost:          L.filter(l => l.sales_status === "Lost").length,
+      agendados:     LA.length,
+      attended:      LA.filter(_isAtt).length,
+      no_show:       LA.filter(_isNS).length,
+      cancelled:     LA.filter(_isCan).length,
+      proposal_sent: LA.filter(_isProp).length,
+      won:           LA.filter(_isWon).length,
+      in_progress:   LA.filter(l => l.tratamiento_iniciado === true).length,
     };
   }
 
   function calcularCitasPorMes() {
-    const L = getFilteredLeads();
+    const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
+    const L = ALL.filter(l => {
+      if (!l.treatment_date) return false;
+      const d = new Date(String(l.treatment_date).slice(0,10));
+      if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
+      if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
+      if (anDoctor !== "all" && String(l.doctor_id) !== String(anDoctor)) return false;
+      if (anAsesor !== "all" && String(l.asesor_id) !== String(anAsesor)) return false;
+      return true;
+    });
     const porMes = {};
     L.forEach(l => {
-      if (!l.treatment_date) return;
       const d = new Date(String(l.treatment_date).slice(0,10));
       const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      if (!porMes[key]) {
-        porMes[key] = { total_citas:0, nuevas:0, reagendadas:0, active:0, attended:0, no_show:0, cancelled:0, proposal:0, won:0, lost:0 };
-      }
+      if (!porMes[key]) porMes[key] = { total_citas:0, nuevas:0, reagendadas:0, active:0, attended:0, no_show:0, cancelled:0, proposal:0, won:0, lost:0 };
       porMes[key].total_citas++;
-      if (l.sales_status === "Rescheduled Appointment") { porMes[key].reagendadas++; }
-      else { porMes[key].nuevas++; }
-      if (l.cita_asistida === true) porMes[key].attended++;
-      if (l.appointment_status === "No Show") porMes[key].no_show++;
-      if (["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled") porMes[key].cancelled++;
-      if (l.consulta_agendada === true && !l.cita_asistida && l.appointment_status !== "No Show" && !["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) && l.appointment_status !== "Canceled") {
-        porMes[key].active++;
-      }
-      if (l.propuesta_enviada === true) porMes[key].proposal++;
-      if (l.tratamiento_completado === true || l.sales_status === "Won") porMes[key].won++;
+      if (l.sales_status === "Rescheduled Appointment") porMes[key].reagendadas++;
+      else porMes[key].nuevas++;
+      if (_isAtt(l)) porMes[key].attended++;
+      if (_isNS(l))  porMes[key].no_show++;
+      if (_isCan(l)) porMes[key].cancelled++;
+      if (l.consulta_agendada === true && !_isAtt(l) && !_isNS(l) && !_isCan(l)) porMes[key].active++;
+      if (_isProp(l)) porMes[key].proposal++;
+      if (_isWon(l))  porMes[key].won++;
       if (l.sales_status === "Lost") porMes[key].lost++;
     });
     return porMes;
   }
 
-  function validarFlujoLead(lead) {
-    const transicionesInvalidas = [];
-    const hitos = [
-      { campo: "primer_contacto", fecha: "fecha_primer_contacto", status: "First Contact" },
-      { campo: "consulta_agendada", fecha: "primera_agenda_date", status: "Scheduled Appointment" },
-      { campo: "cita_asistida", fecha: "fecha_cita_asistida", status: "Attended" },
-      { campo: "propuesta_enviada", fecha: "fecha_propuesta_enviada", status: "Treatment Proposal Sent" },
-      { campo: "propuesta_aceptada", fecha: "fecha_propuesta_aceptada", status: "Proposal Accepted" },
-      { campo: "tratamiento_iniciado", fecha: "fecha_tratamiento_inicio", status: "Treatment in Progress" },
-      { campo: "tratamiento_completado", fecha: "fecha_won", status: "Won" },
-    ];
-    
-    const hitosAlcanzados = hitos.filter(h => lead[h.campo] === true);
-    
-    for (let i = 1; i < hitosAlcanzados.length; i++) {
-      const prev = hitosAlcanzados[i-1];
-      const curr = hitosAlcanzados[i];
-      const fechaPrev = lead[prev.fecha];
-      const fechaCurr = lead[curr.fecha];
-      
-      // Solo validar si AMBAS fechas existen
-      if (fechaPrev && fechaCurr) {
-        const dPrev = new Date(String(fechaPrev).slice(0,10));
-        const dCurr = new Date(String(fechaCurr).slice(0,10));
-        
-        // Solo reportar si la diferencia es mayor a 1 día (tolerancia)
-        const diffDays = Math.floor((dPrev - dCurr) / 86400000);
-        if (diffDays > 1) {
-          transicionesInvalidas.push({ 
-            from: prev.status, 
-            to: curr.status, 
-            fecha: fechaCurr,
-            fechaPrev: fechaPrev 
-          });
-        }
-      }
-    }
-    
-    return { valido: transicionesInvalidas.length === 0, transicionesInvalidas };
-}
-
   function analizarPipeline(leads) {
     const pipeline = {};
     PIPELINE_STAGES.forEach(stage => {
-      pipeline[stage.nombre] = { count: 0, bloqueados: 0, color: stage.color, icon: stage.icon, desc: stage.desc };
+      pipeline[stage.nombre] = { count: 0, color: stage.color, icon: stage.icon, desc: stage.desc };
     });
     leads.forEach(lead => {
       let status = "New Lead";
-      if (lead.tratamiento_completado === true || lead.sales_status === "Won") status = "Won";
+      if (_isWon(lead) && (lead.tratamiento_completado === true || lead.sales_status === "Won")) status = "Won";
       else if (lead.sales_status === "Lost") status = "Lost";
-      else if (lead.tratamiento_iniciado === true) status = "Tratamiento Iniciado";
-      else if (lead.propuesta_aceptada === true) status = "Propuesta Aceptada";
-      else if (lead.propuesta_enviada === true) status = "Propuesta Enviada";
-      else if (lead.cita_asistida === true) status = "Cita Asistida";
+      else if (lead.tratamiento_iniciado === true || lead.treatment_confirmed === true) status = "Tratamiento Iniciado";
+      else if (_isAcc(lead))  status = "Propuesta Aceptada";
+      else if (_isProp(lead)) status = "Propuesta Enviada";
+      else if (_isAtt(lead))  status = "Cita Asistida";
       else if (lead.consulta_agendada === true) status = "Cita Agendada";
-      else if (lead.primer_contacto === true) status = "1er Contacto";
-      if (pipeline[status]) {
-        pipeline[status].count++;
-        const lastChange = lead.fecha_actualizacion || lead.fecha_creacion;
-        if (lastChange && status !== "Won" && status !== "Lost") {
-          const daysSinceChange = Math.floor((new Date() - new Date(lastChange)) / 86400000);
-          if (daysSinceChange > 7) pipeline[status].bloqueados++;
-        }
-      }
+      else if (lead.primer_contacto === true)   status = "1er Contacto";
+      if (pipeline[status]) pipeline[status].count++;
     });
     return pipeline;
   }
 
   function buildPipelineView(pipeline) {
     const maxCount = Math.max(...Object.values(pipeline).map(p => p.count), 1);
-    let html = `<div class="an-card" style="grid-column:1/-1"><h4>🔄 Sales Pipeline — Based on Boolean Fields in DB</h4><div class="an-pipeline-wrap">`;
+    let html = `<div class="an-card" style="grid-column:1/-1"><h4>🔄 Sales Pipeline</h4><div class="an-pipeline-wrap">`;
     PIPELINE_STAGES.forEach((stage) => {
       const data = pipeline[stage.nombre];
       const count = data?.count || 0;
-      const bloqueados = data?.bloqueados || 0;
       const height = Math.max(80, (count / maxCount) * 260);
-      const validas = TRANSICIONES_VALIDAS[stage.nombre] || [];
       html += `<div class="an-pipeline-col">
         <div class="an-pipeline-header"><span style="font-size:1.4rem">${stage.icon}</span><span>${stage.nombre}</span></div>
         <div class="an-pipeline-bar" style="background:${stage.color};min-height:${height}px">
-          <div class="an-pipeline-count">${count}</div><div class="an-pipeline-desc">${stage.desc}</div>
-          ${bloqueados > 0 ? `<div class="an-pipeline-blocked">⚠️ ${bloqueados} stalled</div>` : ''}
+          <div class="an-pipeline-count">${count}</div>
+          <div class="an-pipeline-desc">${stage.desc}</div>
         </div>
-        ${validas.length > 0 ? `<div class="an-pipeline-routes">${validas.slice(0,3).map(sig => {
-          const sigStage = PIPELINE_STAGES.find(s => s.nombre === sig);
-          return `<span class="an-pipeline-route" style="background:${sigStage?.color || '#666'}22;color:${sigStage?.color || '#666'};border-color:${sigStage?.color || '#666'}44">→ ${sig}</span>`;
-        }).join('')}${validas.length > 3 ? `<span style="font-size:.5rem;color:var(--text3)">+${validas.length-3}</span>` : ''}</div>` : `<div style="font-size:.6rem;color:var(--text3);margin-top:4px">Final</div>`}
       </div>`;
     });
-    html += `</div><div style="font-size:.64rem;color:var(--text3);margin-top:12px;border-top:1px solid var(--border);padding-top:10px">💡 Height = proportion to maximum (${maxCount}) · Arrows = allowed transitions · ⚠️ = leads >7 days without changes</div></div>`;
+    html += `</div></div>`;
     return html;
   }
 
-  function buildTransicionesInvalidas(leads) {
-    const invalidas = [];
-    leads.slice(0, 500).forEach(lead => {
-      const validacion = validarFlujoLead(lead);
-      if (!validacion.valido) {
-        validacion.transicionesInvalidas.forEach(t => {
-          invalidas.push({ lead: lead.nombre || lead.name || `#${lead.id}` || "No name", from: t.from, to: t.to, fecha: t.fecha });
-        });
-      }
-    });
-    if (invalidas.length === 0) {
-      return `<div class="an-card" style="grid-column:1/-1"><h4>✅ Date Validation (Lead Milestones)</h4><div style="text-align:center;padding:2rem;color:#22c55e;font-size:.9rem">✅ All milestone dates are in correct chronological order</div></div>`;
-    }
-    return `<div class="an-card" style="grid-column:1/-1"><h4>⚠️ Milestone Date Inconsistencies (${invalidas.length})</h4><div style="overflow-x:auto;max-height:350px;overflow-y:auto"><table class="an-appt-table"><thead><tr><th>Lead</th><th>Previous Milestone</th><th>Next Milestone</th><th>Date</th></tr></thead><tbody>${invalidas.slice(0,50).map(t => `<tr><td style="font-weight:500">${t.lead}</td><td style="color:#f59e0b">${t.from}</td><td style="color:#ef4444;font-weight:600">${t.to}</td><td style="font-size:.7rem">${t.fecha}</td></tr>`).join('')}</tbody></table>${invalidas.length > 50 ? `<div style="text-align:center;padding:.5rem;color:var(--text3);font-size:.7rem">... and ${invalidas.length-50} more</div>` : ''}</div></div>`;
-  }
+  // ── MAIN FUNNEL — real trapezoid SVG shape ───────────────────
+  function buildMainFunnel(L, LA) {
+    const totalLeads  = L.length;
+    const agendados   = L.filter(l => l.consulta_agendada === true).length;
+    const atendidos   = LA.filter(_isAtt).length;
+    const evalDone    = LA.filter(l =>
+      _isAtt(l) && (
+        l.evaluacion_realizada === true ||
+        _isProp(l) || _isAcc(l) ||
+        l.medical_status === "Candidate Approved" ||
+        l.medical_status === "Candidate Rejected" ||
+        l.medical_status === "Consultation Completed"
+      )
+    ).length;
+    const propEnviada = LA.filter(_isProp).length;
+    const won         = LA.filter(_isWon).length;
 
-  function buildFunnel(steps, title) {
-    const max = Math.max(1, ...steps.map(s => s.count));
-    const neonColors = [
-      { bg: "linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)", glow: "0 0 30px rgba(59,130,246,0.6), 0 8px 32px rgba(59,130,246,0.3)", border: "rgba(96,165,250,0.5)" },
-      { bg: "linear-gradient(180deg, #6366f1 0%, #4338ca 100%)", glow: "0 0 30px rgba(99,102,241,0.6), 0 8px 32px rgba(99,102,241,0.3)", border: "rgba(129,140,248,0.5)" },
-      { bg: "linear-gradient(180deg, #14b8a6 0%, #0d9488 100%)", glow: "0 0 30px rgba(20,184,166,0.6), 0 8px 32px rgba(20,184,166,0.3)", border: "rgba(45,212,191,0.5)" },
-      { bg: "linear-gradient(180deg, #22c55e 0%, #16a34a 100%)", glow: "0 0 30px rgba(34,197,94,0.6), 0 8px 32px rgba(34,197,94,0.3)", border: "rgba(74,222,128,0.5)" },
-      { bg: "linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)", glow: "0 0 30px rgba(168,85,247,0.6), 0 8px 32px rgba(168,85,247,0.3)", border: "rgba(192,132,252,0.5)" },
-      { bg: "linear-gradient(180deg, #06b6d4 0%, #0891b2 100%)", glow: "0 0 30px rgba(6,182,212,0.6), 0 8px 32px rgba(6,182,212,0.3)", border: "rgba(34,211,238,0.5)" },
-      { bg: "linear-gradient(180deg, #f59e0b 0%, #d97706 100%)", glow: "0 0 30px rgba(245,158,11,0.6), 0 8px 32px rgba(245,158,11,0.3)", border: "rgba(251,191,36,0.5)" },
-      { bg: "linear-gradient(180deg, #4ade80 0%, #22c55e 100%)", glow: "0 0 30px rgba(74,222,128,0.6), 0 8px 32px rgba(74,222,128,0.3)", border: "rgba(134,239,172,0.5)" },
+    const steps = [
+      { label:"Total Leads",          sub:"admission date",              count:totalLeads,  color:"#3b82f6" },
+      { label:"Appointment Booked",   sub:"consulta_agendada = true",    count:agendados,   color:"#6366f1" },
+      { label:"Appointment Attended", sub:"cita_asistida = true",        count:atendidos,   color:"#14b8a6" },
+      { label:"Evaluation Done",      sub:"evaluación + candidato",      count:evalDone,    color:"#22c55e" },
+      { label:"Proposal Sent",        sub:"propuesta_enviada = true",    count:propEnviada, color:"#a855f7" },
+      { label:"Won",                  sub:"tratamiento iniciado / pago", count:won,         color:"#f59e0b" },
     ];
 
-    let html = `
-    <div class="an-card" style="overflow:hidden;padding:0;border-radius:20px;background:linear-gradient(180deg, var(--bg2) 0%, rgba(0,0,0,0.2) 100%);">
-      <div style="padding:1.6rem 1.8rem 1rem 1.8rem;background:linear-gradient(180deg, rgba(59,130,246,0.08) 0%, transparent 100%);">
-        <h4 style="border:none;margin-bottom:0;padding-bottom:0;font-size:.85rem;">${title}</h4>
-      </div>
-      <div style="padding:0 2rem 1.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:0;">`;
+    const maxN   = Math.max(steps[0].count, 1);
+    const SVG_W  = 640;
+    const FULL_W = 560;
+    const MIN_W  = 120;
+    const H_STEP = 64;
+    const GAP    = 4;
+    const LABEL_X = 8;
+    const CONV_X  = SVG_W - 8;
+    const SVG_H  = steps.length * (H_STEP + GAP) + 10;
+    const CX     = SVG_W / 2;
 
+    let svgPaths = "";
     steps.forEach((s, i) => {
-      const colors = neonColors[i % neonColors.length];
-      const wPct = Math.max(10, (s.count / max) * 100);
-      const prev = i > 0 ? steps[i - 1].count : s.count;
-      const drop = i > 0 ? prev - s.count : 0;
-      const pctOfPrev = prev > 0 && i > 0 ? Math.round((s.count / prev) * 100) : 100;
-      const pctOfMax = max > 0 ? Math.round((s.count / max) * 100) : 0;
+      const w    = MIN_W + (FULL_W - MIN_W) * (s.count / maxN);
+      const wBot = i < steps.length - 1
+        ? MIN_W + (FULL_W - MIN_W) * (steps[i+1].count / maxN)
+        : MIN_W + (FULL_W - MIN_W) * (s.count / maxN) * 0.85;
 
-      html += `
-      <div style="width:100%;display:flex;flex-direction:column;align-items:center;position:relative;margin-bottom:${i < steps.length - 1 ? '-2px' : '0'};">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:3px;padding:0 10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:.78rem;font-weight:700;color:var(--text);letter-spacing:.3px;">${s.label}</span>
-            ${drop > 0 ? `<span style="font-size:.62rem;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.12);padding:3px 10px;border-radius:20px;">-${drop} (${100-pctOfPrev}%)</span>` : ''}
+      const x    = CX - w / 2;
+      const xBot = CX - wBot / 2;
+      const yTop = i * (H_STEP + GAP);
+      const yBot = yTop + H_STEP;
+
+      const pctTotal = Math.round((s.count / maxN) * 100);
+      const prev     = i > 0 ? steps[i-1].count : s.count;
+      const convPct  = i > 0 && prev > 0 ? Math.round((s.count / prev) * 100) : null;
+
+      // trapezoid
+      svgPaths += `<path d="M${x},${yTop} L${x+w},${yTop} L${xBot+wBot},${yBot} L${xBot},${yBot} Z" fill="${s.color}" opacity="0.93"/>`;
+      // inner highlight strip
+      svgPaths += `<path d="M${x+8},${yTop+3} L${x+w-8},${yTop+3} L${x+w-8},${yTop+10} L${x+8},${yTop+10} Z" fill="white" opacity="0.13"/>`;
+
+      // big count centered
+      svgPaths += `<text x="${CX}" y="${yTop + H_STEP/2 - 5}" text-anchor="middle" dominant-baseline="auto"
+        font-family="'DM Mono',monospace,sans-serif" font-size="22" font-weight="700" fill="white"
+        style="text-shadow:0 1px 4px rgba(0,0,0,.5)">${s.count.toLocaleString()}</text>`;
+
+      // pct pill
+      svgPaths += `<rect x="${CX+14}" y="${yTop+H_STEP/2+4}" width="38" height="17" rx="9" fill="rgba(0,0,0,0.28)"/>`;
+      svgPaths += `<text x="${CX+33}" y="${yTop+H_STEP/2+16}" text-anchor="middle" dominant-baseline="auto"
+        font-family="'DM Mono',monospace,sans-serif" font-size="10" fill="rgba(255,255,255,.9)">${pctTotal}%</text>`;
+
+      // left label
+      svgPaths += `<text x="${LABEL_X}" y="${yTop + H_STEP/2 - 5}" dominant-baseline="auto"
+        font-family="'DM Sans',sans-serif" font-size="12" font-weight="600" fill="${s.color}">${s.label}</text>`;
+      svgPaths += `<text x="${LABEL_X}" y="${yTop + H_STEP/2 + 10}" dominant-baseline="auto"
+        font-family="'DM Sans',sans-serif" font-size="10" fill="${s.color}" opacity="0.65">${s.sub}</text>`;
+
+      // right conv rate
+      if (convPct !== null) {
+        svgPaths += `<text x="${CONV_X}" y="${yTop + H_STEP/2 - 5}" text-anchor="end" dominant-baseline="auto"
+          font-family="'DM Mono',monospace,sans-serif" font-size="13" font-weight="700" fill="${s.color}">${convPct}%</text>`;
+        svgPaths += `<text x="${CONV_X}" y="${yTop + H_STEP/2 + 10}" text-anchor="end" dominant-baseline="auto"
+          font-family="'DM Sans',sans-serif" font-size="10" fill="${s.color}" opacity="0.6">of prev</text>`;
+      } else {
+        svgPaths += `<text x="${CONV_X}" y="${yTop + H_STEP/2 + 2}" text-anchor="end" dominant-baseline="auto"
+          font-family="'DM Sans',sans-serif" font-size="10" fill="${s.color}" opacity="0.6">baseline</text>`;
+      }
+    });
+
+    const svgStr = `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">${svgPaths}</svg>`;
+
+    // legend pills
+    const legendPills = steps.map(s =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;background:${s.color}18;border:1px solid ${s.color}44;border-radius:20px;padding:3px 10px;font-size:.68rem;color:${s.color};font-weight:600">`+
+      `<span style="width:7px;height:7px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.label}</span>`
+    ).join("");
+
+    return `<div class="an-card" style="padding:1.6rem">
+      <h4>🔽 Full Conversion Funnel</h4>
+      <div style="overflow-x:auto">${svgStr}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border)">${legendPills}</div>
+      <div style="font-size:.64rem;color:var(--text3);margin-top:.6rem;line-height:1.6">
+        % inside bar = proportion vs Total Leads &nbsp;·&nbsp; % right = conversion vs previous stage &nbsp;·&nbsp; Won = tratamiento iniciado / confirmado / completado
+      </div>
+    </div>`;
+  }
+
+  // ── APPOINTMENTS BREAKDOWN as horizontal bar chart ────────────
+  function buildApptBarsCard(LA) {
+    const total = LA.length;
+    if (total === 0) {
+      return `<div class="an-card"><h4>📅 Appointments Breakdown (by treatment date)</h4><p class="an-no-data">No appointment data</p></div>`;
+    }
+
+    const attended  = LA.filter(_isAtt).length;
+    const noShow    = LA.filter(_isNS).length;
+    const cancelled = LA.filter(_isCan).length;
+    const pending   = LA.filter(l => !_isAtt(l) && !_isNS(l) && !_isCan(l)).length;
+
+    const rows = [
+      { label: "✅ Attended",  count: attended,  color: "#22c55e" },
+      { label: "😶 No Show",   count: noShow,    color: "#f97316" },
+      { label: "❌ Cancelled", count: cancelled, color: "#ef4444" },
+      { label: "⏳ Pending",   count: pending,   color: "#6366f1" },
+    ];
+
+    const maxVal = Math.max(...rows.map(r => r.count), 1);
+
+    let html = `<div class="an-card" style="grid-column:span 2">
+      <h4>📅 Appointments Breakdown — ${total} total <span style="font-size:.7rem;color:var(--text3);font-weight:400;text-transform:none">(by treatment date)</span></h4>`;
+
+    rows.forEach(r => {
+      const wPct = maxVal > 0 ? Math.round((r.count / maxVal) * 100) : 0;
+      const pctOfTotal = total > 0 ? ((r.count / total) * 100).toFixed(1) : "0";
+      html += `<div class="an-horiz-bar-row">
+        <div class="an-horiz-label">${r.label}</div>
+        <div class="an-horiz-track">
+          <div class="an-horiz-fill" style="width:${wPct}%;background:${r.color}22;border:1px solid ${r.color}44;position:relative">
+            <span class="an-horiz-num" style="color:${r.color}">${r.count}</span>
+            <span class="an-horiz-pct-badge" style="color:${r.color};background:${r.color}22">${pctOfTotal}%</span>
           </div>
-          <span style="font-size:.7rem;font-weight:600;color:var(--text3);">${s.sub || ''}</span>
         </div>
-        <div style="width:${wPct}%;position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.3));">
-          <div style="
-            background:${colors.bg};
-            height:52px;
-            border-radius:12px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            gap:14px;
-            position:relative;
-            box-shadow:${colors.glow};
-            border:1.5px solid ${colors.border};
-            border-bottom:3px solid rgba(0,0,0,0.3);
-            transform:perspective(500px) rotateX(3deg);
-            transition:all 0.3s cubic-bezier(.4,0,.2,1);
-          ">
-            <div style="position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);border-radius:2px;"></div>
-            <div style="position:absolute;left:3px;top:15%;bottom:15%;width:4px;background:rgba(255,255,255,0.2);border-radius:4px;"></div>
-            <span style="font-size:1.1rem;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.5);font-family:'DM Mono',monospace;z-index:1;">${s.count.toLocaleString()}</span>
-            <div style="display:flex;gap:8px;z-index:1;">
-              <span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,0.95);background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;backdrop-filter:blur(4px);">${pctOfMax}%</span>
-              ${i > 0 ? `<span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,0.95);background:rgba(0,0,0,0.25);padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;">${pctOfPrev}% conv</span>` : ''}
-            </div>
-          </div>
-          <div style="width:90%;margin:0 auto;height:6px;background:rgba(0,0,0,0.4);border-radius:0 0 50% 50%;filter:blur(6px);margin-top:-2px;"></div>
-        </div>
-        ${i < steps.length - 1 ? `
-        <div style="display:flex;flex-direction:column;align-items:center;margin:2px 0;">
-          <div style="width:3px;height:10px;background:linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));border-radius:3px;"></div>
-          <div style="width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;margin:-1px 0;">
-            <div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3);"></div>
-          </div>
-          <div style="width:3px;height:10px;background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.2));border-radius:3px;"></div>
-        </div>
-        ` : ''}
       </div>`;
     });
 
-    html += `
-      </div>
-      <div style="padding:0.8rem 2rem 1.2rem 2rem;border-top:1px solid var(--border);background:rgba(0,0,0,0.1);">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center;">
-          <span style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:6px;">
-            <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:linear-gradient(180deg,#3b82f6,#1d4ed8);"></span>
-            % = proportion to maximum (${max.toLocaleString()})
-          </span>
-          <span style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:6px;">
-            <span style="color:#ef4444;font-weight:700;">-X</span>
-            = drop vs previous stage
-          </span>
-          <span style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:6px;">
-            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);"></span>
-            conv = conversion vs previous stage
-          </span>
-        </div>
-      </div>
-    </div>`;
-
+    // Visual summary donut-style pills
+    html += `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border)">`;
+    rows.forEach(r => {
+      const pct = total > 0 ? ((r.count / total)*100).toFixed(0) : 0;
+      html += `<div style="display:flex;align-items:center;gap:.4rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:.3rem .9rem">
+        <span style="width:8px;height:8px;border-radius:50%;background:${r.color};display:inline-block"></span>
+        <span style="font-size:.75rem;color:var(--text2)">${r.label.split(' ')[1]}</span>
+        <span style="font-size:.78rem;font-weight:700;color:${r.color};font-family:'DM Mono',monospace">${pct}%</span>
+      </div>`;
+    });
+    html += `</div></div>`;
     return html;
   }
 
   function buildApptTable(citasPorMes) {
     const months = Object.keys(citasPorMes).sort();
-    if (months.length === 0) return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month</h4><p class="an-no-data">No appointment data (treatment_date empty)</p></div>`;
+    if (months.length === 0) return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month</h4><p class="an-no-data">No data</p></div>`;
     let totals = {total_citas:0,nuevas:0,reagendadas:0,attended:0,no_show:0,cancelled:0,active:0,proposal:0,won:0};
     let rows = months.map(m => {
       const d = citasPorMes[m];
-      Object.keys(totals).forEach(k=>{ totals[k]+=d[k]||0; });
+      Object.keys(totals).forEach(k=>{ totals[k]+=(d[k]||0); });
       const mm = parseInt(m.split("-")[1]);
       const yyyy = m.split("-")[0];
       const attPct = d.total_citas>0 ? ((d.attended/d.total_citas)*100).toFixed(0)+"%" : "—";
-      const nsPct  = d.total_citas>0 ? ((d.no_show/d.total_citas)*100).toFixed(0)+"%" : "—";
       return `<tr><td style="color:var(--text);font-weight:600">${MONTH_SHORT[mm]} ${yyyy}</td>
-        <td style="font-weight:600">${d.total_citas}</td><td style="color:#14b8a6">${d.nuevas}</td><td style="color:#f59e0b">${d.reagendadas}</td>
-        <td style="color:#6366f1">${d.active}</td><td style="color:#22c55e">${d.attended} <span style="color:var(--text3);font-size:.65rem">(${attPct})</span></td>
-        <td style="color:#f97316">${d.no_show} <span style="color:var(--text3);font-size:.65rem">(${nsPct})</span></td>
-        <td style="color:#ef4444">${d.cancelled}</td><td style="color:#a855f7">${d.proposal}</td><td style="color:#4ade80">${d.won}</td></tr>`;
+        <td style="font-weight:600">${d.total_citas}</td><td style="color:#22c55e">${d.attended} <span style="color:var(--text3);font-size:.65rem">(${attPct})</span></td>
+        <td style="color:#f97316">${d.no_show}</td><td style="color:#ef4444">${d.cancelled}</td>
+        <td style="color:#6366f1">${d.active}</td><td style="color:#a855f7">${d.proposal}</td><td style="color:#4ade80">${d.won}</td></tr>`;
     }).join("");
-    return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month (from treatment_date in DB)</h4><div style="overflow-x:auto"><table class="an-appt-table">
-      <thead><tr><th>Month</th><th>Total</th><th style="color:#14b8a6">New</th><th style="color:#f59e0b">Rescheduled</th><th style="color:#6366f1">Pending</th><th style="color:#22c55e">Attended</th><th style="color:#f97316">No Show</th><th style="color:#ef4444">Cancelled</th><th style="color:#a855f7">Proposal</th><th style="color:#4ade80">Won</th></tr></thead>
-      <tbody>${rows}<tr class="tot-row"><td>TOTAL</td><td style="font-weight:700">${totals.total_citas}</td><td style="color:#14b8a6;font-weight:700">${totals.nuevas}</td><td style="color:#f59e0b;font-weight:700">${totals.reagendadas}</td><td style="color:#6366f1;font-weight:700">${totals.active}</td><td style="color:#22c55e;font-weight:700">${totals.attended}</td><td style="color:#f97316;font-weight:700">${totals.no_show}</td><td style="color:#ef4444;font-weight:700">${totals.cancelled}</td><td style="color:#a855f7;font-weight:700">${totals.proposal}</td><td style="color:#4ade80;font-weight:700">${totals.won}</td></tr></tbody></table></div></div>`;
-  }
-
-  function buildStackedApptChart(citasPorMes) {
-    const months = Object.keys(citasPorMes).sort();
-    if (months.length === 0) return "";
-    const segs = [{key:"attended",color:"#22c55e",label:"Attended"},{key:"no_show",color:"#f97316",label:"No Show"},{key:"cancelled",color:"#ef4444",label:"Cancelled"},{key:"active",color:"#6366f1",label:"Pending"}];
-    const maxTotal = Math.max(...months.map(m=>citasPorMes[m].total_citas));
-    const rows = months.map(m => {
-      const d = citasPorMes[m];
-      const mm = parseInt(m.split("-")[1]);
-      const yyyy = m.split("-")[0];
-      const bars = segs.map(s=>{const pct = d.total_citas>0 ? ((d[s.key]/d.total_citas)*100).toFixed(1) : 0;return `<div class="an-stacked-seg" style="width:${pct}%;background:${s.color}" title="${s.label}: ${d[s.key]} (${pct}%)"></div>`;}).join("");
-      const barW = maxTotal>0 ? ((d.total_citas/maxTotal)*100).toFixed(0) : 0;
-      return `<div class="an-stacked-row"><div class="an-stacked-label">${MONTH_SHORT[mm]} ${yyyy.slice(2)}</div><div class="an-stacked-bar" style="width:${barW}%">${bars}</div><div class="an-stacked-total">${d.total_citas}</div></div>`;
-    }).join("");
-    return `<div class="an-card"><h4>📊 Appointment Composition by Month</h4>${rows}<div class="an-legend">${segs.map(s=>`<div class="an-legend-item"><div class="an-legend-dot" style="background:${s.color}"></div>${s.label}</div>`).join("")}</div></div>`;
+    return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month (treatment_date)</h4><div style="overflow-x:auto"><table class="an-appt-table">
+      <thead><tr><th>Month</th><th>Total</th><th style="color:#22c55e">Attended</th><th style="color:#f97316">No Show</th><th style="color:#ef4444">Cancelled</th><th style="color:#6366f1">Pending</th><th style="color:#a855f7">Proposal</th><th style="color:#4ade80">Won</th></tr></thead>
+      <tbody>${rows}<tr class="tot-row"><td>TOTAL</td><td>${totals.total_citas}</td><td style="color:#22c55e">${totals.attended}</td><td style="color:#f97316">${totals.no_show}</td><td style="color:#ef4444">${totals.cancelled}</td><td style="color:#6366f1">${totals.active}</td><td style="color:#a855f7">${totals.proposal}</td><td style="color:#4ade80">${totals.won}</td></tr></tbody></table></div></div>`;
   }
 
   function buildBars(title, obj, showPct) {
@@ -3530,106 +3556,82 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   }
 
   function renderAnalytics() {
-    const L = getFilteredLeads();
+    const L  = getFilteredLeads();
+    const LA = getApptFilteredLeads();
     const total = L.length;
     updateFilterBadge(total);
+    populateDoctorAsesorSelects();
 
     const totalesBD = calcularTotalesBD();
     const citasPorMes = calcularCitasPorMes();
 
-    // Global KPIs
+    // ── Global KPIs ──
     const globalKpis = [
-      { n: totalesBD.total_leads,   l: "Total Leads",           c:"#3b82f6", sub:"in database" },
-      { n: totalesBD.agendados,     l: "Scheduled Appts.",      c:"#14b8a6", sub:`${((totalesBD.agendados/Math.max(totalesBD.total_leads,1))*100).toFixed(1)}% of total` },
-      { n: totalesBD.attended,      l: "Attended Appts.",       c:"#22c55e", sub:`${totalesBD.agendados>0?((totalesBD.attended/totalesBD.agendados)*100).toFixed(1):"—"}% of scheduled` },
-      { n: totalesBD.no_show,       l: "No Shows",              c:"#f97316", sub:`${totalesBD.agendados>0?((totalesBD.no_show/totalesBD.agendados)*100).toFixed(1):"—"}%` },
-      { n: totalesBD.cancelled,     l: "Cancelled",             c:"#ef4444", sub:`${totalesBD.agendados>0?((totalesBD.cancelled/totalesBD.agendados)*100).toFixed(1):"—"}%` },
-      { n: totalesBD.proposal_sent, l: "Proposals Sent",        c:"#a855f7", sub:`${totalesBD.attended>0?((totalesBD.proposal_sent/totalesBD.attended)*100).toFixed(1):"—"}% of attended` },
-      { n: totalesBD.won,           l: "Won (Closed)",          c:"#4ade80", sub:`${totalesBD.proposal_sent>0?((totalesBD.won/totalesBD.proposal_sent)*100).toFixed(1):"—"}% of proposals` },
-      { n: totalesBD.lost,          l: "Lost",                  c:"#dc2626", sub:`${((totalesBD.lost/Math.max(totalesBD.total_leads,1))*100).toFixed(1)}% of total` },
+      { n: totalesBD.total_leads,   l: "New Leads",        c:"#3b82f6", sub:"by admission date" },
+      { n: totalesBD.agendados,     l: "Scheduled Appts.", c:"#14b8a6", sub:"by treatment date" },
+      { n: totalesBD.attended,      l: "Attended",         c:"#22c55e", sub:`${totalesBD.agendados>0?((totalesBD.attended/totalesBD.agendados)*100).toFixed(1):"—"}% of scheduled` },
+      { n: totalesBD.no_show,       l: "No Shows",         c:"#f97316", sub:`${totalesBD.agendados>0?((totalesBD.no_show/totalesBD.agendados)*100).toFixed(1):"—"}% of scheduled` },
+      { n: totalesBD.cancelled,     l: "Cancelled",        c:"#ef4444", sub:`${totalesBD.agendados>0?((totalesBD.cancelled/totalesBD.agendados)*100).toFixed(1):"—"}%` },
+      { n: totalesBD.proposal_sent, l: "Proposals Sent",   c:"#a855f7", sub:`${totalesBD.attended>0?((totalesBD.proposal_sent/totalesBD.attended)*100).toFixed(1):"—"}% of attended` },
+      { n: totalesBD.won,           l: "Won",              c:"#4ade80", sub:`${totalesBD.proposal_sent>0?((totalesBD.won/totalesBD.proposal_sent)*100).toFixed(1):"—"}% of proposals` },
+      { n: totalesBD.lost,          l: "Lost",             c:"#dc2626", sub:`${((totalesBD.lost/Math.max(totalesBD.total_leads,1))*100).toFixed(1)}% of new leads` },
     ];
     document.getElementById("an-kpis-global").innerHTML = globalKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div>${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}</div>`).join("");
 
-    // Period KPIs
+    // ── Period label ──
     const mkLabel = document.getElementById("an-kpi-month-label");
     if (mkLabel) {
-      if (anMonth !== "all" && anYear !== "all") {
-        mkLabel.textContent = `📅 KPIs — Leads with admission_date in ${MONTHS_LABEL[parseInt(anMonth)]} ${anYear}`;
-      } else if (anYear !== "all") {
-        mkLabel.textContent = `📅 KPIs — Leads with admission_date in ${anYear}`;
-      } else {
-        mkLabel.textContent = "📅 KPIs — Selected Period";
-      }
+      let per = anMonth !== "all" ? `${MONTHS_LABEL[parseInt(anMonth)]} ` : "";
+      per += anYear !== "all" ? anYear : "(All Time)";
+      mkLabel.textContent = `📅 KPIs — ${per}`;
     }
+
     const monthKpis = [
-      { n: total, l: "Total Leads", c:"#3b82f6" },
-      { n: L.filter(l=>l.consulta_agendada===true).length, l:"Scheduled", c:"#14b8a6" },
-      { n: L.filter(l=>l.cita_asistida===true).length, l:"Attended", c:"#22c55e" },
-      { n: L.filter(l=>l.propuesta_enviada===true).length, l:"Proposals", c:"#a855f7" },
-      { n: L.filter(l=>l.tratamiento_completado===true||l.sales_status==="Won").length, l:"Won", c:"#4ade80" },
-      { n: L.filter(l=>l.sales_status==="Lost").length, l:"Lost", c:"#dc2626" },
+      { n: total,                                                              l:"New Leads",         c:"#3b82f6", sub:"admission date" },
+      { n: L.filter(l=>l.primer_contacto===true).length,                      l:"First Contact",     c:"#6366f1" },
+      { n: L.filter(l=>l.sales_status==="Lost").length,                       l:"Lost",              c:"#dc2626" },
+      { n: LA.length,                                                          l:"Scheduled",         c:"#14b8a6", sub:"treatment date" },
+      { n: LA.filter(_isAtt).length,                                           l:"Attended",          c:"#22c55e" },
+      { n: LA.filter(_isNS).length,                                            l:"No Show",           c:"#f97316" },
+      { n: LA.filter(_isCan).length,                                           l:"Cancelled",         c:"#ef4444" },
+      { n: LA.filter(_isProp).length,                                          l:"Proposals",         c:"#a855f7" },
+      { n: LA.filter(_isWon).length,                                           l:"Won",               c:"#4ade80" },
     ];
-    document.getElementById("an-kpis-month").innerHTML = monthKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div></div>`).join("");
+    document.getElementById("an-kpis-month").innerHTML = monthKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div>${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}</div>`).join("");
 
-    // Funnels
-    const funnelSalesData = [
-      { label:"Total Leads",         count:total, sub:"admission_date" },
-      { label:"First Contact",        count:L.filter(l=>l.primer_contacto===true).length, sub:"primer_contacto = true" },
-      { label:"Appointment Booked",   count:L.filter(l=>l.consulta_agendada===true).length, sub:"consulta_agendada = true" },
-      { label:"Appointment Attended", count:L.filter(l=>l.cita_asistida===true).length, sub:"cita_asistida = true" },
-    ];
-    const funnelClinicalData = [
-      { label:"Appointment Attended",  count:L.filter(l=>l.cita_asistida===true).length, sub:"cita_asistida = true" },
-      { label:"Evaluation Done",       count:L.filter(l=>l.evaluacion_realizada===true).length, sub:"evaluacion_realizada = true" },
-      { label:"Proposal Sent",         count:L.filter(l=>l.propuesta_enviada===true).length, sub:"propuesta_enviada = true" },
-      { label:"Proposal Accepted",     count:L.filter(l=>l.propuesta_aceptada===true).length, sub:"propuesta_aceptada = true" },
-      { label:"Treatment Started",     count:L.filter(l=>l.tratamiento_iniciado===true).length, sub:"tratamiento_iniciado = true" },
-      { label:"Won",                   count:L.filter(l=>l.tratamiento_completado===true).length, sub:"tratamiento_completado = true" },
-    ];
-    const totalAgendadas = L.filter(l => l.consulta_agendada === true).length;
-    const funnelApptData = [
-      { label:"Scheduled Appts.",  count: totalAgendadas, sub:"consulta_agendada = true" },
-      { label:"→ Attended",        count:L.filter(l => l.consulta_agendada === true && l.cita_asistida === true).length, sub:"attended from scheduled" },
-      { label:"→ No Show",         count:L.filter(l => l.consulta_agendada === true && l.appointment_status === "No Show").length, sub:"no-shows from scheduled" },
-      { label:"→ Cancelled",       count:L.filter(l => l.consulta_agendada === true && (l.appointment_status === "Canceled" || ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status))).length, sub:"cancelled from scheduled" },
-      { label:"→ Pending",         count:L.filter(l => l.consulta_agendada === true && !l.cita_asistida && l.appointment_status !== "No Show" && l.appointment_status !== "Canceled" && !["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status)).length, sub:"no status defined yet" },
-    ];
+    // ── Funnels ──
+    const funnelHtml = buildMainFunnel(L, LA);
+    document.getElementById("an-funnels").innerHTML = `<div class="an-funnel-v2-wrap">${funnelHtml}</div>`;
 
-    document.getElementById("an-funnels").innerHTML =
-      buildFunnel(funnelSalesData, "📞 Sales Funnel") +
-      buildFunnel(funnelClinicalData, "🏥 Clinical Funnel") +
-      buildFunnel(funnelApptData, "📅 Appointments Breakdown");
+    // ── Appointments bar chart ──
+    document.getElementById("an-appt-bars").innerHTML = `<div class="an-appt-bars-wrap">${buildApptBarsCard(LA)}</div>`;
 
-    // Pipeline
+    // ── Pipeline ──
     const pipeline = analizarPipeline(L);
-    document.getElementById("an-pipeline").innerHTML = buildPipelineView(pipeline);
-    document.getElementById("an-transiciones").innerHTML = buildTransicionesInvalidas(L);
-    document.getElementById("an-appt-table-wrap").innerHTML = buildApptTable(citasPorMes) + buildStackedApptChart(citasPorMes);
+    document.getElementById("an-pipeline").innerHTML = `<div class="an-grid">${buildPipelineView(pipeline)}</div>`;
 
-    // Charts
+    // ── Appt Table ──
+    document.getElementById("an-appt-table-wrap").innerHTML = buildApptTable(citasPorMes);
+
+    // ── Charts ──
     const cnt = key => { const m={}; L.forEach(l=>{ const k=l[key]||"—"; m[k]=(m[k]||0)+1; }); return m; };
     const sem = {verde:0,amarillo:0,rojo:0,neutral:0};
     L.forEach(l => {
       const s=String(l.sales_status||"").toLowerCase();
       if(["new lead","won","lost"].includes(s)){sem.neutral++;return;}
-      if (l.semaforo === "verde") sem.verde++;
-      else if (l.semaforo === "amarillo") sem.amarillo++;
-      else if (l.semaforo === "rojo") sem.rojo++;
-      else {
-        const fs=l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;
-        if(!fs){sem.amarillo++;return;}
-        const [a,mo,d]=String(fs).slice(0,10).split("-").map(Number);
-        const diff=Math.floor((new Date()-new Date(a,mo-1,d))/86400000);
-        if(diff<=1) sem.verde++; else if(diff<=3) sem.amarillo++; else sem.rojo++;
-      }
+      const fs=l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;
+      if(!fs){sem.amarillo++;return;}
+      const [a,mo,d]=String(fs).slice(0,10).split("-").map(Number);
+      const diff=Math.floor((new Date()-new Date(a,mo-1,d))/86400000);
+      if(diff<=1) sem.verde++; else if(diff<=3) sem.amarillo++; else sem.rojo++;
     });
     document.getElementById("an-charts").innerHTML = [
       buildBars("Sales Status", cnt("sales_status"), true),
-      buildBars("By Channel", cnt("canal"), true),
-      buildBars("By Category", cnt("categoria"), true),
-      buildBars("By Pipeline", cnt("pipeline"), true),
-      buildBars("By Doctor", cnt("consultation_with"), false),
-      buildBars("By Country", cnt("pais"), false),
+      buildBars("By Channel",   cnt("canal"),        true),
+      buildBars("By Category",  cnt("categoria"),    true),
+      buildBars("By Pipeline",  cnt("pipeline"),     true),
+      buildBars("By Doctor",    cnt("doctor_nombre" in L[0] ? "doctor_nombre" : "consultation_with"), false),
+      buildBars("By Country",   cnt("pais"),         false),
     ].join("");
     document.getElementById("an-perf").innerHTML = [buildSemCard(sem), buildDayHeatmap(L)].join("");
   }
@@ -3641,12 +3643,13 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       document.querySelectorAll(".main-tab").forEach(b=>b.classList.remove("active"));
       document.getElementById("view-analytics")?.classList.add("active");
       if (btn) btn.classList.add("active");
+      populateDoctorAsesorSelects();
       renderAnalytics();
     } else { _orig(view, btn); }
   };
 
   // ══════════════════════════════════════════════════════════════════
-  // XLSX BUILDER
+  // XLSX BUILDER (unchanged from v20)
   // ══════════════════════════════════════════════════════════════════
   function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++){c^=bytes[i];for(let j=0;j<8;j++)c=(c&1)?(c>>>1)^0xEDB88320:c>>>1;}return(c^0xFFFFFFFF)>>>0;}
   function concat(arrays){const t=arrays.reduce((s,a)=>s+a.length,0);const o=new Uint8Array(t);let off=0;for(const a of arrays){o.set(a,off);off+=a.length;}return o;}
@@ -3665,17 +3668,12 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   static colName(n){let r="";let x=n;do{r=String.fromCharCode(65+(x%26))+r;x=Math.floor(x/26)-1;}while(x>=0);return r;}
   build(){const esc=(s)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");const fontsXml=`<fonts count="${this.fonts.length}">${this.fonts.map(f=>{let s="<font>";if(f.bold)s+="<b/>";s+=`<sz val="${f.size}"/>`;if(f.color)s+=`<color rgb="FF${f.color.replace("#","").toUpperCase()}"/>`;s+=`<name val="${esc(f.name)}"/>`;s+="</font>";return s;}).join("")}</fonts>`;const fillsXml=`<fills count="${this.fills.length}">${this.fills.map(f=>{if(f.patternType==="none")return'<fill><patternFill patternType="none"/></fill>';if(f.patternType==="gray125")return'<fill><patternFill patternType="gray125"/></fill>';return`<fill><patternFill patternType="solid"><fgColor rgb="FF${f.fgColor.replace("#","").toUpperCase()}"/><bgColor indexed="64"/></patternFill></fill>`;}).join("")}</fills>`;const bordersXml=`<borders count="${this.borders.length}">${this.borders.map(b=>{const mk=(side)=>b[side]?`<${side} style="${b[side]}"><color indexed="64"/></${side}>`:`<${side}/>`;return`<border>${mk("left")}${mk("right")}${mk("top")}${mk("bottom")}<diagonal/></border>`;}).join("")}</borders>`;const cellXfsXml=`<cellXfs count="${this.styles.length}">${this.styles.map(s=>{const a=s.align;let ax="";if(a&&(a.horizontal||a.vertical||a.wrapText)){const at=[];if(a.horizontal)at.push(`horizontal="${a.horizontal}"`);if(a.vertical)at.push(`vertical="${a.vertical}"`);if(a.wrapText)at.push('wrapText="1"');ax=`<alignment ${at.join(" ")}/>`;}return`<xf numFmtId="${s.numFmtId}" fontId="${s.fontId}" fillId="${s.fillId}" borderId="${s.borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" ${s.numFmtId?'applyNumberFormat="1"':""} ${ax?'applyAlignment="1"':""}>${ax}</xf>`;}).join("")}</cellXfs>`;const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fontsXml}${fillsXml}${bordersXml}<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>${cellXfsXml}<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;const sst=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${this.sharedStrings.length}" uniqueCount="${this.sharedStrings.length}">${this.sharedStrings.map(s=>`<si><t xml:space="preserve">${esc(s)}</t></si>`).join("")}</sst>`;const worksheets=this.sheets.map((sheet)=>{const rowsMap={};for(const ref in sheet.cells){const m=ref.match(/^([A-Z]+)(\d+)$/);const rr=parseInt(m[2],10);if(!rowsMap[rr])rowsMap[rr]=[];rowsMap[rr].push({ref,col:m[1],...sheet.cells[ref]});}const colIndex=(colStr)=>{let n=0;for(let i=0;i<colStr.length;i++)n=n*26+(colStr.charCodeAt(i)-64);return n-1;};const maxRow=Math.max(0,...Object.keys(rowsMap).map(Number));let sheetData="";for(let rr=1;rr<=maxRow;rr++){const cells=(rowsMap[rr]||[]).sort((a,b)=>colIndex(a.col)-colIndex(b.col));if(!cells.length)continue;const rh=sheet.rowHeights[rr]?` ht="${sheet.rowHeights[rr]}" customHeight="1"`:"";let rowXml=`<row r="${rr}"${rh}>`;for(const c of cells){if("f"in c)rowXml+=`<c r="${c.ref}" s="${c.s}"><f>${esc(c.f)}</f></c>`;else if(c.t==="n")rowXml+=`<c r="${c.ref}" s="${c.s}"><v>${c.v}</v></c>`;else if(c.t==="s")rowXml+=`<c r="${c.ref}" s="${c.s}" t="s"><v>${c.v}</v></c>`;else rowXml+=`<c r="${c.ref}" s="${c.s}"/>`;}rowXml+="</row>";sheetData+=rowXml;}const colsXml=Object.keys(sheet.colWidths).length?`<cols>${Object.entries(sheet.colWidths).map(([col,width])=>{const idx=colIndex(col)+1;return`<col min="${idx}" max="${idx}" width="${width}" customWidth="1"/>`;}).join("")}</cols>`:"";const mergesXml=sheet.merges.length?`<mergeCells count="${sheet.merges.length}">${sheet.merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:"";const dvXml=sheet.dataValidations.length?`<dataValidations count="${sheet.dataValidations.length}">${sheet.dataValidations.map(dv=>`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${dv.sqref}"><formula1>${esc(dv.formula1)}</formula1></dataValidation>`).join("")}</dataValidations>`:"";return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews>${colsXml}<sheetData>${sheetData}</sheetData>${mergesXml}${dvXml}</worksheet>`;});const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${this.sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${this.sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${this.sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${this.sheets.length+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`;const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${this.sheets.map((s,i)=>`<sheet name="${esc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`;const files=[{name:"[Content_Types].xml",data:ct},{name:"_rels/.rels",data:rootRels},{name:"xl/_rels/workbook.xml.rels",data:wbRels},{name:"xl/workbook.xml",data:wb},{name:"xl/styles.xml",data:styles},{name:"xl/sharedStrings.xml",data:sst},...worksheets.map((xml,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:xml}))];return makeZip(files);}}
 
-  // ══════════════════════════════════════════════════════════════════
-  // EXPORT XLSX — Official Daily Report format
-  // ══════════════════════════════════════════════════════════════════
+  // ── XLSX EXPORT (same as v20) ─────────────────────────────────
   window.anExportXlsx = function() {
-    // Uses getFilteredLeads() — always respects active year/month filters
     const L = getFilteredLeads();
     const today = new Date();
     const dateStr = today.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const prepBy = typeof usuario !== "undefined" ? (usuario.nombre || usuario.name || "—") : "—";
-
-    // Build period label from current filter state
     let periodLabel = "All Time";
     if (anYear !== "all" || anMonth !== "all") {
       const parts = [];
@@ -3683,337 +3681,77 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       if (anYear  !== "all") parts.push(anYear);
       periodLabel = parts.join(" ");
     }
-
-    // ── Pipeline helpers ───────────────────────────────────────────
     const getPipe = (l) => String(l.pipeline || "").toLowerCase();
     const isEngInt  = (l) => { const p = getPipe(l); return p.includes("english") || (!p.includes("spanish") && !p.includes("local")); };
     const isSpInt   = (l) => { const p = getPipe(l); return p.includes("spanish") && !p.includes("local"); };
     const isLocal   = (l) => { const p = getPipe(l); return p.includes("local"); };
-
-    const bucket3 = (fn) => {
-      let e = 0, s = 0, lc = 0;
-      L.forEach(lead => {
-        if (!fn(lead)) return;
-        if      (isEngInt(lead)) e++;
-        else if (isSpInt(lead))  s++;
-        else if (isLocal(lead))  lc++;
-        else                     e++; // unknown pipeline → English International
-      });
-      return [e, s, lc];
-    };
-
-    const isToday = (v) => {
-      if (!v) return false;
-      return String(v).slice(0, 10) === today.toISOString().slice(0, 10);
-    };
-
-    const _isSched    = l => l.consulta_agendada === true;
-    const _isAtt      = l => l.cita_asistida === true;
-    const _isCan      = l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled";
-    const _isNS       = l => l.appointment_status === "No Show";
-    const _isPend     = l => _isSched(l) && !_isAtt(l) && !_isCan(l) && !_isNS(l);
-    const _isProp     = l => l.propuesta_enviada === true;
-    const _isAcc      = l => l.propuesta_aceptada === true;
-    const _isInTreat  = l => l.tratamiento_iniciado === true;
-    const _isWon      = l => l.tratamiento_completado === true || l.sales_status === "Won";
-
+    const bucket3 = (fn) => { let e=0,s=0,lc=0; L.forEach(lead=>{if(!fn(lead))return;if(isEngInt(lead))e++;else if(isSpInt(lead))s++;else if(isLocal(lead))lc++;else e++;}); return[e,s,lc]; };
+    const isToday = (v) => { if(!v)return false; return String(v).slice(0,10)===today.toISOString().slice(0,10); };
+    const _isSched = l=>l.consulta_agendada===true;
     const kpi = {
-      newLeads:           bucket3(() => true),
-      scheduledAppts:     bucket3(_isSched),
-      scheduledToday:     bucket3(l => _isSched(l) && isToday(l.treatment_date)),
-      attendedAppts:      bucket3(_isAtt),
-      cancelledAppts:     bucket3(_isCan),
-      pendingAppts:       bucket3(_isPend),
-      noShows:            bucket3(_isNS),
-      awaitingMedical:    bucket3(l => l.medical_status === "Awaiting Medical Report"),
-      proposalsSent:      bucket3(_isProp),
-      proposalsAccepted:  bucket3(_isAcc),
-      treatmentConfirmed: bucket3(_isInTreat),
-      treatmentsDone:     bucket3(_isWon),
+      newLeads:bucket3(()=>true), scheduledAppts:bucket3(_isSched),
+      scheduledToday:bucket3(l=>_isSched(l)&&isToday(l.treatment_date)),
+      attendedAppts:bucket3(_isAtt), cancelledAppts:bucket3(_isCan),
+      pendingAppts:bucket3(l=>_isSched(l)&&!_isAtt(l)&&!_isCan(l)&&!_isNS(l)),
+      noShows:bucket3(_isNS), awaitingMedical:bucket3(l=>l.medical_status==="Awaiting Medical Report"),
+      proposalsSent:bucket3(_isProp), proposalsAccepted:bucket3(_isAcc),
+      treatmentConfirmed:bucket3(l=>l.tratamiento_iniciado===true), treatmentsDone:bucket3(_isWon),
     };
-
-    // ── Section 2: Lead Source / Campaign ─────────────────────────
-    // Source order defines display order in the report
-    const SOURCE_ORDER = [
-      "Website",
-      "US Targeted Campaign",
-      "Canada Targeted Campaign",
-      "Local Campaign",
-      "Email",
-      "Call / WhatsApp",
-      "Social Media",
-      "Walk-in Colombia",
-      "Referral",
-      "Other / Unknown",
-    ];
-    const bySource = {};
-    SOURCE_ORDER.forEach(k => { bySource[k] = [0, 0, 0]; });
-
-    L.forEach(l => {
-      const src = classifySource(l);
-      if (!bySource[src]) bySource[src] = [0, 0, 0];
-      if      (isEngInt(l)) bySource[src][0]++;
-      else if (isSpInt(l))  bySource[src][1]++;
-      else if (isLocal(l))  bySource[src][2]++;
-      else                  bySource[src][0]++; // unknown pipeline → English International
-    });
-
-    // ── Section 3: Patient rows ────────────────────────────────────
-    const patients = L.map(l => {
-      const pipe = String(l.pipeline || "");
-      const lang = pipe.toLowerCase().includes("spanish") ? "Spanish" : "English";
-      const market = pipe.toLowerCase().includes("local") ? "Local Colombia" : "International";
-      const remarks = (l.comentarios || l.notas || l.remarks || "").replace(/\n/g, " ").substring(0, 120);
-      return {
-        A: l.nombre || l.name || "",
-        B: lang,
-        C: market,
-        D: l.canal || "",
-        E: "",                                // Campaign (manual)
-        F: l.asesor_nombre || "",
-        G: l.doctor_nombre || "",
-        H: "",                                // Paid Online Consult (manual)
-        I: "",                                // Paid In-Person Consult (manual)
-        J: _isProp(l) ? "Sent" : "Not Sent",
-        K: _isAcc(l) ? "Accepted" : (_isProp(l) ? "Sent" : "Not Sent"),
-        L: _isInTreat(l) ? "Confirmed" : "Not Confirmed",
-        M: l.medical_status || "Not Required",
-        N: remarks,
-        O: l.medilink_numero || String(l.id || ""),
-      };
-    });
-
-    // ── Section 4: Doctor performance ─────────────────────────────
-    const docNames = [...new Set(L.map(l => l.doctor_nombre || l.consultation_with).filter(Boolean))];
-    const docList = docNames.slice(0, 3);
-    while (docList.length < 3) docList.push("");
-    const doctors = docList.map(name => {
-      if (!name) return ["", {}];
-      const dl = L.filter(l => (l.doctor_nombre || l.consultation_with) === name);
-      return [name, {
-        B: dl.filter(_isSched).length  || "",
-        C: dl.filter(_isAtt).length    || "",
-        D: "",
-        E: "",
-        F: dl.filter(_isProp).length   || "",
-        G: dl.filter(_isWon).length    || "",
-      }];
-    });
-
-    // ── Build and download ─────────────────────────────────────────
-    const wbBytes = generateXlsxBytes({ reportDate: dateStr, preparedBy: prepBy, periodLabel, kpi, bySource, sourceOrder: SOURCE_ORDER, patients, doctors });
-    const b64 = bytesToBase64(wbBytes);
-    const a = document.createElement("a");
-    a.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + b64;
-    a.download = `Stemwell_Daily_Report_${today.toISOString().slice(0, 10)}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const SOURCE_ORDER = ["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral","Other / Unknown"];
+    const bySource = {}; SOURCE_ORDER.forEach(k=>{bySource[k]=[0,0,0];});
+    L.forEach(l=>{const src=classifySource(l);if(!bySource[src])bySource[src]=[0,0,0];if(isEngInt(l))bySource[src][0]++;else if(isSpInt(l))bySource[src][1]++;else if(isLocal(l))bySource[src][2]++;else bySource[src][0]++;});
+    const patients = L.map(l=>{const pipe=String(l.pipeline||"");const lang=pipe.toLowerCase().includes("spanish")?"Spanish":"English";const market=pipe.toLowerCase().includes("local")?"Local Colombia":"International";return{A:l.nombre||l.name||"",B:lang,C:market,D:l.canal||"",E:"",F:l.asesor_nombre||"",G:l.doctor_nombre||"",H:"",I:"",J:_isProp(l)?"Sent":"Not Sent",K:_isAcc(l)?"Accepted":(_isProp(l)?"Sent":"Not Sent"),L:_isWon(l)?"Confirmed":"Not Confirmed",M:l.medical_status||"Not Required",N:(l.comentarios||l.notas||"").replace(/\n/g," ").substring(0,120),O:l.medilink_numero||String(l.id||"")};});
+    const docNames=[...new Set(L.map(l=>l.doctor_nombre||l.consultation_with).filter(Boolean))];
+    const docList=docNames.slice(0,3);while(docList.length<3)docList.push("");
+    const doctors=docList.map(name=>{if(!name)return["",{}];const dl=L.filter(l=>(l.doctor_nombre||l.consultation_with)===name);return[name,{B:dl.filter(_isSched).length||"",C:dl.filter(_isAtt).length||"",D:"",E:"",F:dl.filter(_isProp).length||"",G:dl.filter(_isWon).length||""}];});
+    const wbBytes=generateXlsxBytes({reportDate:dateStr,preparedBy:prepBy,periodLabel,kpi,bySource,sourceOrder:SOURCE_ORDER,patients,doctors});
+    const b64=bytesToBase64(wbBytes);
+    const a=document.createElement("a");a.href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+b64;
+    a.download=`Stemwell_Daily_Report_${today.toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
   };
 
-  // ══════════════════════════════════════════════════════════════════
-  // XLSX GENERATOR
-  // ══════════════════════════════════════════════════════════════════
-  function generateXlsxBytes(data) {
-    const C = {
-      titleBg: "1F4E78", infoBg: "D9EAF7", sec1Bg: "5B9BD5", sec2Bg: "70AD47",
-      sec3Bg: "4472C4", sec4Bg: "ED7D31", headerBg: "404040", white: "FFFFFF"
-    };
-    const thin = "thin";
-    const allBorder = { left: thin, right: thin, top: thin, bottom: thin };
-    const xb = new XlsxBuilder();
-
-    const sourceOrder = data.sourceOrder || Object.keys(data.bySource);
-    const numSources  = sourceOrder.length;           // dynamic — could be 9 or 10
-    const numLeads    = data.patients.length;
-    const kpiCount    = 12;
-    const kpiLastRow  = 6 + kpiCount;                // row 18 when kpiCount=12
-    const sec2LastRow = 6 + numSources;               // e.g. row 16 for 10 sources
-    const sec2TotalRow = sec2LastRow + 1;             // totals row
-
-    const dataStartRow = Math.max(kpiLastRow, sec2TotalRow) + 3; // gap after both sections
-    const sec3End      = dataStartRow + Math.max(numLeads, 1) - 1;
-    const sec4Start    = sec3End + 2;
-    const sec4HeaderRow = sec4Start + 1;
-    const sec4DataStart = sec4HeaderRow + 1;
-    const sec4TotalRow  = sec4DataStart + 3;
-
-    const sheet = xb.addSheet({
-      name: "Daily Report",
-      colWidths: {
-        A: 45, B: 16, C: 16, D: 22, E: 26, F: 20, G: 22, H: 18, I: 18,
-        J: 18, K: 18, L: 18, M: 22, N: 38, O: 18,
-        Q: 22, R: 18, S: 22, T: 24, U: 22, V: 24, W: 22, X: 18, Y: 20
-      },
-      rowHeights: { 1: 22, 2: 20, 5: 20 },
-      merges: [
-        "A1:O1", "A4:E4", `G5:K5`,
-        `A${sec4Start}:H${sec4Start}`
-      ],
-      dataValidations: [
-        { sqref: `B${dataStartRow}:B${sec3End}`, formula1: "$Q$2:$Q$3" },
-        { sqref: `C${dataStartRow}:C${sec3End}`, formula1: "$R$2:$R$3" },
-        { sqref: `D${dataStartRow}:D${sec3End}`, formula1: "$S$2:$S$8" },
-        { sqref: `E${dataStartRow}:E${sec3End}`, formula1: "$T$2:$T$5" },
-        { sqref: `G${dataStartRow}:G${sec3End}`, formula1: "$U$2:$U$4" },
-        { sqref: `H${dataStartRow}:I${sec3End}`, formula1: "$V$2:$V$8" },
-        { sqref: `J${dataStartRow}:K${sec3End}`, formula1: "$W$2:$W$7" },
-        { sqref: `L${dataStartRow}:L${sec3End}`, formula1: "$X$2:$X$6" },
-        { sqref: `M${dataStartRow}:M${sec3End}`, formula1: "$Y$2:$Y$6" },
-      ]
-    });
-
-    const set = (ref, val, style) => xb.setCell(sheet, ref, val, style);
-    const hdr = { font: { bold: true, color: C.white }, fill: C.headerBg, align: { horizontal: "center", vertical: "center", wrapText: true } };
-    const ds  = { align: { wrapText: true } };
-
-    // ── Row 1: Title ──────────────────────────────────────────────
-    set("A1", "STEM CELL CLINIC COLOMBIA — DAILY ACTIVITY REPORT", {
-      font: { bold: true, size: 14, color: C.white },
-      fill: C.titleBg,
-      align: { horizontal: "center", vertical: "center", wrapText: true }
-    });
-
-    // ── Row 2: Report info ────────────────────────────────────────
-    const inf = { font: { bold: true }, fill: C.infoBg };
-    set("A2", "Report Date:", inf); set("B2", data.reportDate, inf);
-    set("C2", "", inf);
-    set("D2", "Prepared By:", inf); set("E2", data.preparedBy, inf);
-    set("F2", "", inf);
-    set("G2", "Department:", inf); set("H2", "Stem Cell Clinic — Colombia", inf);
-    set("I2", "Period:", inf); set("J2", data.periodLabel, inf);
-
-    // ── Row 4: Section 1 label ────────────────────────────────────
-    set("A4", "1. DAILY MANAGEMENT SUMMARY", {
-      font: { bold: true, color: C.white }, fill: C.sec1Bg,
-      align: { horizontal: "left", wrapText: true }
-    });
-
-    // ── Row 5: Section headers ────────────────────────────────────
-    ["Activity / KPI", "English International", "Spanish International", "Local Colombia", "Total"].forEach((t, i) =>
-      set(`${"ABCDE"[i]}5`, t, hdr)
-    );
-    set("G5", "2. LEAD SOURCE & CAMPAIGN SUMMARY", {
-      font: { bold: true, color: C.white }, fill: C.sec2Bg, align: { wrapText: true }
-    });
-    // Row 6: Section 2 column headers
-    ["Lead Source / Campaign", "English Int.", "Spanish Int.", "Local Colombia", "Total"].forEach((t, i) =>
-      set(`${"GHIJK"[i]}6`, t, hdr)
-    );
-
-    // ── KPI rows (start at row 7) ─────────────────────────────────
-    const kpiRows = [
-      ["New Patients / Leads",       data.kpi.newLeads],
-      ["Scheduled Appointments",     data.kpi.scheduledAppts],
-      ["Scheduled Calls for Today",  data.kpi.scheduledToday],
-      ["Attended Appointments",      data.kpi.attendedAppts],
-      ["Cancelled Appointments",     data.kpi.cancelledAppts],
-      ["Pending Appointments",       data.kpi.pendingAppts],
-      ["No Shows",                   data.kpi.noShows],
-      ["Awaiting Medical Reports",   data.kpi.awaitingMedical],
-      ["Treatment Proposals Sent",   data.kpi.proposalsSent],
-      ["Proposals Accepted",         data.kpi.proposalsAccepted],
-      ["Treatment Confirmed",        data.kpi.treatmentConfirmed],
-      ["Treatments Done",            data.kpi.treatmentsDone],
-    ];
-    kpiRows.forEach(([label, vals], i) => {
-      const r = 7 + i;
-      set(`A${r}`, label, { ...ds, border: { right: thin, top: thin, bottom: thin } });
-      set(`B${r}`, vals[0] || 0, { ...ds, border: allBorder });
-      set(`C${r}`, vals[1] || 0, { ...ds, border: allBorder });
-      set(`D${r}`, vals[2] || 0, { ...ds, border: allBorder });
-      set(`E${r}`, { f: `SUM(B${r}:D${r})` }, { ...ds, border: allBorder });
-    });
-
-    // ── Section 2 data rows ───────────────────────────────────────
-    sourceOrder.forEach((src, i) => {
-      const r = 7 + i;
-      const v = data.bySource[src] || [0, 0, 0];
-      set(`G${r}`, src,        { ...ds, border: { right: thin, top: thin, bottom: thin, left: thin } });
-      set(`H${r}`, v[0] || 0,  { ...ds, border: allBorder });
-      set(`I${r}`, v[1] || 0,  { ...ds, border: allBorder });
-      set(`J${r}`, v[2] || 0,  { ...ds, border: allBorder });
-      set(`K${r}`, { f: `SUM(H${r}:J${r})` }, { ...ds, border: allBorder });
-    });
-    // Section 2 totals
-    set(`G${sec2TotalRow}`, "Total New Leads", { font: { bold: true }, border: allBorder });
-    set(`H${sec2TotalRow}`, { f: `SUM(H7:H${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
-    set(`I${sec2TotalRow}`, { f: `SUM(I7:I${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
-    set(`J${sec2TotalRow}`, { f: `SUM(J7:J${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
-    set(`K${sec2TotalRow}`, { f: `SUM(K7:K${sec2LastRow})` }, { font: { bold: true }, border: allBorder });
-
-    // ── Section 3 label & header ──────────────────────────────────
-    const sec3LabelRow  = dataStartRow - 2;
-    const sec3HeaderRow = dataStartRow - 1;
-    set(`A${sec3LabelRow}`, "3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)", {
-      font: { bold: true, color: C.white }, fill: C.sec3Bg, align: { wrapText: true }
-    });
-    const sec3H = [
-      "Patient Name", "Language", "Pipeline", "Lead Source", "Campaign",
-      "Coordinator / Staff", "Doctor", "Paid Online Consult", "Paid In-Person Consult",
-      "Treatment Proposal", "Proposal Status", "Treatment Status",
-      "Medical Report Status", "Next Step / Remarks", "Contact / CRM ID"
-    ];
-    sec3H.forEach((h, i) => set(`${XlsxBuilder.colName(i)}${sec3HeaderRow}`, h, hdr));
-
-    // Patient data rows
-    for (let rr = dataStartRow; rr <= sec3End; rr++) {
-      const p = data.patients[rr - dataStartRow];
-      for (let ci = 0; ci < 15; ci++) {
-        const col = XlsxBuilder.colName(ci);
-        const key = "ABCDEFGHIJKLMNO"[ci];
-        set(`${col}${rr}`, p ? (p[key] ?? "") : "", { ...ds, border: allBorder });
-      }
-    }
-
-    // ── Section 4: Doctor performance ────────────────────────────
-    set(`A${sec4Start}`, "4. DOCTOR-WISE DAILY PERFORMANCE", {
-      font: { bold: true, color: C.white }, fill: C.sec4Bg, align: { wrapText: true }
-    });
-    ["Doctor", "Scheduled Appts.", "Attended Appts.", "Online Consults", "In-Person Consults", "Proposals Sent", "Treatments Done", "Notes"].forEach((h, i) =>
-      set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`, h, hdr)
-    );
-    for (let i = 0; i < 3; i++) {
-      const rr  = sec4DataStart + i;
-      const doc = data.doctors[i] || ["", {}];
-      set(`A${rr}`, doc[0] || "", { border: allBorder });
-      ["B","C","D","E","F","G","H"].forEach(col => {
-        const val = (col !== "H" && doc[1]) ? (doc[1][col] ?? "") : "";
-        set(`${col}${rr}`, val, { border: allBorder });
-      });
-    }
-    // Totals row
-    set(`A${sec4TotalRow}`, "Total", { font: { bold: true }, border: allBorder });
-    ["B","C","D","E","F","G"].forEach(col =>
-      set(`${col}${sec4TotalRow}`, { f: `SUM(${col}${sec4DataStart}:${col}${sec4DataStart + 2})` }, { font: { bold: true }, border: allBorder })
-    );
-    set(`H${sec4TotalRow}`, "", { border: allBorder });
-
-    // ── Validation lists (hidden columns Q–Y) ─────────────────────
-    const lists = {
-      Q: ["Language",             "English", "Spanish"],
-      R: ["Market",               "International", "Local Colombia"],
-      S: ["Lead Source",          "Website", "Campaign", "Email", "Call / WhatsApp", "Social Media", "Walk-in Colombia", "Referral", "Other / Unknown"],
-      T: ["Campaign",             "US Targeted Campaign", "Canada Targeted Campaign", "Local Campaign", "Organic / Direct"],
-      U: ["Doctor",               "Dr. Camilo White", "Dr. Sandra Fernandez", "Dr. 3"],
-      V: ["Call Status",          "Booked", "Completed", "No Show", "Rescheduled", "Cancelled", "Pending", "Not Applicable"],
-      W: ["Proposal Status",      "Not Sent", "Sent", "Accepted", "Rejected", "Pending Decision", "Follow-up Required"],
-      X: ["Treatment Status",     "Not Confirmed", "Confirmed", "Scheduled", "Done", "Cancelled"],
-      Y: ["Medical Report Status","Not Required", "Awaiting Medical Report", "Received", "Reviewed", "Incomplete"],
-    };
-    const lhdr = { font: { bold: true }, fill: "D9EAD3" };
-    for (const col in lists) {
-      const items = lists[col];
-      set(`${col}1`, items[0], lhdr);
-      items.slice(1).forEach((v, i) => set(`${col}${2 + i}`, v));
-    }
-
+  function generateXlsxBytes(data){
+    const C={titleBg:"1F4E78",infoBg:"D9EAF7",sec1Bg:"5B9BD5",sec2Bg:"70AD47",sec3Bg:"4472C4",sec4Bg:"ED7D31",headerBg:"404040",white:"FFFFFF"};
+    const thin="thin",allBorder={left:thin,right:thin,top:thin,bottom:thin};
+    const xb=new XlsxBuilder();
+    const sourceOrder=data.sourceOrder||Object.keys(data.bySource);
+    const numSources=sourceOrder.length,numLeads=data.patients.length,kpiCount=12;
+    const kpiLastRow=6+kpiCount,sec2LastRow=6+numSources,sec2TotalRow=sec2LastRow+1;
+    const dataStartRow=Math.max(kpiLastRow,sec2TotalRow)+3;
+    const sec3End=dataStartRow+Math.max(numLeads,1)-1,sec4Start=sec3End+2;
+    const sec4HeaderRow=sec4Start+1,sec4DataStart=sec4HeaderRow+1,sec4TotalRow=sec4DataStart+3;
+    const sheet=xb.addSheet({name:"Daily Report",colWidths:{A:45,B:16,C:16,D:22,E:26,F:20,G:22,H:18,I:18,J:18,K:18,L:18,M:22,N:38,O:18,Q:22,R:18,S:22,T:24,U:22,V:24,W:22,X:18,Y:20},rowHeights:{1:22,2:20,5:20},merges:["A1:O1","A4:E4","G5:K5",`A${sec4Start}:H${sec4Start}`],dataValidations:[{sqref:`B${dataStartRow}:B${sec3End}`,formula1:"$Q$2:$Q$3"},{sqref:`C${dataStartRow}:C${sec3End}`,formula1:"$R$2:$R$3"},{sqref:`D${dataStartRow}:D${sec3End}`,formula1:"$S$2:$S$8"},{sqref:`E${dataStartRow}:E${sec3End}`,formula1:"$T$2:$T$5"},{sqref:`G${dataStartRow}:G${sec3End}`,formula1:"$U$2:$U$4"},{sqref:`H${dataStartRow}:I${sec3End}`,formula1:"$V$2:$V$8"},{sqref:`J${dataStartRow}:K${sec3End}`,formula1:"$W$2:$W$7"},{sqref:`L${dataStartRow}:L${sec3End}`,formula1:"$X$2:$X$6"},{sqref:`M${dataStartRow}:M${sec3End}`,formula1:"$Y$2:$Y$6"}]});
+    const set=(ref,val,style)=>xb.setCell(sheet,ref,val,style);
+    const hdr={font:{bold:true,color:C.white},fill:C.headerBg,align:{horizontal:"center",vertical:"center",wrapText:true}};
+    const ds={align:{wrapText:true}};
+    set("A1","STEM CELL CLINIC COLOMBIA — DAILY ACTIVITY REPORT",{font:{bold:true,size:14,color:C.white},fill:C.titleBg,align:{horizontal:"center",vertical:"center",wrapText:true}});
+    const inf={font:{bold:true},fill:C.infoBg};
+    set("A2","Report Date:",inf);set("B2",data.reportDate,inf);set("C2","",inf);set("D2","Prepared By:",inf);set("E2",data.preparedBy,inf);set("F2","",inf);set("G2","Department:",inf);set("H2","Stem Cell Clinic — Colombia",inf);set("I2","Period:",inf);set("J2",data.periodLabel,inf);
+    set("A4","1. DAILY MANAGEMENT SUMMARY",{font:{bold:true,color:C.white},fill:C.sec1Bg,align:{horizontal:"left",wrapText:true}});
+    ["Activity / KPI","English International","Spanish International","Local Colombia","Total"].forEach((t,i)=>set(`${"ABCDE"[i]}5`,t,hdr));
+    set("G5","2. LEAD SOURCE & CAMPAIGN SUMMARY",{font:{bold:true,color:C.white},fill:C.sec2Bg,align:{wrapText:true}});
+    ["Lead Source / Campaign","English Int.","Spanish Int.","Local Colombia","Total"].forEach((t,i)=>set(`${"GHIJK"[i]}6`,t,hdr));
+    const kpiRows=[["New Patients / Leads",data.kpi.newLeads],["Scheduled Appointments",data.kpi.scheduledAppts],["Scheduled Calls for Today",data.kpi.scheduledToday],["Attended Appointments",data.kpi.attendedAppts],["Cancelled Appointments",data.kpi.cancelledAppts],["Pending Appointments",data.kpi.pendingAppts],["No Shows",data.kpi.noShows],["Awaiting Medical Reports",data.kpi.awaitingMedical],["Treatment Proposals Sent",data.kpi.proposalsSent],["Proposals Accepted",data.kpi.proposalsAccepted],["Treatment Confirmed",data.kpi.treatmentConfirmed],["Treatments Done",data.kpi.treatmentsDone]];
+    kpiRows.forEach(([label,vals],i)=>{const r=7+i;set(`A${r}`,label,{...ds,border:{right:thin,top:thin,bottom:thin}});set(`B${r}`,vals[0]||0,{...ds,border:allBorder});set(`C${r}`,vals[1]||0,{...ds,border:allBorder});set(`D${r}`,vals[2]||0,{...ds,border:allBorder});set(`E${r}`,{f:`SUM(B${r}:D${r})`},{...ds,border:allBorder});});
+    sourceOrder.forEach((src,i)=>{const r=7+i;const v=data.bySource[src]||[0,0,0];set(`G${r}`,src,{...ds,border:{right:thin,top:thin,bottom:thin,left:thin}});set(`H${r}`,v[0]||0,{...ds,border:allBorder});set(`I${r}`,v[1]||0,{...ds,border:allBorder});set(`J${r}`,v[2]||0,{...ds,border:allBorder});set(`K${r}`,{f:`SUM(H${r}:J${r})`},{...ds,border:allBorder});});
+    set(`G${sec2TotalRow}`,"Total New Leads",{font:{bold:true},border:allBorder});set(`H${sec2TotalRow}`,{f:`SUM(H7:H${sec2LastRow})`},{font:{bold:true},border:allBorder});set(`I${sec2TotalRow}`,{f:`SUM(I7:I${sec2LastRow})`},{font:{bold:true},border:allBorder});set(`J${sec2TotalRow}`,{f:`SUM(J7:J${sec2LastRow})`},{font:{bold:true},border:allBorder});set(`K${sec2TotalRow}`,{f:`SUM(K7:K${sec2LastRow})`},{font:{bold:true},border:allBorder});
+    const sec3LabelRow=dataStartRow-2,sec3HeaderRow=dataStartRow-1;
+    set(`A${sec3LabelRow}`,"3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});
+    const sec3H=["Patient Name","Language","Pipeline","Lead Source","Campaign","Coordinator / Staff","Doctor","Paid Online Consult","Paid In-Person Consult","Treatment Proposal","Proposal Status","Treatment Status","Medical Report Status","Next Step / Remarks","Contact / CRM ID"];
+    sec3H.forEach((h,i)=>set(`${XlsxBuilder.colName(i)}${sec3HeaderRow}`,h,hdr));
+    for(let rr=dataStartRow;rr<=sec3End;rr++){const p=data.patients[rr-dataStartRow];for(let ci=0;ci<15;ci++){const col=XlsxBuilder.colName(ci);const key="ABCDEFGHIJKLMNO"[ci];set(`${col}${rr}`,p?(p[key]??""):"",{...ds,border:allBorder});}}
+    set(`A${sec4Start}`,"4. DOCTOR-WISE DAILY PERFORMANCE",{font:{bold:true,color:C.white},fill:C.sec4Bg,align:{wrapText:true}});
+    ["Doctor","Scheduled Appts.","Attended Appts.","Online Consults","In-Person Consults","Proposals Sent","Treatments Done","Notes"].forEach((h,i)=>set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`,h,hdr));
+    for(let i=0;i<3;i++){const rr=sec4DataStart+i;const doc=data.doctors[i]||["",{}];set(`A${rr}`,doc[0]||"",{border:allBorder});["B","C","D","E","F","G","H"].forEach(col=>{const val=(col!=="H"&&doc[1])?(doc[1][col]??""):"";set(`${col}${rr}`,val,{border:allBorder});});}
+    set(`A${sec4TotalRow}`,"Total",{font:{bold:true},border:allBorder});["B","C","D","E","F","G"].forEach(col=>set(`${col}${sec4TotalRow}`,{f:`SUM(${col}${sec4DataStart}:${col}${sec4DataStart+2})`},{font:{bold:true},border:allBorder}));set(`H${sec4TotalRow}`,"",{border:allBorder});
+    const lists={Q:["Language","English","Spanish"],R:["Market","International","Local Colombia"],S:["Lead Source","Website","Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral","Other / Unknown"],T:["Campaign","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Organic / Direct"],U:["Doctor","Dr. Camilo White","Dr. Sandra Fernandez","Dr. 3"],V:["Call Status","Booked","Completed","No Show","Rescheduled","Cancelled","Pending","Not Applicable"],W:["Proposal Status","Not Sent","Sent","Accepted","Rejected","Pending Decision","Follow-up Required"],X:["Treatment Status","Not Confirmed","Confirmed","Scheduled","Done","Cancelled"],Y:["Medical Report Status","Not Required","Awaiting Medical Report","Received","Reviewed","Incomplete"]};
+    const lhdr={font:{bold:true},fill:"D9EAD3"};
+    for(const col in lists){const items=lists[col];set(`${col}1`,items[0],lhdr);items.slice(1).forEach((v,i)=>set(`${col}${2+i}`,v));}
     return xb.build();
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // INIT
-  // ══════════════════════════════════════════════════════════════════
+  // ── INIT ─────────────────────────────────────────────────────
   waitForApp(() => {
     const _origInit = window.iniciarApp;
     window.iniciarApp = function() {
@@ -4029,6 +3767,5 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 })();
 </script>
-
 </body>
 </html>
