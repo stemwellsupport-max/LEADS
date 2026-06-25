@@ -483,7 +483,7 @@ tr.row-fav:hover td{background:#473a0d!important;}
     <div class="main-view" id="view-booked-calls-view">
       <div class="table-card" style="padding:1.5rem">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
-          <h2 style="border:none;background:transparent;padding:0">📞 Booked Calls</h2>
+          <h2 style="border:none;background:transparent;padding:0">Callback📞</h2>
           <button class="btn-new" onclick="abrirModalBookedCall()">+ New Call</button>
         </div>
         <div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap" id="bc-filters-bar">
@@ -928,27 +928,19 @@ const REJECTION_REASONS = [
   "Needs more information",
   "Considering other options",
   "Seeking second opinion",
-
-  // Económicos
   "Money",
   "Treatment cost too high",
   "Financing not available",
   "Waiting for financial approval",
-
-  // Ubicación y logística
   "Outside service area",
   "Too far from clinic",
   "Unable to travel",
   "Relocation plans",
   "Transportation issues",
   "International patient - unable to travel",
-
-  // Tiempo
   "No time available",
   "Scheduling conflict",
   "Wants to postpone treatment",
-
-  // Elegibilidad médica
   "Active cancer or malignancy",
   "Uncontrolled systemic infections",
   "Decompensated organ failure",
@@ -959,25 +951,17 @@ const REJECTION_REASONS = [
   "Disease stage too advanced",
   "Not medically cleared",
   "Poor candidate after physician review",
-
-  // Información insuficiente
   "Missing medical records",
   "Missing imaging studies",
   "Unable to obtain medical clearance",
-
-  // Competencia
   "Chose another clinic",
   "Already receiving treatment elsewhere",
   "Under care of another specialist",
-
-  // Contacto
   "No response",
   "Invalid phone number",
   "Invalid email",
   "Lost contact",
   "Requested no further contact",
-
-  // Otros
   "Language barrier",
   "Insurance expectations not met",
   "Expectations outside clinical scope",
@@ -1068,6 +1052,51 @@ function filterCountries(searchText) {
   select.style.display = 'block';
 }
 
+function formatearFechaParaInput(fecha) {
+    if (!fecha) return '';
+    let s = String(fecha).trim();
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return s.substring(0, 16);
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) return s.replace(' ', 'T').substring(0, 16);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s + 'T00:00';
+    try {
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().substring(0, 16);
+    } catch(e) { return ''; }
+}
+
+async function cargarControlesLead(leadId) {
+    try {
+        const res = await fetch(`${API}/leads/${leadId}/controles`, { headers: H });
+        const data = await res.json();
+        const controles = data.controles || [];
+        const el = document.getElementById("a-controles-list");
+        if (!el) return;
+        
+        if (!controles.length) {
+            el.innerHTML = '<p style="color:var(--text3);font-size:.78rem;padding:.5rem">No follow-ups yet</p>';
+            return;
+        }
+        
+        el.innerHTML = controles.map(c => `
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem;margin-bottom:.4rem">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-weight:600;color:var(--text);font-size:.8rem">${c.tipo_control || 'Control'}</span>
+                    <span style="font-size:.65rem;background:${c.estado==='Agendado'?'#713f12':'#14532d'};color:${c.estado==='Agendado'?'#fbbf24':'#4ade80'};padding:2px 8px;border-radius:10px">${c.estado || 'Agendado'}</span>
+                </div>
+                <div style="font-size:.73rem;color:var(--text2);margin-top:.3rem">
+                    📅 ${c.fecha ? new Date(c.fecha).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}
+                    ${c.doctor_nombre ? ' · 👨‍⚕️ ' + c.doctor_nombre : ''}
+                </div>
+                ${c.descripcion ? `<div style="font-size:.7rem;color:var(--text3);margin-top:.2rem">📝 ${c.descripcion}</div>` : ''}
+            </div>
+        `).join("");
+    } catch(e) {
+        const el = document.getElementById("a-controles-list");
+        if (el) el.innerHTML = '<p style="color:var(--red);font-size:.78rem">Error loading</p>';
+    }
+}
+
 // ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
@@ -1106,7 +1135,6 @@ function iniciarApp() {
     if (usuario.rol === "asesor") {
     document.getElementById("asesor-header-actions").style.display = "flex";
   }
-  // Cargar notificaciones
   setTimeout(cargarNotificaciones, 2000);
   setInterval(cargarNotificaciones, 120000);
 }
@@ -1356,17 +1384,14 @@ function calcSemaforo(l) {
     return "🔴";
 }
 
-//✅ NUEVA: Muestra fecha Y hora (para el calendario y modal)
 function fechaConHora(d) {
   if (!d) return "—";
   const s = String(d);
-  // Intenta parsear: "2026-06-19T10:30" o "2026-06-19 10:30:00" o "2026-06-19 10:30"
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
   if (!m) return fechaCorta(d);
   const [, anio, mes, dia, hora, min] = m;
   return `${mes}/${dia}/${anio} ${hora}:${min}`;
 }
-
 
 function fechaCorta(d) {
   if (!d) return "—";
@@ -1374,7 +1399,7 @@ function fechaCorta(d) {
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
   if (!m) return d;
   const [, anio, mes, dia] = m;
-  return `${mes}/${dia}/${anio}`;  // ← SIN HORA: 12/17/2025
+  return `${mes}/${dia}/${anio}`;
 }
 
 function buildRow(l) {
@@ -1703,15 +1728,11 @@ async function fetchCalendarEvents(info, successCB, failCB) {
         const idx = docMap[s.doctor_id] ?? 0;
 
         let start = s.fecha_inicio || s.fecha || s.date || null;
-        // ✅ CORREGIDO: Respetar la hora que viene de la BD, no forzar 08:00
         if (start) {
           if (start.includes('T')) {
-            // Ya tiene formato ISO: "2026-06-19T10:30" → DEJAR COMO ESTÁ
           } else if (start.includes(' ')) {
-            // Viene con espacio: "2026-06-19 10:30" → convertir a ISO
             start = start.replace(' ', 'T');
           } else if (start.length === 10) {
-            // Solo fecha sin hora: "2026-06-19"
             start = start + 'T00:00:00';
           }
         }
@@ -1719,7 +1740,6 @@ async function fetchCalendarEvents(info, successCB, failCB) {
         let end = s.fecha_fin || s.fecha_end || null;
         if (end) {
           if (end.includes('T')) {
-            // Ya tiene formato ISO
           } else if (end.includes(' ')) {
             end = end.replace(' ', 'T');
           } else if (end.length === 10) {
@@ -1851,9 +1871,7 @@ async function abrirModal(id) {
     _citaToggle = false;
     document.getElementById("m-nombre").textContent = (l.favorito?"⭐ ":"") + l.nombre;
     document.getElementById("m-meta").textContent = `${l.telefono||"No phone"} · ${l.email||"No email"} · ${l.canal||""} · ${l.categoria||""}`;
-// 📝 Notas originales del lead (columna "notas" en PostgreSQL)
     document.getElementById("m-notas-lead").textContent = l.notas || "No notes";
-// 💬 Comentarios (historial de conversación)
     document.getElementById("m-comentarios").textContent = l.comentarios || "No comments";
     document.getElementById("m-comentario").value = "";
     const btnTransferir = document.getElementById("btn-transferir");
@@ -1919,23 +1937,34 @@ function buildModalBody(l) {
 }
 
 // ══════════════════════════════════════════════
-// MODAL ADVISOR
+// MODAL ASESOR
+// ══════════════════════════════════════════════
 function buildAsesor(l) {
   const s = l.sales_status||"";
   const doctoresOpts = doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id==d.id?'selected':''}>${d.nombre}</option>`).join("");
   const rejOpts = REJECTION_REASONS.map(r=>`<option value="${r}">${r}</option>`).join("");
 
-  if (s==="Won") return `<div class="info-box success">🏆 Treatment completed.</div>
+  if (s==="Won") {
+    cargarControlesLead(l.id);
+    return `<div class="info-box success">🏆 Treatment completed.</div>
     <label class="lbl">Schedule follow-up?</label>
     <select id="a-control-tipo" onchange="document.getElementById('a-control-block')?.classList.toggle('hidden',!this.value)">
-      <option value="">— Not now —</option><option value="Control">Post-Treatment Checkup</option>
-      <option value="Seguimiento">General Follow-up</option><option value="Procedimiento">New Procedure</option>
+      <option value="">— Not now —</option>
+      <option value="Post-Treatment Checkup">Post-Treatment Checkup</option>
+      <option value="General Follow-up">General Follow-up</option>
+      <option value="New Procedure">New Procedure</option>
     </select>
     <div id="a-control-block" class="hidden">
       <label class="lbl">Follow-up Date</label><input type="datetime-local" id="a-control-fecha">
       <label class="lbl">Doctor</label><select id="a-control-doctor"><option value="">Unassigned</option>${doctoresOpts}</select>
       <label class="lbl">Description</label><textarea id="a-control-desc"></textarea>
+    </div>
+    <hr class="section-divider">
+    <label class="lbl">📋 Follow-up History</label>
+    <div id="a-controles-list" style="max-height:200px;overflow-y:auto">
+      Loading...
     </div>`;
+  }
 
   if (s==="Lost") return `<div class="info-box danger">❌ Lead lost.</div>`;
 
@@ -1943,7 +1972,7 @@ function buildAsesor(l) {
     const fechaCita = l.treatment_date ? new Date(l.treatment_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : 'Not defined';
     const label = s==="Rescheduled Appointment" ? "Rescheduled Appointment" : "Appointment";
 
-        if (!l.cita_confirmada) {
+    if (!l.cita_confirmada) {
       return `<div class="info-box warning">⚠️ ${label} for <strong>${fechaCita}</strong> — pending confirmation.</div>
         <div class="toggle-wrap">
           <span class="toggle-label">Confirmation:</span>
@@ -1957,7 +1986,7 @@ function buildAsesor(l) {
           <label class="lbl">Doctor *</label>
           <select id="a-doctor-confirm"><option value="">Select...</option>${doctoresOpts}</select>
           <label class="lbl">Consultation Date/Time</label>
-          <input type="datetime-local" id="a-fecha-consulta" value="${l.treatment_date?l.treatment_date+'T00:00':''}">
+          <input type="datetime-local" id="a-fecha-consulta" value="${formatearFechaParaInput(l.treatment_date)}">
         </div>
         <hr class="section-divider">
         <label class="lbl">Other actions</label>
@@ -2136,7 +2165,8 @@ function buildAsesor(l) {
 }
 
 // ══════════════════════════════════════════════
-// MODAL DOCTOR
+// MODAL DOCTOR (CORREGIDO)
+// ══════════════════════════════════════════════
 function buildDoctor(l) {
   const m = l.medical_status || "";
   const s = l.sales_status || "";
@@ -2243,15 +2273,32 @@ function buildDoctor(l) {
       </div>`;
   }
 
-  if (m === "Treatment Completed") {
-    return `<div class="info-box success">🏆 Treatment completed.</div>
-      <label class="lbl">Schedule follow-up?</label>
-      <select id="d-control-tipo" onchange="onDoctorControlChange()">
-        <option value="">— No —</option>
-        <option value="Control">Post-Treatment Checkup</option>
-        <option value="Seguimiento">General Follow-up</option>
+  if (m === "Follow-up Scheduled" || m === "Treatment Completed") {
+    return `<div class="info-box success">
+        ${m === "Treatment Completed" ? "🎉 Treatment completed." : "📅 Follow-up control scheduled."}
+      </div>
+      <label class="lbl">Action</label>
+      <select id="d-followup-accion" onchange="onFollowupAccion()">
+        <option value="">— Select —</option>
+        <option value="completar">✅ Control completed</option>
+        <option value="no_show">😶 No Show</option>
+        <option value="reagendar">🔄 Reschedule control</option>
+        <option value="nuevo_control">📋 Schedule follow-up</option>
+        <option value="nuevo_procedimiento">💉 New Procedure</option>
       </select>
-      <div id="d-control-fecha-block" class="hidden"><label class="lbl">Date</label><input type="datetime-local" id="d-control-fecha"></div>`;
+      <div id="d-followup-fecha-block" class="hidden">
+        <label class="lbl">New Date</label>
+        <input type="datetime-local" id="d-followup-fecha">
+      </div>
+      <div id="d-nuevo-proc-block" class="hidden">
+        <label class="lbl">Procedure Date *</label>
+        <input type="datetime-local" id="d-nuevoproc-fecha">
+        <label class="lbl">Doctor</label>
+        <select id="d-nuevoproc-doctor">
+          <option value="">— Same doctor —</option>
+          ${doctoresCache.map(d=>`<option value="${d.id}">${d.nombre}</option>`).join("")}
+        </select>
+      </div>`;
   }
 
   if (s === "Scheduled Appointment" && (!m || m === "")) {
@@ -2269,12 +2316,9 @@ function buildDoctor(l) {
   return `<div class="info-box info">Medical status: ${m || "—"}. Use support if you need to change anything.</div>`;
 }
 
-function onDoctorInicioTratChange() {
-  const v = document.getElementById("d-trat-inicio-accion")?.value;
-  const block = document.getElementById("d-fechas-trat-block");
-  if (block) block.classList.toggle("hidden", v !== "iniciar");
-}
-
+// ══════════════════════════════════════════════
+// MODAL SOPORTE
+// ══════════════════════════════════════════════
 function buildSoporte(l) {
   const doctoresOpts = doctoresCache.map(d=>`<option value="${d.id}" ${l.doctor_id==d.id?'selected':''}>${d.nombre}</option>`).join("");
   return `<div class="two-col">
@@ -2323,7 +2367,6 @@ function buildSoporte(l) {
   </select>`;
 }
 
-
 function onSoporteSalesChange() { const v=document.getElementById("sp-sales")?.value; document.getElementById("sp-fecha-cita-block")?.classList.toggle("hidden",v!=="Scheduled Appointment"); }
 
 // ══════════════════════════════════════════════
@@ -2363,17 +2406,11 @@ function onCancelAccion() {
   document.getElementById("a-nueva-fecha-block")?.classList.toggle("hidden",!["reagendar_consulta","reagendar_trat"].includes(v));
   document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
 }
-
-// FIX: esta función faltaba por completo. Sin ella, el <select> "a-callback-accion"
-// llamaba a onCallbackAccion() en cada cambio pero no pasaba nada: nunca se mostraba
-// el bloque con Medilink/Doctor/Fecha cuando se elegía "Schedule Appointment" desde
-// un lead en estado Callback. Por eso el guardado fallaba pidiendo "medilink_numero".
 function onCallbackAccion() {
   const v=document.getElementById("a-callback-accion")?.value;
   document.getElementById("a-agenda-block")?.classList.toggle("hidden",v!=="scheduled");
   document.getElementById("a-lost-block")?.classList.toggle("hidden",v!=="lost");
 }
-
 function onTratAccion() {
   const v=document.getElementById("d-trat-accion")?.value;
   document.getElementById("d-siguiente-block")?.classList.toggle("hidden",v!=="siguiente");
@@ -2390,6 +2427,16 @@ function onCandidatoChange() {
 }
 function onQuitReasonChange() { document.getElementById("d-quit-other")?.classList.toggle("hidden",document.getElementById("d-quit-reason")?.value!=="Other"); }
 function onDoctorControlChange() { document.getElementById("d-control-fecha-block")?.classList.toggle("hidden",!document.getElementById("d-control-tipo")?.value); }
+function onDoctorInicioTratChange() {
+  const v = document.getElementById("d-trat-inicio-accion")?.value;
+  const block = document.getElementById("d-fechas-trat-block");
+  if (block) block.classList.toggle("hidden", v !== "iniciar");
+}
+function onFollowupAccion() {
+  const accion = document.getElementById("d-followup-accion")?.value;
+  document.getElementById("d-followup-fecha-block")?.classList.toggle("hidden", accion !== "reagendar");
+  document.getElementById("d-nuevo-proc-block")?.classList.toggle("hidden", accion !== "nuevo_procedimiento");
+}
 
 // ══════════════════════════════════════════════
 // SAVE CHANGES
@@ -2414,9 +2461,14 @@ function buildBodyAsesor(body,l) {
 
   if (s==="Won") {
     const tipo=document.getElementById("a-control-tipo")?.value;
-    if (tipo) body.crear_control={tipo,fecha_control:document.getElementById("a-control-fecha")?.value,doctor_id:parseInt(document.getElementById("a-control-doctor")?.value)||null,descripcion:document.getElementById("a-control-desc")?.value||""};
+    if (tipo) body.crear_control={
+        tipo,
+        fecha_control:document.getElementById("a-control-fecha")?.value,
+        doctor_id:parseInt(document.getElementById("a-control-doctor")?.value)||null,
+        descripcion:document.getElementById("a-control-desc")?.value||""
+    };
     return true;
-  }
+}
 
   if (s==="Scheduled Appointment" || s==="Rescheduled Appointment") {
     const medilink = document.getElementById("a-medilink-confirm")?.value.trim();
@@ -2507,10 +2559,6 @@ function buildBodyAsesor(body,l) {
     if (accion==="first_contact"){body.sales_status="First Contact";return true;}
     if (accion==="no_answer"){body.sales_status="No Answer";return true;}
     if (accion==="scheduled"){
-      // FIX: antes solo se hacía body.sales_status="Scheduled Appointment" sin
-      // capturar medilink/doctor/fecha, porque el bloque #a-agenda-block nunca se
-      // mostraba (faltaba onCallbackAccion). Ahora sí se toman esos campos igual
-      // que en el flujo normal (newStatus==="Scheduled Appointment").
       body.sales_status="Scheduled Appointment";
       const medilinkAgenda = document.getElementById("a-medilink-agenda")?.value.trim();
       const d = document.getElementById("a-doctor-agenda")?.value;
@@ -2549,8 +2597,11 @@ function buildBodyAsesor(body,l) {
   return true;
 }
 
-function buildBodyDoctor(body,l) {
-  const m=l.medical_status||"", s=l.sales_status||"";
+function buildBodyDoctor(body, l) {
+  const m = l.medical_status || "", s = l.sales_status || "";
+  
+  console.log("🏥 buildBodyDoctor - medical_status:", m);
+  console.log("🏥 buildBodyDoctor - sales_status:", s);
 
   if ((m === "Treatment Proposal Sent" || s === "Treatment Proposal Sent") && document.getElementById("d-confirmacion-propuesta")) {
     const accion = document.getElementById("d-confirmacion-propuesta")?.value;
@@ -2628,8 +2679,45 @@ function buildBodyDoctor(body,l) {
   }
 
   if (m === "Treatment Completed") {
-    const tipo = document.getElementById("d-control-tipo")?.value, fecha = document.getElementById("d-control-fecha")?.value;
-    if (tipo) body.crear_control = { tipo, fecha_control: fecha, doctor_id: usuario.id };
+    const tipo = document.getElementById("d-control-tipo")?.value;
+    const fecha = document.getElementById("d-control-fecha")?.value;
+    const desc = document.getElementById("d-control-desc")?.value;
+    if (tipo) {
+        body.crear_control = { 
+            tipo, 
+            fecha_control: fecha, 
+            doctor_id: usuario.id,
+            descripcion: desc || ""
+        };
+    }
+    return true;
+  }
+
+  if (m === "Follow-up Scheduled") {
+    const accion = document.getElementById("d-followup-accion")?.value;
+    if (!accion && !body.comentario) { toast("Select an action", true); return false; }
+    
+    if (accion === "completar") {
+      body.completar_control = true;
+      body.medical_status = "Treatment Completed";
+      body.appointment_status = "Completed";
+      return true;
+    }
+    if (accion === "no_show") {
+      body.completar_control_no_show = true;
+      body.appointment_status = "No Show";
+      body.medical_status = "Treatment Completed";
+      return true;
+    }
+    if (accion === "reagendar") {
+      const nuevaFecha = document.getElementById("d-followup-fecha")?.value;
+      if (!nuevaFecha) { toast("Select new date", true); return false; }
+      body.reagendar_control = true;
+      body.medical_status = "Follow-up Scheduled";
+      body.appointment_status = "Rescheduled";
+      body.next_treatment_date = nuevaFecha;
+      return true;
+    }
     return true;
   }
 

@@ -86,6 +86,11 @@ class UpdateStatus(BaseModel):
     # Control embebido
     crear_control: Optional[Any] = None
 
+    # ✅ NUEVOS: Acciones de control de seguimiento
+    completar_control: Optional[bool] = None
+    completar_control_no_show: Optional[bool] = None
+    reagendar_control: Optional[bool] = None
+
 class BookedCallCreate(BaseModel):
     lead_id: int
     asesor_id: int
