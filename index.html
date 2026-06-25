@@ -3088,24 +3088,23 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// ANALYTICS MODULE v21
+// ANALYTICS MODULE v27 — 3D + Vertical Pipeline + English + Fixes
 // ══════════════════════════════════════════════════════════════════
 (function () {
 
-  // ── PIPELINE STAGES ──────────────────────────────────────────
   const PIPELINE_STAGES = [
     { nombre: "New Lead",             color: "#3b82f6", icon: "🆕", desc: "New lead" },
-    { nombre: "1er Contacto",         color: "#6366f1", icon: "📞", desc: "First contact" },
-    { nombre: "Cita Agendada",        color: "#22c55e", icon: "📅", desc: "Appointment booked" },
-    { nombre: "Cita Asistida",        color: "#14b8a6", icon: "✅", desc: "Appointment attended" },
-    { nombre: "Propuesta Enviada",    color: "#a855f7", icon: "💎", desc: "Proposal sent" },
-    { nombre: "Propuesta Aceptada",   color: "#06b6d4", icon: "🤝", desc: "Proposal accepted" },
-    { nombre: "Tratamiento Iniciado", color: "#f59e0b", icon: "🚀", desc: "Treatment started" },
+    { nombre: "First Contact",        color: "#6366f1", icon: "📞", desc: "First contact" },
+    { nombre: "Appt. Scheduled",      color: "#22c55e", icon: "📅", desc: "Appointment booked" },
+    { nombre: "Appt. Attended",       color: "#14b8a6", icon: "✅", desc: "Appointment attended" },
+    { nombre: "Evaluation Done",      color: "#06b6d4", icon: "🔬", desc: "Evaluation done" },
+    { nombre: "Proposal Sent",        color: "#a855f7", icon: "💎", desc: "Proposal sent" },
+    { nombre: "Proposal Accepted",    color: "#8b5cf6", icon: "🤝", desc: "Proposal accepted" },
+    { nombre: "Treatment Started",    color: "#f59e0b", icon: "🚀", desc: "Treatment started" },
     { nombre: "Won",                  color: "#4ade80", icon: "🏆", desc: "Closed sale" },
     { nombre: "Lost",                 color: "#dc2626", icon: "💀", desc: "Lost lead" },
   ];
 
-  // ── helpers ──────────────────────────────────────────────────
   function waitForApp(cb) {
     const id = setInterval(() => {
       if (typeof todosLeads !== "undefined" && typeof usuario !== "undefined") {
@@ -3115,110 +3114,117 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   }
 
   const PAL = ["#3b82f6","#22c55e","#f59e0b","#a855f7","#14b8a6","#ef4444","#f97316","#ec4899","#6366f1","#84cc16"];
-  const MONTHS_LABEL = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  const MONTH_SHORT  = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-  const DAY_LABELS   = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-  const YEARS_LIST   = ["2024","2025","2026"];
+  const MONTH_SHORT = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const DAY_LABELS  = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-  // ── Styles ───────────────────────────────────────────────────
   const style = document.createElement("style");
   style.textContent = `
     #view-analytics{padding:1rem}
     .an-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:1.2rem;margin-bottom:1.5rem}
-    .an-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-    .an-card h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:1.2rem;font-weight:600;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border);padding-bottom:.8rem}
-    .an-bar-row{display:flex;align-items:center;gap:.7rem;margin-bottom:.55rem}
-    .an-bar-label{font-size:.75rem;color:var(--text2);width:180px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
-    .an-bar-wrap{flex:1;background:var(--bg3);border-radius:6px;height:10px;overflow:hidden}
-    .an-bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
-    .an-bar-val{font-size:.75rem;color:var(--text2);width:36px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0;font-weight:600}
-    .an-bar-pct{font-size:.7rem;color:var(--text3);width:40px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0}
-    .an-kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.8rem;margin-bottom:1.5rem}
-    .an-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.3rem;position:relative;overflow:hidden}
-    .an-kpi::before{content:'';position:absolute;inset:0;opacity:.06;background:var(--an-kpi-color,#3b82f6);border-radius:14px}
-    .an-kpi-num{font-size:2rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--an-kpi-color,var(--accent));line-height:1;position:relative;z-index:1}
-    .an-kpi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);margin-top:.4rem;position:relative;z-index:1;font-weight:600}
-    .an-kpi-sub{font-size:.68rem;color:var(--text3);margin-top:.3rem;font-family:'DM Mono',monospace;position:relative;z-index:1}
-    .an-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;padding:1rem 1.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:16px}
+    .an-card{background:linear-gradient(180deg,var(--bg2) 0%,#111827 100%);border:1px solid var(--border);border-radius:16px;padding:1.2rem 1.4rem;box-shadow:0 8px 32px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.03)}
+    .an-card h4{font-size:.82rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text);margin-bottom:1rem;font-weight:700;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border);padding-bottom:.7rem}
+    .an-bar-row{display:flex;align-items:center;gap:.7rem;margin-bottom:.5rem}
+    .an-bar-label{font-size:.76rem;color:var(--text);width:160px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+    .an-bar-wrap{flex:1;background:rgba(255,255,255,.04);border-radius:6px;height:9px;overflow:hidden}
+    .an-bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2)}
+    .an-bar-val{font-size:.76rem;color:var(--text);width:34px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0;font-weight:700}
+    .an-bar-pct{font-size:.7rem;color:var(--text2);width:38px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0}
+    .an-kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.7rem;margin-bottom:1.5rem}
+    .an-kpi{background:linear-gradient(180deg,var(--bg2) 0%,#111827 100%);border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.03)}
+    .an-kpi::before{content:'';position:absolute;inset:0;opacity:.08;background:var(--an-kpi-color,#3b82f6);border-radius:14px}
+    .an-kpi-num{font-size:1.8rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--an-kpi-color,var(--accent));line-height:1;position:relative;z-index:1;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+    .an-kpi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.6px;color:var(--text);margin-top:.3rem;position:relative;z-index:1;font-weight:600}
+    .an-kpi-sub{font-size:.65rem;color:var(--text2);margin-top:.2rem;font-family:'DM Mono',monospace;position:relative;z-index:1}
+    .an-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;padding:1rem 1.5rem;background:linear-gradient(180deg,var(--bg2) 0%,#111827 100%);border:1px solid var(--border);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
     .an-filters{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
-    .an-filter-label{font-size:.75rem;color:var(--text2);font-weight:600;white-space:nowrap;margin-right:.2rem}
-    .an-select{padding:.4rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:.8rem;cursor:pointer;font-weight:500;min-width:120px}
+    .an-filter-label{font-size:.76rem;color:var(--text);font-weight:600;white-space:nowrap;margin-right:.2rem}
+    .an-select{padding:.35rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.78rem;cursor:pointer;font-weight:500;min-width:110px}
     .an-select:hover{border-color:var(--accent)}
     .an-select:focus{outline:none;border-color:var(--accent)}
-    .an-filter-badge{font-size:.74rem;padding:.3rem .9rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-weight:500}
+    .an-date-input{padding:.35rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.76rem;cursor:pointer;font-weight:500;width:130px}
+    .an-date-input:hover{border-color:var(--accent)}
+    .an-date-input:focus{outline:none;border-color:var(--accent)}
+    .an-quick-btn{padding:.3rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:14px;color:var(--text);cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:500;white-space:nowrap;transition:all .15s}
+    .an-quick-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .an-quick-btn.active{background:var(--accent);border-color:var(--accent);color:white}
+    .an-filter-badge{font-size:.74rem;padding:.25rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-weight:500}
     .an-filter-badge span{color:var(--accent);font-weight:700}
     .btn-export-xlsx{padding:.5rem 1.4rem;background:linear-gradient(135deg,#166534,#1a7f3d);color:#4ade80;border:1px solid #16a34a44;border-radius:10px;cursor:pointer;font-family:inherit;font-size:.84rem;font-weight:600;white-space:nowrap}
     .btn-export-xlsx:hover{background:linear-gradient(135deg,#14532d,#166534)}
-    .an-semaforo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
-    .an-sem-card{background:var(--bg3);border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)}
-    .an-sem-icon{font-size:1.8rem}
-    .an-sem-num{font-size:1.6rem;font-weight:700;font-family:'DM Mono',monospace;margin:.3rem 0}
-    .an-sem-label{font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;font-weight:500}
-    .an-refresh{padding:.35rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:500}
+    .an-semaforo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
+    .an-sem-card{background:var(--bg3);border-radius:12px;padding:.8rem;text-align:center;border:1px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+    .an-sem-icon{font-size:1.5rem}
+    .an-sem-num{font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;margin:.2rem 0}
+    .an-sem-label{font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+    .an-refresh{padding:.35rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:500}
     .an-refresh:hover{border-color:var(--accent);color:var(--accent)}
-    .an-no-data{color:var(--text2);font-size:.84rem;text-align:center;padding:2rem}
-    .an-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:.5rem}
-    .an-heat-cell{height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.85);font-weight:600}
-    .an-heatmap-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-    .an-heat-label{font-size:.68rem;color:var(--text2);text-align:center;font-weight:600}
-    .an-section-label{font-size:.78rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin:1.8rem 0 .8rem;font-weight:700;padding-left:4px;display:flex;align-items:center;gap:.7rem}
+    .an-no-data{color:var(--text2);font-size:.84rem;text-align:center;padding:1.5rem}
+    .an-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:.4rem}
+    .an-heat-cell{height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.9);font-weight:600}
+    .an-heatmap-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+    .an-heat-label{font-size:.66rem;color:var(--text);text-align:center;font-weight:600}
+    .an-section-label{font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--text);margin:1.5rem 0 .7rem;font-weight:700;padding-left:4px;display:flex;align-items:center;gap:.6rem}
     .an-section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
-    .an-pipeline-wrap{display:flex;gap:10px;overflow-x:auto;padding:1rem 0;align-items:stretch;min-height:340px}
-    .an-pipeline-col{flex:1;min-width:140px;display:flex;flex-direction:column;align-items:center;gap:8px}
-    .an-pipeline-header{font-size:.72rem;font-weight:700;color:var(--text);text-align:center;margin-bottom:4px;display:flex;flex-direction:column;align-items:center;gap:4px}
-    .an-pipeline-bar{width:85%;border-radius:14px 14px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 10px;box-shadow:0 6px 20px rgba(0,0,0,.2);transition:all .3s ease;position:relative}
-    .an-pipeline-count{font-size:2rem;font-weight:700;color:white;font-family:'DM Mono',monospace;line-height:1}
-    .an-pipeline-desc{font-size:.6rem;color:rgba(255,255,255,.85);text-align:center;margin-top:6px}
+    .an-section-filter-bar{padding:.5rem .8rem;background:var(--bg3);border-radius:10px;margin-bottom:.8rem;border:1px solid var(--border)}
     .an-appt-table{width:100%;border-collapse:collapse;font-size:.76rem;border-radius:8px;overflow:hidden}
-    .an-appt-table th,.an-appt-table td{padding:.5rem .7rem;text-align:right;border-bottom:1px solid rgba(255,255,255,.06)}
-    .an-appt-table th{color:var(--text2);font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;font-weight:700;border-bottom:2px solid var(--border);text-align:right;background:var(--bg3)}
+    .an-appt-table th,.an-appt-table td{padding:.45rem .6rem;text-align:right;border-bottom:1px solid rgba(255,255,255,.06)}
+    .an-appt-table th{color:var(--text);font-size:.67rem;text-transform:uppercase;letter-spacing:.5px;font-weight:700;border-bottom:2px solid var(--border);background:var(--bg3)}
     .an-appt-table td:first-child,.an-appt-table th:first-child{text-align:left}
     .an-appt-table tr:hover td{background:rgba(59,130,246,.06)}
     .an-appt-table .tot-row td{font-weight:700;border-top:2px solid var(--border);color:var(--text);background:rgba(59,130,246,.08)}
-    .an-stacked-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
-    .an-stacked-label{font-size:.72rem;color:var(--text2);width:60px;flex-shrink:0;text-align:right;font-weight:600}
-    .an-stacked-bar{flex:1;display:flex;height:20px;border-radius:6px;overflow:hidden}
-    .an-stacked-seg{height:100%;transition:width .6s ease}
-    .an-stacked-total{font-size:.72rem;color:var(--text2);width:32px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0;font-weight:600}
-    .an-legend{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:.8rem}
-    .an-legend-item{display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:var(--text2)}
-    .an-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    .an-appt-bars-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .an-horiz-bar-row{display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem}
+    .an-horiz-label{font-size:.78rem;color:var(--text);width:110px;flex-shrink:0;font-weight:500;text-align:right}
+    .an-horiz-track{flex:1;background:rgba(255,255,255,.04);border-radius:8px;height:30px;position:relative;overflow:hidden}
+    .an-horiz-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:10px;gap:8px;transition:width .7s ease;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+    .an-horiz-num{font-size:.8rem;font-weight:700;color:white;font-family:'DM Mono',monospace}
+    .an-horiz-pct-badge{font-size:.67rem;color:rgba(255,255,255,.9);background:rgba(0,0,0,.25);padding:2px 8px;border-radius:12px;font-family:'DM Mono',monospace}
+    .an-funnel-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:1rem;margin-bottom:1rem}
+    .an-funnel-compact{background:linear-gradient(180deg,var(--bg2) 0%,#111827 100%);border:1px solid var(--border);border-radius:16px;padding:1rem 1.2rem;box-shadow:0 8px 32px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.03)}
+    .an-funnel-compact h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.7px;color:var(--text);margin-bottom:.6rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+    .an-funnel-filter-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap}
+    .an-funnel-filter-row label{font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap}
+    .an-funnel-svg-wrap{overflow-x:auto}
+    .an-legend{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem;padding-top:.5rem;border-top:1px solid var(--border)}
+    .an-legend-item{display:flex;align-items:center;gap:.3rem;font-size:.68rem;color:var(--text)}
+    .an-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    
+    /* ── PIPELINE VERTICAL BARS 3D ───────────────────────── */
+    .an-pipeline-vert-wrap{display:flex;gap:8px;overflow-x:auto;padding:.8rem 0;align-items:flex-end;min-height:200px}
+    .an-pipeline-vert-col{flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .an-pipeline-vert-bar{width:70%;border-radius:10px 10px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;box-shadow:0 8px 24px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2),inset 0 -4px 8px rgba(0,0,0,.2);transition:all .3s ease;position:relative;min-height:40px}
+    .an-pipeline-vert-count{font-size:1.2rem;font-weight:700;color:white;font-family:'DM Mono',monospace;text-shadow:0 2px 4px rgba(0,0,0,.4)}
+    .an-pipeline-vert-label{font-size:.62rem;color:var(--text);text-align:center;font-weight:600;margin-top:4px}
+    .an-pipeline-vert-pct{font-size:.58rem;color:var(--text2);text-align:center}
 
-    /* ── NEW FUNNEL STYLES ─────────────────────────────────── */
-    .an-funnel-v2-wrap{display:flex;gap:2rem;align-items:stretch;margin-bottom:1.5rem;flex-wrap:wrap}
-    .an-funnel-v2{flex:1;min-width:320px;background:linear-gradient(180deg,rgba(59,130,246,.04) 0%,rgba(0,0,0,.15) 100%);border:1px solid var(--border);border-radius:20px;overflow:hidden}
-    .an-funnel-v2-header{padding:1.2rem 1.6rem .8rem;border-bottom:1px solid rgba(255,255,255,.06)}
-    .an-funnel-v2-header h4{font-size:.85rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);font-weight:700;margin:0}
-    .an-funnel-v2-body{padding:1.4rem 1.6rem}
-    .an-fv2-step{margin-bottom:4px}
-    .an-fv2-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;padding:0 2px}
-    .an-fv2-label{font-size:.78rem;font-weight:600;color:var(--text)}
-    .an-fv2-conv{font-size:.7rem;color:var(--text3);font-family:'DM Mono',monospace}
-    .an-fv2-bar-outer{background:rgba(255,255,255,.05);border-radius:12px;height:44px;position:relative;overflow:hidden}
-    .an-fv2-bar-inner{height:100%;border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;transition:width .7s cubic-bezier(.34,1.56,.64,1);position:relative}
-    .an-fv2-bar-inner::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent);border-radius:12px 12px 0 0;pointer-events:none}
-    .an-fv2-count{font-size:1.1rem;font-weight:700;color:white;font-family:'DM Mono',monospace;text-shadow:0 1px 4px rgba(0,0,0,.4)}
-    .an-fv2-pct{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.9);background:rgba(0,0,0,.25);padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace}
-    .an-fv2-connector{width:2px;height:10px;background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.04));margin:0 auto 4px}
-    .an-fv2-note{font-size:.64rem;color:var(--text3);padding:.8rem 1.6rem 1.2rem;border-top:1px solid rgba(255,255,255,.05);line-height:1.6}
-
-    /* ── APPT BAR CHART ─────────────────────────────────────── */
-    .an-appt-bars-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:1.2rem;margin-bottom:1.5rem}
-    .an-horiz-bar-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.7rem}
-    .an-horiz-label{font-size:.78rem;color:var(--text2);width:120px;flex-shrink:0;font-weight:500;text-align:right}
-    .an-horiz-track{flex:1;background:rgba(255,255,255,.06);border-radius:8px;height:32px;position:relative;overflow:hidden}
-    .an-horiz-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:12px;gap:10px;transition:width .7s ease}
-    .an-horiz-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.1),transparent);pointer-events:none}
-    .an-horiz-num{font-size:.82rem;font-weight:700;color:white;font-family:'DM Mono',monospace}
-    .an-horiz-pct-badge{font-size:.68rem;color:rgba(255,255,255,.85);background:rgba(0,0,0,.2);padding:2px 8px;border-radius:12px;font-family:'DM Mono',monospace}
-
-    /* ── EXTRA FILTER BAR ───────────────────────────────────── */
-    .an-extra-filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;padding:.8rem 1.2rem;background:var(--bg2);border:1px solid var(--border);border-radius:12px}
-    .an-extra-label{font-size:.72rem;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+    /* ── RESET BUTTON RED ──────────────────────────────── */
+    .an-reset-btn-red{padding:.3rem .8rem;background:linear-gradient(180deg,#dc2626,#991b1b);color:white;border:1px solid #ef444466;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:600;white-space:nowrap;transition:all .15s;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+    .an-reset-btn-red:hover{background:linear-gradient(180deg,#ef4444,#b91c1c);border-color:#ef4444}
   `;
   document.head.appendChild(style);
 
-  let anYear = "2026", anMonth = "all", anDoctor = "all", anAsesor = "all";
+  function todayStr() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function startOfWeek() { const d=new Date(); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function startOfMonth() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; }
+  function startOfYear() { return `${new Date().getFullYear()}-01-01`; }
+
+  let anDateFrom = "2025-01-01", anDateTo = todayStr(), anDoctor = "all", anAsesor = "all";
+
+  let fgFilters = { from: null, to: null, doc: null, ase: null };
+  let faFilters = { from: null, to: null, doc: null, ase: null };
+  let fdFilters = { from: null, to: null, doc: null, ase: null };
+  let chFilters = { from: null, to: null, doc: null, ase: null };
+  let pfFilters = { from: null, to: null, doc: null, ase: null };
+  let plFilters = { from: null, to: null, doc: null, ase: null };
+
+  function getSectionState(prefix) {
+    const map = { fg: fgFilters, fa: faFilters, fd: fdFilters, ch: chFilters, pf: pfFilters, pl: plFilters };
+    return map[prefix] || { from: null, to: null, doc: null, ase: null };
+  }
+  function saveSectionState(prefix, from, to, doc, ase) {
+    const map = { fg: fgFilters, fa: faFilters, fd: fdFilters, ch: chFilters, pf: pfFilters, pl: plFilters };
+    if (map[prefix]) { map[prefix].from=from; map[prefix].to=to; map[prefix].doc=doc; map[prefix].ase=ase; }
+  }
 
   function injectTab() {
     const tabs = document.querySelector(".main-tabs");
@@ -3236,552 +3242,276 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     const div = document.createElement("div");
     div.className = "main-view"; div.id = "view-analytics";
     div.innerHTML = `
-      <div class="an-toolbar">
-        <div class="an-filters">
-          <span class="an-filter-label">📅 Period:</span>
-          <select class="an-select" id="an-year-sel" onchange="anYearChange(this.value)">
-            <option value="all">All years</option>
-            ${YEARS_LIST.map(y=>`<option value="${y}" ${y==="2026"?"selected":""}>${y}</option>`).join("")}
-          </select>
-          <select class="an-select" id="an-month-sel" onchange="anMonthChange(this.value)">
-            <option value="all">All months</option>
-            ${MONTHS_LABEL.slice(1).map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}
-          </select>
-          <span class="an-filter-badge" id="an-filter-badge">Showing <span>2026 data</span></span>
+      <div class="an-toolbar" id="an-global-toolbar">
+        <div class="an-filters" style="flex-wrap:wrap">
+          <span class="an-filter-label">📅 From:</span>
+          <input type="date" class="an-date-input" id="an-date-from" value="${anDateFrom}" onchange="anGlobalDateChange()">
+          <span class="an-filter-label">To:</span>
+          <input type="date" class="an-date-input" id="an-date-to" value="${anDateTo}" onchange="anGlobalDateChange()">
+          <button class="an-quick-btn" onclick="anSetQuick('today')">Today</button>
+          <button class="an-quick-btn" onclick="anSetQuick('week')">This Week</button>
+          <button class="an-quick-btn" onclick="anSetQuick('month')">This Month</button>
+          <button class="an-quick-btn" onclick="anSetQuick('year')">This Year</button>
+          <button class="an-quick-btn" onclick="anSetQuick('all')">All Time</button>
+          <span class="an-filter-label" style="margin-left:.8rem">👤 Dr:</span>
+          <select class="an-select" id="an-doctor-sel" onchange="anGlobalFilterChange()"><option value="all">All</option></select>
+          <span class="an-filter-label">As:</span>
+          <select class="an-select" id="an-asesor-sel" onchange="anGlobalFilterChange()"><option value="all">All</option></select>
+          <span class="an-filter-badge" id="an-filter-badge">Showing <span>—</span></span>
           <button class="an-refresh" onclick="anRefresh()">🔄 Reset</button>
         </div>
-        <button class="btn-export-xlsx" onclick="window.anExportXlsx && window.anExportXlsx()">📥 Download Report (.xlsx)</button>
+        <button class="btn-export-xlsx" onclick="window.anExportXlsx && window.anExportXlsx()">📥 Download (.xlsx)</button>
       </div>
-
-      <div class="an-extra-filters">
-        <span class="an-extra-label">👤 Filter by:</span>
-        <select class="an-select" id="an-doctor-sel" onchange="anDoctorChange(this.value)">
-          <option value="all">All Doctors</option>
-        </select>
-        <select class="an-select" id="an-asesor-sel" onchange="anAsesorChange(this.value)">
-          <option value="all">All Advisors</option>
-        </select>
-      </div>
-
       <div class="an-section-label">📊 Global KPIs</div>
       <div class="an-kpi-row" id="an-kpis-global"></div>
-      <div class="an-section-label" id="an-kpi-month-label">📅 KPIs for Selected Period</div>
-      <div class="an-kpi-row" id="an-kpis-month"></div>
-
-      <div class="an-section-label">🔽 Conversion Funnel</div>
-      <div id="an-funnels"></div>
-
+      <div class="an-section-label">🔽 Conversion Funnels</div>
+      <div class="an-funnel-row" id="an-funnels-row"></div>
       <div class="an-section-label">📊 Appointments Breakdown</div>
       <div id="an-appt-bars"></div>
-
       <div class="an-section-label">🔄 Sales Pipeline</div>
       <div id="an-pipeline"></div>
-
-      <div class="an-section-label">📆 Appointments Summary by Month</div>
+      <div class="an-section-label">📆 Appointments by Month</div>
       <div class="an-grid" id="an-appt-table-wrap"></div>
-
       <div class="an-section-label">📋 CRM Breakdown</div>
+      <div id="an-charts-filters"></div>
       <div class="an-grid" id="an-charts"></div>
-
       <div class="an-section-label">⚡ Performance</div>
+      <div id="an-perf-filters"></div>
       <div class="an-grid" id="an-perf"></div>
     `;
     container.appendChild(div);
   }
 
-  function getAdmDate(l) {
-    const d = l.admission_date || l.fecha_creacion;
-    if (!d) return null;
-    return new Date(String(d).slice(0,10));
+  function buildSectionFilterBar(prefix, dateFrom, dateTo, docVal, aseVal, onChangeFnName) {
+    return `
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap">From:</label>
+        <input type="date" class="an-date-input" id="${prefix}-from" value="${dateFrom}" onchange="${onChangeFnName}()" style="width:125px">
+        <label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap">To:</label>
+        <input type="date" class="an-date-input" id="${prefix}-to" value="${dateTo}" onchange="${onChangeFnName}()" style="width:125px">
+        ${docVal !== undefined ? `<label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap;margin-left:.5rem">Dr:</label><select class="an-select" id="${prefix}-doctor" onchange="${onChangeFnName}()" style="min-width:100px"><option value="all">All</option></select>` : ''}
+        ${aseVal !== undefined ? `<label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap">As:</label><select class="an-select" id="${prefix}-asesor" onchange="${onChangeFnName}()" style="min-width:100px"><option value="all">All</option></select>` : ''}
+        <button class="an-reset-btn-red" onclick="anResetSectionFilter('${prefix}')" style="margin-left:auto">↺ Reset</button>
+      </div>`;
   }
 
-  // Base population: filtered by admission_date + doctor + asesor
-  function getFilteredLeads() {
-    const L = typeof todosLeads !== "undefined" ? todosLeads : [];
-    return L.filter(l => {
-      const d = getAdmDate(l);
-      if (anYear  !== "all" || anMonth !== "all") {
-        if (!d) return false;
-        if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
-        if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
-      }
-      if (anDoctor !== "all" && String(l.doctor_id) !== String(anDoctor)) return false;
-      if (anAsesor !== "all" && String(l.asesor_id) !== String(anAsesor)) return false;
-      return true;
-    });
+  function buildFunnelFilterBar(prefix, dateFrom, dateTo, filterVal, filterType, onChangeFnName) {
+    const label = filterType === 'doctor' ? 'Dr:' : 'Front Desk:';
+    const selId = prefix + "-" + (filterType === 'doctor' ? 'doctor' : 'asesor');
+    return `
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap">From:</label>
+        <input type="date" class="an-date-input" id="${prefix}-from" value="${dateFrom}" onchange="${onChangeFnName}()" style="width:125px">
+        <label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap">To:</label>
+        <input type="date" class="an-date-input" id="${prefix}-to" value="${dateTo}" onchange="${onChangeFnName}()" style="width:125px">
+        <label style="font-size:.66rem;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap;margin-left:.5rem">${label}</label>
+        <select class="an-select" id="${selId}" onchange="${onChangeFnName}()" style="min-width:100px"><option value="all">All</option></select>
+        <button class="an-reset-btn-red" onclick="anResetSectionFilter('${prefix}')" style="margin-left:auto">↺ Reset</button>
+      </div>`;
   }
 
-  // Appointment population: filtered by treatment_date + doctor + asesor
-  function getApptFilteredLeads() {
+  function getFilteredLeads(dateFrom, dateTo, docFilter, aseFilter, useApptDate) {
     const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
     return ALL.filter(l => {
-      if (anYear !== "all" || anMonth !== "all") {
-        if (!l.treatment_date) return false;
-        const d = new Date(String(l.treatment_date).slice(0,10));
-        if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
-        if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
-      }
-      if (anDoctor !== "all" && String(l.doctor_id) !== String(anDoctor)) return false;
-      if (anAsesor !== "all" && String(l.asesor_id) !== String(anAsesor)) return false;
+      const field = useApptDate ? (l.treatment_date) : (l.admission_date || l.fecha_creacion);
+      if (!field) return false;
+      const d = String(field).slice(0,10);
+      if (d < dateFrom || d > dateTo) return false;
+      if (docFilter !== "all" && String(l.doctor_id) !== String(docFilter)) return false;
+      if (aseFilter !== "all" && String(l.asesor_id) !== String(aseFilter)) return false;
       return true;
     });
   }
 
-  function classifySource(lead) {
-    const canal  = String(lead.canal  || "").toLowerCase().trim();
-    const pais   = String(lead.pais   || "").toLowerCase().trim();
-    const pipe   = String(lead.pipeline || "").toLowerCase().trim();
-    if (/\bweb(site)?\b|sitio\s*web|organic/.test(canal))          return "Website";
-    if (/facebook|fb(?!\w)|instagram|ig(?!\w)|social/.test(canal)) return "Social Media";
-    if (/email|correo/.test(canal))                                  return "Email";
-    if (/whatsapp|llamada|call(?!\s*center)/.test(canal))            return "Call / WhatsApp";
-    if (/walk\s*[-–]?\s*in|presencial|en\s*cl[ií]nica/.test(canal)) return "Walk-in Colombia";
-    if (/refer(ral|ido|encia)/.test(canal))                          return "Referral";
-    if (/estados\s*unidos|united\s*states|\bus(a)?\b/.test(pais))   return "US Targeted Campaign";
-    if (/canad[aá]/.test(pais))                                      return "Canada Targeted Campaign";
-    if (/colombia/.test(pais))                                       return "Local Campaign";
-    if (/\bus\b|united\s*states|english.*int/.test(pipe))            return "US Targeted Campaign";
-    if (/canada/.test(pipe))                                         return "Canada Targeted Campaign";
-    if (/local|colombia/.test(pipe))                                 return "Local Campaign";
-    return "Other / Unknown";
+  const _isAtt=l=>l.cita_asistida===true||l.appointment_status==="Attended";
+  const _isCan=l=>["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status)||l.appointment_status==="Canceled";
+  const _isNS=l=>l.appointment_status==="No Show";
+  const _isProp=l=>l.propuesta_enviada===true;
+  const _isAcc=l=>l.propuesta_aceptada===true;
+  const _isWon=l=>l.tratamiento_completado===true||l.sales_status==="Won"||l.tratamiento_iniciado===true||l.treatment_confirmed===true;
+  const _isSched=l=>l.consulta_agendada===true;
+  const _isFirstContact=l=>l.primer_contacto===true;
+  const _isEvalDone=l=>l.evaluacion_realizada===true||_isProp(l)||_isAcc(l)||["Candidate Approved","Candidate Rejected","Consultation Completed"].includes(l.medical_status||"");
+
+  function readSectionFilters(prefix) {
+    const fromEl = document.getElementById(prefix+"-from");
+    const toEl   = document.getElementById(prefix+"-to");
+    const docEl  = document.getElementById(prefix+"-doctor");
+    const aseEl  = document.getElementById(prefix+"-asesor");
+    const state  = getSectionState(prefix);
+    const from = (fromEl && fromEl.value) ? fromEl.value : (state.from || anDateFrom);
+    const to   = (toEl   && toEl.value)   ? toEl.value   : (state.to   || anDateTo);
+    const doc  = (docEl  && docEl.value)  ? docEl.value  : (state.doc  || anDoctor);
+    const ase  = (aseEl  && aseEl.value)  ? aseEl.value  : (state.ase  || anAsesor);
+    return { from, to, doc, ase };
   }
 
-  const _isAtt   = l => l.cita_asistida === true || l.appointment_status === "Attended";
-  const _isCan   = l => ["Cancelled Appointment","Canceled Appointment"].includes(l.sales_status) || l.appointment_status === "Canceled";
-  const _isNS    = l => l.appointment_status === "No Show";
-  const _isProp  = l => l.propuesta_enviada === true;
-  const _isAcc   = l => l.propuesta_aceptada === true;
-  const _isWon   = l => l.tratamiento_completado === true || l.sales_status === "Won" || l.tratamiento_iniciado === true || l.treatment_confirmed === true;
-
-  function updateFilterBadge(count) {
-    const badge = document.getElementById("an-filter-badge");
-    if (!badge) return;
-    let label = `${count} leads`;
-    if (anYear !== "all" || anMonth !== "all") {
-      const parts = [];
-      if (anMonth !== "all") parts.push(MONTHS_LABEL[parseInt(anMonth)]);
-      if (anYear  !== "all") parts.push(anYear);
-      label = `${count} leads · ${parts.join(" ")}`;
-    }
-    badge.innerHTML = `Showing <span>${label}</span>`;
-  }
-
-  function populateDoctorAsesorSelects() {
+  function populateSelectWithValue(selId, selectedVal) {
     const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
     const doctors = {}, asesores = {};
-    ALL.forEach(l => {
-      if (l.doctor_id && l.doctor_nombre) doctors[l.doctor_id] = l.doctor_nombre;
-      if (l.asesor_id && l.asesor_nombre)  asesores[l.asesor_id]  = l.asesor_nombre;
-    });
-    const dSel = document.getElementById("an-doctor-sel");
-    const aSel = document.getElementById("an-asesor-sel");
-    if (dSel && dSel.options.length <= 1) {
-      Object.entries(doctors).forEach(([id, nombre]) => {
-        const o = document.createElement("option"); o.value = id; o.textContent = nombre; dSel.appendChild(o);
-      });
-    }
-    if (aSel && aSel.options.length <= 1) {
-      Object.entries(asesores).forEach(([id, nombre]) => {
-        const o = document.createElement("option"); o.value = id; o.textContent = nombre; aSel.appendChild(o);
-      });
-    }
+    ALL.forEach(l => { if(l.doctor_id&&l.doctor_nombre) doctors[l.doctor_id]=l.doctor_nombre; if(l.asesor_id&&l.asesor_nombre) asesores[l.asesor_id]=l.asesor_nombre; });
+    const sel = document.getElementById(selId); if (!sel) return;
+    const isDoctor = selId.includes("doctor"); const map = isDoctor ? doctors : asesores;
+    sel.innerHTML = '<option value="all">All</option>';
+    Object.entries(map).forEach(([id, nombre]) => { sel.innerHTML += `<option value="${id}" ${String(selectedVal)===String(id)?'selected':''}>${nombre}</option>`; });
+    if (selectedVal && selectedVal !== "all") sel.value = selectedVal;
   }
 
-  window.anYearChange   = v => { anYear=v;   renderAnalytics(); };
-  window.anMonthChange  = v => { anMonth=v;  renderAnalytics(); };
-  window.anDoctorChange = v => { anDoctor=v; renderAnalytics(); };
-  window.anAsesorChange = v => { anAsesor=v; renderAnalytics(); };
-  window.anRefresh = () => {
-    anYear="2026"; anMonth="all"; anDoctor="all"; anAsesor="all";
-    const ySel = document.getElementById("an-year-sel");
-    const mSel = document.getElementById("an-month-sel");
-    const dSel = document.getElementById("an-doctor-sel");
-    const aSel = document.getElementById("an-asesor-sel");
-    if(ySel) ySel.value="2026";
-    if(mSel) mSel.value="all";
-    if(dSel) dSel.value="all";
-    if(aSel) aSel.value="all";
+  function populateAllSelects() {
+    const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
+    const doctors = {}, asesores = {};
+    ALL.forEach(l => { if(l.doctor_id&&l.doctor_nombre) doctors[l.doctor_id]=l.doctor_nombre; if(l.asesor_id&&l.asesor_nombre) asesores[l.asesor_id]=l.asesor_nombre; });
+    const fillSel = (selId, map, selectedVal) => {
+      const sel = document.getElementById(selId); if (!sel) return;
+      const currentVal = sel.value || selectedVal || "all";
+      sel.innerHTML = '<option value="all">All</option>';
+      Object.entries(map).forEach(([id, nombre]) => { sel.innerHTML += `<option value="${id}" ${String(currentVal)===String(id)?'selected':''}>${nombre}</option>`; });
+      sel.value = currentVal;
+    };
+    fillSel("an-doctor-sel", doctors, anDoctor);
+    fillSel("an-asesor-sel", asesores, anAsesor);
+    const prefixes = ["fg", "fa", "fd", "ch", "pf", "pl"];
+    prefixes.forEach(prefix => {
+      const state = getSectionState(prefix);
+      const docEl = document.getElementById(prefix+"-doctor"), aseEl = document.getElementById(prefix+"-asesor");
+      if (docEl) { const docVal = (docEl.value && docEl.value !== "all") ? docEl.value : (state.doc || anDoctor); fillSel(prefix+"-doctor", doctors, docVal); }
+      if (aseEl) { const aseVal = (aseEl.value && aseEl.value !== "all") ? aseEl.value : (state.ase || anAsesor); fillSel(prefix+"-asesor", asesores, aseVal); }
+    });
+  }
+
+  window.anSetQuick = function(preset) {
+    let from, to;
+    switch(preset) { case 'today':from=to=todayStr();break; case 'week':from=startOfWeek();to=todayStr();break; case 'month':from=startOfMonth();to=todayStr();break; case 'year':from=startOfYear();to=todayStr();break; case 'all':from="2024-01-01";to=todayStr();break; }
+    anDateFrom=from; anDateTo=to;
+    document.getElementById("an-date-from").value=from; document.getElementById("an-date-to").value=to;
+    fgFilters={from:null,to:null,doc:null,ase:null}; faFilters={from:null,to:null,doc:null,ase:null}; fdFilters={from:null,to:null,doc:null,ase:null};
+    chFilters={from:null,to:null,doc:null,ase:null}; pfFilters={from:null,to:null,doc:null,ase:null}; plFilters={from:null,to:null,doc:null,ase:null};
+    renderAnalytics();
+  };
+  window.anGlobalDateChange = function() {
+    anDateFrom=document.getElementById("an-date-from").value; anDateTo=document.getElementById("an-date-to").value;
+    fgFilters={from:null,to:null,doc:null,ase:null}; faFilters={from:null,to:null,doc:null,ase:null}; fdFilters={from:null,to:null,doc:null,ase:null};
+    chFilters={from:null,to:null,doc:null,ase:null}; pfFilters={from:null,to:null,doc:null,ase:null}; plFilters={from:null,to:null,doc:null,ase:null};
+    renderAnalytics();
+  };
+  window.anGlobalFilterChange = function() {
+    anDoctor=document.getElementById("an-doctor-sel").value; anAsesor=document.getElementById("an-asesor-sel").value;
+    fgFilters={from:null,to:null,doc:null,ase:null}; faFilters={from:null,to:null,doc:null,ase:null}; fdFilters={from:null,to:null,doc:null,ase:null};
+    chFilters={from:null,to:null,doc:null,ase:null}; pfFilters={from:null,to:null,doc:null,ase:null}; plFilters={from:null,to:null,doc:null,ase:null};
+    renderAnalytics();
+  };
+  window.anRefresh = function() {
+    anDateFrom="2025-01-01"; anDateTo=todayStr(); anDoctor="all"; anAsesor="all";
+    fgFilters={from:null,to:null,doc:null,ase:null}; faFilters={from:null,to:null,doc:null,ase:null}; fdFilters={from:null,to:null,doc:null,ase:null};
+    chFilters={from:null,to:null,doc:null,ase:null}; pfFilters={from:null,to:null,doc:null,ase:null}; plFilters={from:null,to:null,doc:null,ase:null};
+    document.getElementById("an-date-from").value=anDateFrom; document.getElementById("an-date-to").value=anDateTo;
+    document.getElementById("an-doctor-sel").value="all"; document.getElementById("an-asesor-sel").value="all";
     renderAnalytics();
   };
 
-  function calcularTotalesBD() {
-    const L  = getFilteredLeads();
-    const LA = getApptFilteredLeads();
-    return {
-      total_leads:   L.length,
-      lost:          L.filter(l => l.sales_status === "Lost").length,
-      agendados:     LA.length,
-      attended:      LA.filter(_isAtt).length,
-      no_show:       LA.filter(_isNS).length,
-      cancelled:     LA.filter(_isCan).length,
-      proposal_sent: LA.filter(_isProp).length,
-      won:           LA.filter(_isWon).length,
-      in_progress:   LA.filter(l => l.tratamiento_iniciado === true).length,
-    };
-  }
+  window.anFunnelGeneralChange = function() { fgFilters.doc=document.getElementById("fg-doctor")?.value||anDoctor; fgFilters.ase=document.getElementById("fg-asesor")?.value||anAsesor; fgFilters.from=document.getElementById("fg-from")?.value||anDateFrom; fgFilters.to=document.getElementById("fg-to")?.value||anDateTo; renderFunnelGeneral(); };
+  window.anFunnelAsesorChange  = function() { faFilters.ase=document.getElementById("fa-asesor")?.value||anAsesor; faFilters.from=document.getElementById("fa-from")?.value||anDateFrom; faFilters.to=document.getElementById("fa-to")?.value||anDateTo; faFilters.doc="all"; renderFunnelAsesor(); };
+  window.anFunnelDoctorChange  = function() { fdFilters.doc=document.getElementById("fd-doctor")?.value||anDoctor; fdFilters.from=document.getElementById("fd-from")?.value||anDateFrom; fdFilters.to=document.getElementById("fd-to")?.value||anDateTo; fdFilters.ase="all"; renderFunnelDoctor(); };
+  window.anChartsFilterChange   = function() { chFilters.doc=document.getElementById("ch-doctor")?.value||anDoctor; chFilters.ase=document.getElementById("ch-asesor")?.value||anAsesor; chFilters.from=document.getElementById("ch-from")?.value||anDateFrom; chFilters.to=document.getElementById("ch-to")?.value||anDateTo; renderCharts(); };
+  window.anPerfFilterChange     = function() { pfFilters.doc=document.getElementById("pf-doctor")?.value||anDoctor; pfFilters.ase=document.getElementById("pf-asesor")?.value||anAsesor; pfFilters.from=document.getElementById("pf-from")?.value||anDateFrom; pfFilters.to=document.getElementById("pf-to")?.value||anDateTo; renderPerf(); };
+  window.anPipelineFilterChange = function() { plFilters.doc=document.getElementById("pl-doctor")?.value||anDoctor; plFilters.ase=document.getElementById("pl-asesor")?.value||anAsesor; plFilters.from=document.getElementById("pl-from")?.value||anDateFrom; plFilters.to=document.getElementById("pl-to")?.value||anDateTo; renderPipeline(); };
 
-  function calcularCitasPorMes() {
-    const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
-    const L = ALL.filter(l => {
-      if (!l.treatment_date) return false;
-      const d = new Date(String(l.treatment_date).slice(0,10));
-      if (anYear  !== "all" && d.getFullYear()  !== parseInt(anYear))  return false;
-      if (anMonth !== "all" && (d.getMonth()+1) !== parseInt(anMonth)) return false;
-      if (anDoctor !== "all" && String(l.doctor_id) !== String(anDoctor)) return false;
-      if (anAsesor !== "all" && String(l.asesor_id) !== String(anAsesor)) return false;
-      return true;
-    });
-    const porMes = {};
-    L.forEach(l => {
-      const d = new Date(String(l.treatment_date).slice(0,10));
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      if (!porMes[key]) porMes[key] = { total_citas:0, nuevas:0, reagendadas:0, active:0, attended:0, no_show:0, cancelled:0, proposal:0, won:0, lost:0 };
-      porMes[key].total_citas++;
-      if (l.sales_status === "Rescheduled Appointment") porMes[key].reagendadas++;
-      else porMes[key].nuevas++;
-      if (_isAtt(l)) porMes[key].attended++;
-      if (_isNS(l))  porMes[key].no_show++;
-      if (_isCan(l)) porMes[key].cancelled++;
-      if (l.consulta_agendada === true && !_isAtt(l) && !_isNS(l) && !_isCan(l)) porMes[key].active++;
-      if (_isProp(l)) porMes[key].proposal++;
-      if (_isWon(l))  porMes[key].won++;
-      if (l.sales_status === "Lost") porMes[key].lost++;
-    });
-    return porMes;
-  }
-
-  function analizarPipeline(leads) {
-    const pipeline = {};
-    PIPELINE_STAGES.forEach(stage => {
-      pipeline[stage.nombre] = { count: 0, color: stage.color, icon: stage.icon, desc: stage.desc };
-    });
-    leads.forEach(lead => {
-      let status = "New Lead";
-      if (_isWon(lead) && (lead.tratamiento_completado === true || lead.sales_status === "Won")) status = "Won";
-      else if (lead.sales_status === "Lost") status = "Lost";
-      else if (lead.tratamiento_iniciado === true || lead.treatment_confirmed === true) status = "Tratamiento Iniciado";
-      else if (_isAcc(lead))  status = "Propuesta Aceptada";
-      else if (_isProp(lead)) status = "Propuesta Enviada";
-      else if (_isAtt(lead))  status = "Cita Asistida";
-      else if (lead.consulta_agendada === true) status = "Cita Agendada";
-      else if (lead.primer_contacto === true)   status = "1er Contacto";
-      if (pipeline[status]) pipeline[status].count++;
-    });
-    return pipeline;
-  }
-
-  function buildPipelineView(pipeline) {
-    const maxCount = Math.max(...Object.values(pipeline).map(p => p.count), 1);
-    let html = `<div class="an-card" style="grid-column:1/-1"><h4>🔄 Sales Pipeline</h4><div class="an-pipeline-wrap">`;
-    PIPELINE_STAGES.forEach((stage) => {
-      const data = pipeline[stage.nombre];
-      const count = data?.count || 0;
-      const height = Math.max(80, (count / maxCount) * 260);
-      html += `<div class="an-pipeline-col">
-        <div class="an-pipeline-header"><span style="font-size:1.4rem">${stage.icon}</span><span>${stage.nombre}</span></div>
-        <div class="an-pipeline-bar" style="background:${stage.color};min-height:${height}px">
-          <div class="an-pipeline-count">${count}</div>
-          <div class="an-pipeline-desc">${stage.desc}</div>
-        </div>
-      </div>`;
-    });
-    html += `</div></div>`;
-    return html;
-  }
-
-  // ── MAIN FUNNEL — real trapezoid SVG shape ───────────────────
-  function buildMainFunnel(L, LA) {
-    const totalLeads  = L.length;
-    const agendados   = L.filter(l => l.consulta_agendada === true).length;
-    const atendidos   = LA.filter(_isAtt).length;
-    const evalDone    = LA.filter(l =>
-      _isAtt(l) && (
-        l.evaluacion_realizada === true ||
-        _isProp(l) || _isAcc(l) ||
-        l.medical_status === "Candidate Approved" ||
-        l.medical_status === "Candidate Rejected" ||
-        l.medical_status === "Consultation Completed"
-      )
-    ).length;
-    const propEnviada = LA.filter(_isProp).length;
-    const won         = LA.filter(_isWon).length;
-
-    const steps = [
-      { label:"Total Leads",          sub:"admission date",              count:totalLeads,  color:"#3b82f6" },
-      { label:"Appointment Booked",   sub:"consulta_agendada = true",    count:agendados,   color:"#6366f1" },
-      { label:"Appointment Attended", sub:"cita_asistida = true",        count:atendidos,   color:"#14b8a6" },
-      { label:"Evaluation Done",      sub:"evaluación + candidato",      count:evalDone,    color:"#22c55e" },
-      { label:"Proposal Sent",        sub:"propuesta_enviada = true",    count:propEnviada, color:"#a855f7" },
-      { label:"Won",                  sub:"tratamiento iniciado / pago", count:won,         color:"#f59e0b" },
-    ];
-
-    const maxN   = Math.max(steps[0].count, 1);
-    const SVG_W  = 640;
-    const FULL_W = 560;
-    const MIN_W  = 120;
-    const H_STEP = 64;
-    const GAP    = 4;
-    const LABEL_X = 8;
-    const CONV_X  = SVG_W - 8;
-    const SVG_H  = steps.length * (H_STEP + GAP) + 10;
-    const CX     = SVG_W / 2;
-
-    let svgPaths = "";
-    steps.forEach((s, i) => {
-      const w    = MIN_W + (FULL_W - MIN_W) * (s.count / maxN);
-      const wBot = i < steps.length - 1
-        ? MIN_W + (FULL_W - MIN_W) * (steps[i+1].count / maxN)
-        : MIN_W + (FULL_W - MIN_W) * (s.count / maxN) * 0.85;
-
-      const x    = CX - w / 2;
-      const xBot = CX - wBot / 2;
-      const yTop = i * (H_STEP + GAP);
-      const yBot = yTop + H_STEP;
-
-      const pctTotal = Math.round((s.count / maxN) * 100);
-      const prev     = i > 0 ? steps[i-1].count : s.count;
-      const convPct  = i > 0 && prev > 0 ? Math.round((s.count / prev) * 100) : null;
-
-      // trapezoid
-      svgPaths += `<path d="M${x},${yTop} L${x+w},${yTop} L${xBot+wBot},${yBot} L${xBot},${yBot} Z" fill="${s.color}" opacity="0.93"/>`;
-      // inner highlight strip
-      svgPaths += `<path d="M${x+8},${yTop+3} L${x+w-8},${yTop+3} L${x+w-8},${yTop+10} L${x+8},${yTop+10} Z" fill="white" opacity="0.13"/>`;
-
-      // big count centered
-      svgPaths += `<text x="${CX}" y="${yTop + H_STEP/2 - 5}" text-anchor="middle" dominant-baseline="auto"
-        font-family="'DM Mono',monospace,sans-serif" font-size="22" font-weight="700" fill="white"
-        style="text-shadow:0 1px 4px rgba(0,0,0,.5)">${s.count.toLocaleString()}</text>`;
-
-      // pct pill
-      svgPaths += `<rect x="${CX+14}" y="${yTop+H_STEP/2+4}" width="38" height="17" rx="9" fill="rgba(0,0,0,0.28)"/>`;
-      svgPaths += `<text x="${CX+33}" y="${yTop+H_STEP/2+16}" text-anchor="middle" dominant-baseline="auto"
-        font-family="'DM Mono',monospace,sans-serif" font-size="10" fill="rgba(255,255,255,.9)">${pctTotal}%</text>`;
-
-      // left label
-      svgPaths += `<text x="${LABEL_X}" y="${yTop + H_STEP/2 - 5}" dominant-baseline="auto"
-        font-family="'DM Sans',sans-serif" font-size="12" font-weight="600" fill="${s.color}">${s.label}</text>`;
-      svgPaths += `<text x="${LABEL_X}" y="${yTop + H_STEP/2 + 10}" dominant-baseline="auto"
-        font-family="'DM Sans',sans-serif" font-size="10" fill="${s.color}" opacity="0.65">${s.sub}</text>`;
-
-      // right conv rate
-      if (convPct !== null) {
-        svgPaths += `<text x="${CONV_X}" y="${yTop + H_STEP/2 - 5}" text-anchor="end" dominant-baseline="auto"
-          font-family="'DM Mono',monospace,sans-serif" font-size="13" font-weight="700" fill="${s.color}">${convPct}%</text>`;
-        svgPaths += `<text x="${CONV_X}" y="${yTop + H_STEP/2 + 10}" text-anchor="end" dominant-baseline="auto"
-          font-family="'DM Sans',sans-serif" font-size="10" fill="${s.color}" opacity="0.6">of prev</text>`;
-      } else {
-        svgPaths += `<text x="${CONV_X}" y="${yTop + H_STEP/2 + 2}" text-anchor="end" dominant-baseline="auto"
-          font-family="'DM Sans',sans-serif" font-size="10" fill="${s.color}" opacity="0.6">baseline</text>`;
-      }
-    });
-
-    const svgStr = `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">${svgPaths}</svg>`;
-
-    // legend pills
-    const legendPills = steps.map(s =>
-      `<span style="display:inline-flex;align-items:center;gap:5px;background:${s.color}18;border:1px solid ${s.color}44;border-radius:20px;padding:3px 10px;font-size:.68rem;color:${s.color};font-weight:600">`+
-      `<span style="width:7px;height:7px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.label}</span>`
-    ).join("");
-
-    return `<div class="an-card" style="padding:1.6rem">
-      <h4>🔽 Full Conversion Funnel</h4>
-      <div style="overflow-x:auto">${svgStr}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border)">${legendPills}</div>
-      <div style="font-size:.64rem;color:var(--text3);margin-top:.6rem;line-height:1.6">
-        % inside bar = proportion vs Total Leads &nbsp;·&nbsp; % right = conversion vs previous stage &nbsp;·&nbsp; Won = tratamiento iniciado / confirmado / completado
-      </div>
-    </div>`;
-  }
-
-  // ── APPOINTMENTS BREAKDOWN as horizontal bar chart ────────────
-  function buildApptBarsCard(LA) {
-    const total = LA.length;
-    if (total === 0) {
-      return `<div class="an-card"><h4>📅 Appointments Breakdown (by treatment date)</h4><p class="an-no-data">No appointment data</p></div>`;
-    }
-
-    const attended  = LA.filter(_isAtt).length;
-    const noShow    = LA.filter(_isNS).length;
-    const cancelled = LA.filter(_isCan).length;
-    const pending   = LA.filter(l => !_isAtt(l) && !_isNS(l) && !_isCan(l)).length;
-
-    const rows = [
-      { label: "✅ Attended",  count: attended,  color: "#22c55e" },
-      { label: "😶 No Show",   count: noShow,    color: "#f97316" },
-      { label: "❌ Cancelled", count: cancelled, color: "#ef4444" },
-      { label: "⏳ Pending",   count: pending,   color: "#6366f1" },
-    ];
-
-    const maxVal = Math.max(...rows.map(r => r.count), 1);
-
-    let html = `<div class="an-card" style="grid-column:span 2">
-      <h4>📅 Appointments Breakdown — ${total} total <span style="font-size:.7rem;color:var(--text3);font-weight:400;text-transform:none">(by treatment date)</span></h4>`;
-
-    rows.forEach(r => {
-      const wPct = maxVal > 0 ? Math.round((r.count / maxVal) * 100) : 0;
-      const pctOfTotal = total > 0 ? ((r.count / total) * 100).toFixed(1) : "0";
-      html += `<div class="an-horiz-bar-row">
-        <div class="an-horiz-label">${r.label}</div>
-        <div class="an-horiz-track">
-          <div class="an-horiz-fill" style="width:${wPct}%;background:${r.color}22;border:1px solid ${r.color}44;position:relative">
-            <span class="an-horiz-num" style="color:${r.color}">${r.count}</span>
-            <span class="an-horiz-pct-badge" style="color:${r.color};background:${r.color}22">${pctOfTotal}%</span>
-          </div>
-        </div>
-      </div>`;
-    });
-
-    // Visual summary donut-style pills
-    html += `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border)">`;
-    rows.forEach(r => {
-      const pct = total > 0 ? ((r.count / total)*100).toFixed(0) : 0;
-      html += `<div style="display:flex;align-items:center;gap:.4rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:.3rem .9rem">
-        <span style="width:8px;height:8px;border-radius:50%;background:${r.color};display:inline-block"></span>
-        <span style="font-size:.75rem;color:var(--text2)">${r.label.split(' ')[1]}</span>
-        <span style="font-size:.78rem;font-weight:700;color:${r.color};font-family:'DM Mono',monospace">${pct}%</span>
-      </div>`;
-    });
-    html += `</div></div>`;
-    return html;
-  }
-
-  function buildApptTable(citasPorMes) {
-    const months = Object.keys(citasPorMes).sort();
-    if (months.length === 0) return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month</h4><p class="an-no-data">No data</p></div>`;
-    let totals = {total_citas:0,nuevas:0,reagendadas:0,attended:0,no_show:0,cancelled:0,active:0,proposal:0,won:0};
-    let rows = months.map(m => {
-      const d = citasPorMes[m];
-      Object.keys(totals).forEach(k=>{ totals[k]+=(d[k]||0); });
-      const mm = parseInt(m.split("-")[1]);
-      const yyyy = m.split("-")[0];
-      const attPct = d.total_citas>0 ? ((d.attended/d.total_citas)*100).toFixed(0)+"%" : "—";
-      return `<tr><td style="color:var(--text);font-weight:600">${MONTH_SHORT[mm]} ${yyyy}</td>
-        <td style="font-weight:600">${d.total_citas}</td><td style="color:#22c55e">${d.attended} <span style="color:var(--text3);font-size:.65rem">(${attPct})</span></td>
-        <td style="color:#f97316">${d.no_show}</td><td style="color:#ef4444">${d.cancelled}</td>
-        <td style="color:#6366f1">${d.active}</td><td style="color:#a855f7">${d.proposal}</td><td style="color:#4ade80">${d.won}</td></tr>`;
-    }).join("");
-    return `<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month (treatment_date)</h4><div style="overflow-x:auto"><table class="an-appt-table">
-      <thead><tr><th>Month</th><th>Total</th><th style="color:#22c55e">Attended</th><th style="color:#f97316">No Show</th><th style="color:#ef4444">Cancelled</th><th style="color:#6366f1">Pending</th><th style="color:#a855f7">Proposal</th><th style="color:#4ade80">Won</th></tr></thead>
-      <tbody>${rows}<tr class="tot-row"><td>TOTAL</td><td>${totals.total_citas}</td><td style="color:#22c55e">${totals.attended}</td><td style="color:#f97316">${totals.no_show}</td><td style="color:#ef4444">${totals.cancelled}</td><td style="color:#6366f1">${totals.active}</td><td style="color:#a855f7">${totals.proposal}</td><td style="color:#4ade80">${totals.won}</td></tr></tbody></table></div></div>`;
-  }
-
-  function buildBars(title, obj, showPct) {
-    const sorted = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const max = Math.max(...sorted.map(e=>e[1]),1);
-    const total = sorted.reduce((s,[,v])=>s+v,0)||1;
-    if (!sorted.length) return `<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;
-    return `<div class="an-card"><h4>${title}</h4>${sorted.map(([l,n],i)=>`<div class="an-bar-row"><div class="an-bar-label" title="${l}">${l}</div><div class="an-bar-wrap"><div class="an-bar-fill" style="width:${(n/max*100).toFixed(1)}%;background:${PAL[i%PAL.length]}"></div></div><div class="an-bar-val">${n}</div>${showPct?`<div class="an-bar-pct">${((n/total)*100).toFixed(0)}%</div>`:""}</div>`).join("")}</div>`;
-  }
-
-  function buildSemCard(sem) {
-    const items=[{icon:"🟢",n:sem.verde,lbl:"Active (≤1d)",c:"#22c55e"},{icon:"🟡",n:sem.amarillo,lbl:"Follow-up (2-3d)",c:"#f59e0b"},{icon:"🔴",n:sem.rojo,lbl:"Overdue (>3d)",c:"#ef4444"},{icon:"⚫",n:sem.neutral,lbl:"New/Won/Lost",c:"var(--text2)"}];
-    return `<div class="an-card"><h4>🚦 CRM Traffic Light</h4><div class="an-semaforo-grid">${items.map(it=>`<div class="an-sem-card"><div class="an-sem-icon">${it.icon}</div><div class="an-sem-num" style="color:${it.c}">${it.n}</div><div class="an-sem-label">${it.lbl}</div></div>`).join("")}</div></div>`;
-  }
-
-  function buildDayHeatmap(L) {
-    const dayActivity=[0,0,0,0,0,0,0];
-    L.forEach(l=>{const d=getAdmDate(l);if(!d)return;dayActivity[(d.getDay()+6)%7]++;});
-    const maxDay=Math.max(...dayActivity,1);
-    const colors=["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe"];
-    return `<div class="an-card"><h4>📅 Activity by Day of Week</h4><div class="an-heatmap-labels">${DAY_LABELS.map(d=>`<div class="an-heat-label">${d}</div>`).join("")}</div><div class="an-heatmap">${dayActivity.map((n,i)=>{const intensity=maxDay?Math.floor((n/maxDay)*6):0;const bg=n===0?"var(--bg3)":colors[intensity];return`<div class="an-heat-cell" style="background:${bg}" title="${DAY_LABELS[i]}: ${n}">${n||""}</div>`;}).join("")}</div></div>`;
-  }
-
-  function renderAnalytics() {
-    const L  = getFilteredLeads();
-    const LA = getApptFilteredLeads();
-    const total = L.length;
-    updateFilterBadge(total);
-    populateDoctorAsesorSelects();
-
-    const totalesBD = calcularTotalesBD();
-    const citasPorMes = calcularCitasPorMes();
-
-    // ── Global KPIs ──
-    const globalKpis = [
-      { n: totalesBD.total_leads,   l: "New Leads",        c:"#3b82f6", sub:"by admission date" },
-      { n: totalesBD.agendados,     l: "Scheduled Appts.", c:"#14b8a6", sub:"by treatment date" },
-      { n: totalesBD.attended,      l: "Attended",         c:"#22c55e", sub:`${totalesBD.agendados>0?((totalesBD.attended/totalesBD.agendados)*100).toFixed(1):"—"}% of scheduled` },
-      { n: totalesBD.no_show,       l: "No Shows",         c:"#f97316", sub:`${totalesBD.agendados>0?((totalesBD.no_show/totalesBD.agendados)*100).toFixed(1):"—"}% of scheduled` },
-      { n: totalesBD.cancelled,     l: "Cancelled",        c:"#ef4444", sub:`${totalesBD.agendados>0?((totalesBD.cancelled/totalesBD.agendados)*100).toFixed(1):"—"}%` },
-      { n: totalesBD.proposal_sent, l: "Proposals Sent",   c:"#a855f7", sub:`${totalesBD.attended>0?((totalesBD.proposal_sent/totalesBD.attended)*100).toFixed(1):"—"}% of attended` },
-      { n: totalesBD.won,           l: "Won",              c:"#4ade80", sub:`${totalesBD.proposal_sent>0?((totalesBD.won/totalesBD.proposal_sent)*100).toFixed(1):"—"}% of proposals` },
-      { n: totalesBD.lost,          l: "Lost",             c:"#dc2626", sub:`${((totalesBD.lost/Math.max(totalesBD.total_leads,1))*100).toFixed(1)}% of new leads` },
-    ];
-    document.getElementById("an-kpis-global").innerHTML = globalKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div>${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}</div>`).join("");
-
-    // ── Period label ──
-    const mkLabel = document.getElementById("an-kpi-month-label");
-    if (mkLabel) {
-      let per = anMonth !== "all" ? `${MONTHS_LABEL[parseInt(anMonth)]} ` : "";
-      per += anYear !== "all" ? anYear : "(All Time)";
-      mkLabel.textContent = `📅 KPIs — ${per}`;
-    }
-
-    const monthKpis = [
-      { n: total,                                                              l:"New Leads",         c:"#3b82f6", sub:"admission date" },
-      { n: L.filter(l=>l.primer_contacto===true).length,                      l:"First Contact",     c:"#6366f1" },
-      { n: L.filter(l=>l.sales_status==="Lost").length,                       l:"Lost",              c:"#dc2626" },
-      { n: LA.length,                                                          l:"Scheduled",         c:"#14b8a6", sub:"treatment date" },
-      { n: LA.filter(_isAtt).length,                                           l:"Attended",          c:"#22c55e" },
-      { n: LA.filter(_isNS).length,                                            l:"No Show",           c:"#f97316" },
-      { n: LA.filter(_isCan).length,                                           l:"Cancelled",         c:"#ef4444" },
-      { n: LA.filter(_isProp).length,                                          l:"Proposals",         c:"#a855f7" },
-      { n: LA.filter(_isWon).length,                                           l:"Won",               c:"#4ade80" },
-    ];
-    document.getElementById("an-kpis-month").innerHTML = monthKpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div>${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}</div>`).join("");
-
-    // ── Funnels ──
-    const funnelHtml = buildMainFunnel(L, LA);
-    document.getElementById("an-funnels").innerHTML = `<div class="an-funnel-v2-wrap">${funnelHtml}</div>`;
-
-    // ── Appointments bar chart ──
-    document.getElementById("an-appt-bars").innerHTML = `<div class="an-appt-bars-wrap">${buildApptBarsCard(LA)}</div>`;
-
-    // ── Pipeline ──
-    const pipeline = analizarPipeline(L);
-    document.getElementById("an-pipeline").innerHTML = `<div class="an-grid">${buildPipelineView(pipeline)}</div>`;
-
-    // ── Appt Table ──
-    document.getElementById("an-appt-table-wrap").innerHTML = buildApptTable(citasPorMes);
-
-    // ── Charts ──
-    const cnt = key => { const m={}; L.forEach(l=>{ const k=l[key]||"—"; m[k]=(m[k]||0)+1; }); return m; };
-    const sem = {verde:0,amarillo:0,rojo:0,neutral:0};
-    L.forEach(l => {
-      const s=String(l.sales_status||"").toLowerCase();
-      if(["new lead","won","lost"].includes(s)){sem.neutral++;return;}
-      const fs=l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;
-      if(!fs){sem.amarillo++;return;}
-      const [a,mo,d]=String(fs).slice(0,10).split("-").map(Number);
-      const diff=Math.floor((new Date()-new Date(a,mo-1,d))/86400000);
-      if(diff<=1) sem.verde++; else if(diff<=3) sem.amarillo++; else sem.rojo++;
-    });
-    document.getElementById("an-charts").innerHTML = [
-      buildBars("Sales Status", cnt("sales_status"), true),
-      buildBars("By Channel",   cnt("canal"),        true),
-      buildBars("By Category",  cnt("categoria"),    true),
-      buildBars("By Pipeline",  cnt("pipeline"),     true),
-      buildBars("By Doctor",    cnt("doctor_nombre" in L[0] ? "doctor_nombre" : "consultation_with"), false),
-      buildBars("By Country",   cnt("pais"),         false),
-    ].join("");
-    document.getElementById("an-perf").innerHTML = [buildSemCard(sem), buildDayHeatmap(L)].join("");
-  }
-
-  const _orig = window.switchMainView;
-  window.switchMainView = function(view, btn) {
-    if (view === "analytics") {
-      document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));
-      document.querySelectorAll(".main-tab").forEach(b=>b.classList.remove("active"));
-      document.getElementById("view-analytics")?.classList.add("active");
-      if (btn) btn.classList.add("active");
-      populateDoctorAsesorSelects();
-      renderAnalytics();
-    } else { _orig(view, btn); }
+  window.anResetSectionFilter = function(prefix) {
+    const map = { fg: fgFilters, fa: faFilters, fd: fdFilters, ch: chFilters, pf: pfFilters, pl: plFilters };
+    if (map[prefix]) map[prefix] = { from: null, to: null, doc: null, ase: null };
+    const setVal = (suffix, val) => { const el = document.getElementById(prefix+"-"+suffix); if (el) el.value = val; };
+    setVal("from", anDateFrom); setVal("to", anDateTo);
+    if (document.getElementById(prefix+"-doctor")) setVal("doctor", anDoctor);
+    if (document.getElementById(prefix+"-asesor")) setVal("asesor", anAsesor);
+    const handlers = { fg: window.anFunnelGeneralChange, fa: window.anFunnelAsesorChange, fd: window.anFunnelDoctorChange, ch: window.anChartsFilterChange, pf: window.anPerfFilterChange, pl: window.anPipelineFilterChange };
+    if (handlers[prefix]) handlers[prefix]();
   };
 
-  // ══════════════════════════════════════════════════════════════════
-  // XLSX BUILDER (unchanged from v20)
-  // ══════════════════════════════════════════════════════════════════
+  function buildCompactFunnelSVG(steps) {
+    const maxN=Math.max(steps[0].count,1), SVG_W=460, FULL_W=380, MIN_W=80, H_STEP=42, GAP=3, LABEL_X=6, CONV_X=SVG_W-6;
+    const SVG_H=steps.length*(H_STEP+GAP)+6, CX=SVG_W/2; let svgPaths="";
+    steps.forEach((s,i)=>{const w=MIN_W+(FULL_W-MIN_W)*(s.count/maxN);const wBot=i<steps.length-1?MIN_W+(FULL_W-MIN_W)*(steps[i+1].count/maxN):MIN_W+(FULL_W-MIN_W)*(s.count/maxN)*0.82;const x=CX-w/2,xBot=CX-wBot/2,yTop=i*(H_STEP+GAP),yBot=yTop+H_STEP;const prev=i>0?steps[i-1].count:s.count;const convPct=i>0&&prev>0?Math.min(Math.round((s.count/prev)*100),999):null;
+    svgPaths+=`<path d="M${x+3},${yTop+2} L${x+w+3},${yTop+2} L${xBot+wBot+3},${yBot+2} L${xBot+3},${yBot+2} Z" fill="rgba(0,0,0,.4)"/>`;
+    svgPaths+=`<path d="M${x},${yTop} L${x+w},${yTop} L${xBot+wBot},${yBot} L${xBot},${yBot} Z" fill="${s.color}" opacity="0.95"/>`;
+    svgPaths+=`<path d="M${x+5},${yTop+2} L${x+w-5},${yTop+2} L${x+w-5},${yTop+7} L${x+5},${yTop+7} Z" fill="white" opacity="0.15"/>`;
+    svgPaths+=`<text x="${CX}" y="${yTop+H_STEP/2+1}" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace,sans-serif" font-size="16" font-weight="700" fill="white" style="text-shadow:0 1px 4px rgba(0,0,0,.5)">${s.count}</text>`;
+    svgPaths+=`<text x="${LABEL_X}" y="${yTop+H_STEP/2-3}" dominant-baseline="auto" font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="${s.color}">${s.label}</text>`;
+    if(convPct!==null)svgPaths+=`<text x="${CONV_X}" y="${yTop+H_STEP/2+2}" text-anchor="end" dominant-baseline="middle" font-family="'DM Mono',monospace,sans-serif" font-size="11" font-weight="700" fill="${s.color}">${convPct}%</text>`;});
+    return `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))">${svgPaths}</svg>`;
+  }
+
+  function buildFunnelCard(title, subtitle, steps, prefix, filterType) {
+    if(steps[0].count===0) return `<div class="an-funnel-compact"><h4>${title}</h4><div class="an-funnel-filter-row">${filterType ? buildFunnelFilterBar(prefix, anDateFrom, anDateTo, filterType==='doctor'?anDoctor:anAsesor, filterType, "anFunnel"+({fg:"General",fa:"Asesor",fd:"Doctor"}[prefix]||"General")+"Change") : buildSectionFilterBar(prefix, anDateFrom, anDateTo, anDoctor, anAsesor, "anFunnelGeneralChange")}</div><p class="an-no-data">No data</p></div>`;
+    const legendPills=steps.map(s=>`<span style="display:inline-flex;align-items:center;gap:3px;background:${s.color}15;border:1px solid ${s.color}33;border-radius:12px;padding:2px 8px;font-size:.64rem;color:var(--text);font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.label}</span>`).join("");
+    const f = readSectionFilters(prefix);
+    const filterBar = filterType ? buildFunnelFilterBar(prefix, f.from, f.to, filterType==='doctor'?f.doc:f.ase, filterType, "anFunnel"+({fg:"General",fa:"Asesor",fd:"Doctor"}[prefix]||"General")+"Change") : buildSectionFilterBar(prefix, f.from, f.to, f.doc, f.ase, "anFunnelGeneralChange");
+    return `<div class="an-funnel-compact"><h4>${title} <span style="font-size:.62rem;color:var(--text2);font-weight:400;text-transform:none">${subtitle}</span></h4><div class="an-funnel-filter-row">${filterBar}</div><div class="an-funnel-svg-wrap">${buildCompactFunnelSVG(steps)}</div><div class="an-legend">${legendPills}</div><div style="font-size:.62rem;color:var(--text2);margin-top:.4rem">% right = conversion vs previous stage</div></div>`;
+  }
+
+  function renderFunnelGeneral(){const f=readSectionFilters("fg");const L=getFilteredLeads(f.from,f.to,f.doc,f.ase,false);const LA=getFilteredLeads(f.from,f.to,f.doc,f.ase,true);const steps=[{label:"Total Leads",count:L.length,color:"#3b82f6"},{label:"Appt. Booked",count:L.filter(l=>_isSched(l)).length,color:"#6366f1"},{label:"Attended",count:LA.filter(_isAtt).length,color:"#14b8a6"},{label:"Eval. Done",count:LA.filter(l=>_isAtt(l)&&_isEvalDone(l)).length,color:"#22c55e"},{label:"Proposal Sent",count:LA.filter(_isProp).length,color:"#a855f7"},{label:"Won",count:LA.filter(_isWon).length,color:"#f59e0b"}];document.getElementById("an-funnel-general").innerHTML=buildFunnelCard("🔽 General","entire journey",steps,"fg",null);setTimeout(()=>populateAllSelects(),50);}
+  function renderFunnelAsesor(){const f=readSectionFilters("fa");const L=getFilteredLeads(f.from,f.to,"all",f.ase,false);const steps=[{label:"New Leads",count:L.length,color:"#3b82f6"},{label:"1st Contact",count:L.filter(l=>_isFirstContact(l)).length,color:"#6366f1"},{label:"Callback",count:L.filter(l=>l.sales_status==="Callback").length,color:"#f59e0b"},{label:"Appt. Sched.",count:L.filter(l=>_isSched(l)).length,color:"#22c55e"},{label:"Confirmed",count:L.filter(l=>l.cita_confirmada===true).length,color:"#14b8a6"}];document.getElementById("an-funnel-asesor").innerHTML=buildFunnelCard("👔 Front Desk","New Lead → Confirmed",steps,"fa","asesor");setTimeout(()=>populateAllSelects(),50);}
+  function renderFunnelDoctor(){const f=readSectionFilters("fd");const LA=getFilteredLeads(f.from,f.to,f.doc,"all",true).filter(l=>l.treatment_date||_isSched(l));const wonLeads=LA.filter(_isWon);const steps=[{label:"Appt. Sched.",count:LA.filter(l=>_isSched(l)).length,color:"#3b82f6"},{label:"Attended",count:LA.filter(_isAtt).length,color:"#14b8a6"},{label:"Eval. Done",count:LA.filter(l=>_isAtt(l)&&_isEvalDone(l)).length,color:"#22c55e"},{label:"Proposal",count:LA.filter(_isProp).length,color:"#a855f7"},{label:"Won",count:wonLeads.length,color:"#4ade80"},{label:"Follow-ups",count:wonLeads.filter(l=>l.medical_status==="Follow-up Scheduled").length,color:"#f59e0b"},{label:"New Proc.",count:wonLeads.filter(l=>l.medical_status==="Treatment Scheduled"&&l.tratamiento_completado===true).length,color:"#ef4444"}];document.getElementById("an-funnel-doctor").innerHTML=buildFunnelCard("🩺 Doctor","Scheduled → Won + Post-Tx",steps,"fd","doctor");setTimeout(()=>populateAllSelects(),50);}
+  function renderAllFunnels(){document.getElementById("an-funnels-row").innerHTML=`<div id="an-funnel-general"></div><div id="an-funnel-asesor"></div><div id="an-funnel-doctor"></div>`;renderFunnelGeneral();renderFunnelAsesor();renderFunnelDoctor();}
+
+  function renderCharts(){const current=readSectionFilters("ch");saveSectionState("ch",current.from,current.to,current.doc,current.ase);const L=getFilteredLeads(current.from,current.to,current.doc,current.ase,false);const cnt=key=>{const m={};L.forEach(l=>{const k=l[key]||"—";m[k]=(m[k]||0)+1;});return m;};document.getElementById("an-charts-filters").innerHTML='<div class="an-section-filter-bar">'+buildSectionFilterBar("ch",current.from,current.to,current.doc,current.ase,"anChartsFilterChange")+'</div>';document.getElementById("an-charts").innerHTML=[buildBars("Sales Status",cnt("sales_status"),true),buildBars("By Channel",cnt("canal"),true),buildBars("By Category",cnt("categoria"),true),buildBars("By Pipeline",cnt("pipeline"),true),buildBars("By Doctor",cnt("doctor_nombre"),false),buildBars("By Country",cnt("pais"),false)].join("");setTimeout(()=>{populateSelectWithValue("ch-doctor",current.doc);populateSelectWithValue("ch-asesor",current.ase);document.getElementById("ch-from")&&(document.getElementById("ch-from").value=current.from);document.getElementById("ch-to")&&(document.getElementById("ch-to").value=current.to);},50);}
+  function renderPerf(){const current=readSectionFilters("pf");saveSectionState("pf",current.from,current.to,current.doc,current.ase);const L=getFilteredLeads(current.from,current.to,current.doc,current.ase,false);const sem={verde:0,amarillo:0,rojo:0,neutral:0};L.forEach(l=>{const s=String(l.sales_status||"").toLowerCase();if(["new lead","won","lost"].includes(s)){sem.neutral++;return;}const fs=l.last_contact_date||l.fecha_actualizacion||l.fecha_creacion;if(!fs){sem.amarillo++;return;}const[a,mo,d]=String(fs).slice(0,10).split("-").map(Number);const diff=Math.floor((new Date()-new Date(a,mo-1,d))/86400000);if(diff<=1)sem.verde++;else if(diff<=3)sem.amarillo++;else sem.rojo++;});document.getElementById("an-perf-filters").innerHTML='<div class="an-section-filter-bar">'+buildSectionFilterBar("pf",current.from,current.to,current.doc,current.ase,"anPerfFilterChange")+'</div>';document.getElementById("an-perf").innerHTML=[buildSemCard(sem),buildDayHeatmap(L)].join("");setTimeout(()=>{populateSelectWithValue("pf-doctor",current.doc);populateSelectWithValue("pf-asesor",current.ase);document.getElementById("pf-from")&&(document.getElementById("pf-from").value=current.from);document.getElementById("pf-to")&&(document.getElementById("pf-to").value=current.to);},50);}
+
+  function buildSemCard(sem){const items=[{icon:"🟢",n:sem.verde,lbl:"Active (≤1d)",c:"#22c55e"},{icon:"🟡",n:sem.amarillo,lbl:"Follow-up (2-3d)",c:"#f59e0b"},{icon:"🔴",n:sem.rojo,lbl:"Overdue (>3d)",c:"#ef4444"},{icon:"⚫",n:sem.neutral,lbl:"New/Won/Lost",c:"var(--text2)"}];return`<div class="an-card"><h4>🚦 CRM Traffic Light</h4><div class="an-semaforo-grid">${items.map(it=>`<div class="an-sem-card"><div class="an-sem-icon">${it.icon}</div><div class="an-sem-num" style="color:${it.c}">${it.n}</div><div class="an-sem-label">${it.lbl}</div></div>`).join("")}</div></div>`;}
+  function buildDayHeatmap(L){const dayActivity=[0,0,0,0,0,0,0];L.forEach(l=>{const d=l.admission_date||l.fecha_creacion;if(!d)return;dayActivity[(new Date(String(d).slice(0,10)).getDay()+6)%7]++;});const maxDay=Math.max(...dayActivity,1);const colors=["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe"];return`<div class="an-card"><h4>📅 Activity by Day of Week</h4><div class="an-heatmap-labels">${DAY_LABELS.map(d=>`<div class="an-heat-label">${d}</div>`).join("")}</div><div class="an-heatmap">${dayActivity.map((n,i)=>{const intensity=maxDay?Math.floor((n/maxDay)*6):0;const bg=n===0?"var(--bg3)":colors[intensity];return`<div class="an-heat-cell" style="background:${bg}" title="${DAY_LABELS[i]}: ${n}">${n||""}</div>`;}).join("")}</div></div>`;}
+  function buildBars(title,obj,showPct){const sorted=Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10);const max=Math.max(...sorted.map(e=>e[1]),1);const total=sorted.reduce((s,[,v])=>s+v,0)||1;if(!sorted.length)return`<div class="an-card"><h4>${title}</h4><p class="an-no-data">No data</p></div>`;return`<div class="an-card"><h4>${title}</h4>${sorted.map(([l,n],i)=>`<div class="an-bar-row"><div class="an-bar-label" title="${l}">${l}</div><div class="an-bar-wrap"><div class="an-bar-fill" style="width:${(n/max*100).toFixed(1)}%;background:${PAL[i%PAL.length]}"></div></div><div class="an-bar-val">${n}</div>${showPct?`<div class="an-bar-pct">${((n/total)*100).toFixed(0)}%</div>`:""}</div>`).join("")}</div>`;}
+
+  function buildApptBarsCard(f){const LA=getFilteredLeads(f.from,f.to,f.doc,f.ase,true);const total=LA.length;if(total===0)return`<div class="an-card"><h4>📅 Appointments</h4><p class="an-no-data">No data</p></div>`;const att=LA.filter(_isAtt).length,ns=LA.filter(_isNS).length,can=LA.filter(_isCan).length,pen=LA.filter(l=>!_isAtt(l)&&!_isNS(l)&&!_isCan(l)).length;const rows=[{label:"✅ Attended",count:att,color:"#22c55e"},{label:"😶 No Show",count:ns,color:"#f97316"},{label:"❌ Cancelled",count:can,color:"#ef4444"},{label:"⏳ Pending",count:pen,color:"#6366f1"}];const maxVal=Math.max(...rows.map(r=>r.count),1);let h=`<div class="an-card" style="grid-column:span 2"><h4>📅 Appointments — ${total} total</h4>`;rows.forEach(r=>{const wPct=maxVal>0?Math.round((r.count/maxVal)*100):0;const pct=total>0?((r.count/total)*100).toFixed(1):"0";h+=`<div class="an-horiz-bar-row"><div class="an-horiz-label">${r.label}</div><div class="an-horiz-track"><div class="an-horiz-fill" style="width:${wPct}%;background:${r.color}18;border:1px solid ${r.color}44"><span class="an-horiz-num" style="color:${r.color}">${r.count}</span><span class="an-horiz-pct-badge" style="color:${r.color};background:${r.color}18">${pct}%</span></div></div></div>`;});return h+`</div>`;}
+  function buildApptTable(){const ALL=typeof todosLeads!=="undefined"?todosLeads:[];const L=ALL.filter(l=>{if(!l.treatment_date)return false;const d=String(l.treatment_date).slice(0,10);if(d<anDateFrom||d>anDateTo)return false;if(anDoctor!=="all"&&String(l.doctor_id)!==String(anDoctor))return false;if(anAsesor!=="all"&&String(l.asesor_id)!==String(anAsesor))return false;return true;});const porMes={};L.forEach(l=>{const d=String(l.treatment_date).slice(0,10);const key=d.slice(0,7);if(!porMes[key])porMes[key]={total_citas:0,attended:0,no_show:0,cancelled:0,active:0,proposal:0,won:0};porMes[key].total_citas++;if(_isAtt(l))porMes[key].attended++;if(_isNS(l))porMes[key].no_show++;if(_isCan(l))porMes[key].cancelled++;if(_isSched(l)&&!_isAtt(l)&&!_isNS(l)&&!_isCan(l))porMes[key].active++;if(_isProp(l))porMes[key].proposal++;if(_isWon(l))porMes[key].won++;});const months=Object.keys(porMes).sort();if(!months.length)return`<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month</h4><p class="an-no-data">No data</p></div>`;let totals={total_citas:0,attended:0,no_show:0,cancelled:0,active:0,proposal:0,won:0};let rows=months.map(m=>{const d=porMes[m];Object.keys(totals).forEach(k=>totals[k]+=(d[k]||0));const mm=parseInt(m.split("-")[1]),yyyy=m.split("-")[0];return`<tr><td style="color:var(--text);font-weight:600">${MONTH_SHORT[mm]} ${yyyy}</td><td style="font-weight:600">${d.total_citas}</td><td style="color:#22c55e">${d.attended}</td><td style="color:#f97316">${d.no_show}</td><td style="color:#ef4444">${d.cancelled}</td><td style="color:#6366f1">${d.active}</td><td style="color:#a855f7">${d.proposal}</td><td style="color:#4ade80">${d.won}</td></tr>`;}).join("");return`<div class="an-card" style="grid-column:span 2"><h4>📆 Appointments by Month</h4><div style="overflow-x:auto"><table class="an-appt-table"><thead><tr><th>Month</th><th>Total</th><th style="color:#22c55e">Attended</th><th style="color:#f97316">No Show</th><th style="color:#ef4444">Cancelled</th><th style="color:#6366f1">Pending</th><th style="color:#a855f7">Proposal</th><th style="color:#4ade80">Won</th></tr></thead><tbody>${rows}<tr class="tot-row"><td>TOTAL</td><td>${totals.total_citas}</td><td style="color:#22c55e">${totals.attended}</td><td style="color:#f97316">${totals.no_show}</td><td style="color:#ef4444">${totals.cancelled}</td><td style="color:#6366f1">${totals.active}</td><td style="color:#a855f7">${totals.proposal}</td><td style="color:#4ade80">${totals.won}</td></tr></tbody></table></div></div>`;}
+  function analizarPipeline(L){const pipeline={};PIPELINE_STAGES.forEach(s=>{pipeline[s.nombre]={count:0,color:s.color,icon:s.icon,desc:s.desc};});L.forEach(l=>{let st="New Lead";if(_isWon(l)&&(l.tratamiento_completado===true||l.sales_status==="Won"))st="Won";else if(l.sales_status==="Lost")st="Lost";else if(l.tratamiento_iniciado===true||l.treatment_confirmed===true)st="Treatment Started";else if(_isAcc(l))st="Proposal Accepted";else if(_isProp(l))st="Proposal Sent";else if(_isEvalDone(l))st="Evaluation Done";else if(_isAtt(l))st="Appt. Attended";else if(l.consulta_agendada===true)st="Appt. Scheduled";else if(l.primer_contacto===true)st="First Contact";if(pipeline[st])pipeline[st].count++;});return pipeline;}
+
+  function renderPipeline() {
+    const current = readSectionFilters("pl");
+    saveSectionState("pl", current.from, current.to, current.doc, current.ase);
+    const L = getFilteredLeads(current.from, current.to, current.doc, current.ase, false);
+    const pipeline = analizarPipeline(L);
+    const entries = PIPELINE_STAGES.map(stage => ({...stage, count: pipeline[stage.nombre]?.count || 0}));
+    const maxCount = Math.max(...entries.map(e => e.count), 1);
+    
+    let html = `<div class="an-card"><h4>🔄 Sales Pipeline <span style="font-size:.65rem;color:var(--text2);font-weight:400;text-transform:none">${L.length} total leads</span></h4><div class="an-section-filter-bar" style="margin-bottom:.8rem">${buildSectionFilterBar("pl", current.from, current.to, current.doc, current.ase, "anPipelineFilterChange")}</div>`;
+    html += `<div class="an-pipeline-vert-wrap">`;
+    entries.forEach(e => {
+      const height = maxCount > 0 ? Math.max(40, (e.count / maxCount) * 200) : 10;
+      const pct = L.length > 0 ? ((e.count / L.length) * 100).toFixed(1) : "0";
+      html += `<div class="an-pipeline-vert-col">
+        <div class="an-pipeline-vert-bar" style="height:${height}px;background:linear-gradient(180deg,${e.color},${e.color}88)">
+          <span class="an-pipeline-vert-count">${e.count}</span>
+        </div>
+        <span class="an-pipeline-vert-label">${e.icon} ${e.nombre}</span>
+        <span class="an-pipeline-vert-pct">${pct}%</span>
+      </div>`;
+    });
+    html += `</div><div style="font-size:.62rem;color:var(--text2);margin-top:.6rem;padding-top:.5rem;border-top:1px solid var(--border)">Bar height = proportion vs max stage · % = share of total leads</div></div>`;
+    document.getElementById("an-pipeline").innerHTML = html;
+    setTimeout(() => {populateSelectWithValue("pl-doctor", current.doc);populateSelectWithValue("pl-asesor", current.ase);document.getElementById("pl-from")&&(document.getElementById("pl-from").value=current.from);document.getElementById("pl-to")&&(document.getElementById("pl-to").value=current.to);}, 50);
+  }
+
+  function updateFilterBadge(count) { const badge = document.getElementById("an-filter-badge"); if (!badge) return; badge.innerHTML = `Showing <span>${count} leads</span>`; }
+
+  function renderAnalytics() {
+    const L = getFilteredLeads(anDateFrom, anDateTo, anDoctor, anAsesor, false);
+    const LA = getFilteredLeads(anDateFrom, anDateTo, anDoctor, anAsesor, true);
+    updateFilterBadge(L.length);
+    const tot = {total:L.length,lost:L.filter(l=>l.sales_status==="Lost").length,agendados:LA.length,attended:LA.filter(_isAtt).length,no_show:LA.filter(_isNS).length,cancelled:LA.filter(_isCan).length,proposal:LA.filter(_isProp).length,won:LA.filter(_isWon).length};
+    const kpis=[{n:tot.total,l:"New Leads",c:"#3b82f6"},{n:tot.agendados,l:"Scheduled",c:"#14b8a6"},{n:tot.attended,l:"Attended",c:"#22c55e",sub:`${tot.agendados>0?((tot.attended/tot.agendados)*100).toFixed(1):"—"}%`},{n:tot.no_show,l:"No Shows",c:"#f97316"},{n:tot.cancelled,l:"Cancelled",c:"#ef4444"},{n:tot.proposal,l:"Proposals",c:"#a855f7",sub:`${tot.attended>0?((tot.proposal/tot.attended)*100).toFixed(1):"—"}%`},{n:tot.won,l:"Won",c:"#4ade80"},{n:tot.lost,l:"Lost",c:"#dc2626"}];
+    document.getElementById("an-kpis-global").innerHTML=kpis.map(k=>`<div class="an-kpi" style="--an-kpi-color:${k.c}"><div class="an-kpi-num">${k.n}</div><div class="an-kpi-label">${k.l}</div>${k.sub?`<div class="an-kpi-sub">${k.sub}</div>`:""}</div>`).join("");
+    renderAllFunnels();
+    document.getElementById("an-appt-bars").innerHTML=`<div class="an-appt-bars-wrap">${buildApptBarsCard({from:anDateFrom,to:anDateTo,doc:anDoctor,ase:anAsesor})}</div>`;
+    renderPipeline();
+    document.getElementById("an-appt-table-wrap").innerHTML=buildApptTable();
+    renderCharts();
+    renderPerf();
+    setTimeout(() => populateAllSelects(), 150);
+  }
+
+  const _orig=window.switchMainView;
+  window.switchMainView=function(view,btn){if(view==="analytics"){document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));document.querySelectorAll(".main-tab").forEach(b=>b.classList.remove("active"));document.getElementById("view-analytics")?.classList.add("active");if(btn)btn.classList.add("active");renderAnalytics();}else{_orig(view,btn);}};
+
+  // XLSX (unchanged)
   function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++){c^=bytes[i];for(let j=0;j<8;j++)c=(c&1)?(c>>>1)^0xEDB88320:c>>>1;}return(c^0xFFFFFFFF)>>>0;}
   function concat(arrays){const t=arrays.reduce((s,a)=>s+a.length,0);const o=new Uint8Array(t);let off=0;for(const a of arrays){o.set(a,off);off+=a.length;}return o;}
   function makeZip(files){const enc=new TextEncoder();const parts=[];const cd=[];let off=0;for(const{name,data}of files){const nb=enc.encode(name),db=typeof data==="string"?enc.encode(data):data,c=crc32(db),s=db.length;const lh=new Uint8Array(30+nb.length),lv=new DataView(lh.buffer);lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(8,0,true);lv.setUint32(14,c,true);lv.setUint32(18,s,true);lv.setUint32(22,s,true);lv.setUint16(26,nb.length,true);lh.set(nb,30);parts.push(lh,db);const cr=new Uint8Array(46+nb.length),cv=new DataView(cr.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint32(16,c,true);cv.setUint32(20,s,true);cv.setUint32(24,s,true);cv.setUint16(28,nb.length,true);cv.setUint32(42,off,true);cr.set(nb,46);cd.push(cr);off+=30+nb.length+s;}const cdb=concat(cd),csz=cdb.length,coff=off;const eocd=new Uint8Array(22),ev=new DataView(eocd.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);ev.setUint32(12,csz,true);ev.setUint32(16,coff,true);return concat([...parts,cdb,eocd]);}
@@ -3798,102 +3528,12 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
   setCell(sheet,ref,value,style){const sId=style?this._styleId(style):0;let cell;if(value&&typeof value==="object"&&"f"in value){cell={f:value.f,s:sId};}else if(typeof value==="number"){cell={v:value,t:"n",s:sId};}else if(value==null||value===""){cell={s:sId};}else{cell={v:this._sid(value),t:"s",s:sId};}sheet.cells[ref]=cell;}
   static colName(n){let r="";let x=n;do{r=String.fromCharCode(65+(x%26))+r;x=Math.floor(x/26)-1;}while(x>=0);return r;}
   build(){const esc=(s)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");const fontsXml=`<fonts count="${this.fonts.length}">${this.fonts.map(f=>{let s="<font>";if(f.bold)s+="<b/>";s+=`<sz val="${f.size}"/>`;if(f.color)s+=`<color rgb="FF${f.color.replace("#","").toUpperCase()}"/>`;s+=`<name val="${esc(f.name)}"/>`;s+="</font>";return s;}).join("")}</fonts>`;const fillsXml=`<fills count="${this.fills.length}">${this.fills.map(f=>{if(f.patternType==="none")return'<fill><patternFill patternType="none"/></fill>';if(f.patternType==="gray125")return'<fill><patternFill patternType="gray125"/></fill>';return`<fill><patternFill patternType="solid"><fgColor rgb="FF${f.fgColor.replace("#","").toUpperCase()}"/><bgColor indexed="64"/></patternFill></fill>`;}).join("")}</fills>`;const bordersXml=`<borders count="${this.borders.length}">${this.borders.map(b=>{const mk=(side)=>b[side]?`<${side} style="${b[side]}"><color indexed="64"/></${side}>`:`<${side}/>`;return`<border>${mk("left")}${mk("right")}${mk("top")}${mk("bottom")}<diagonal/></border>`;}).join("")}</borders>`;const cellXfsXml=`<cellXfs count="${this.styles.length}">${this.styles.map(s=>{const a=s.align;let ax="";if(a&&(a.horizontal||a.vertical||a.wrapText)){const at=[];if(a.horizontal)at.push(`horizontal="${a.horizontal}"`);if(a.vertical)at.push(`vertical="${a.vertical}"`);if(a.wrapText)at.push('wrapText="1"');ax=`<alignment ${at.join(" ")}/>`;}return`<xf numFmtId="${s.numFmtId}" fontId="${s.fontId}" fillId="${s.fillId}" borderId="${s.borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" ${s.numFmtId?'applyNumberFormat="1"':""} ${ax?'applyAlignment="1"':""}>${ax}</xf>`;}).join("")}</cellXfs>`;const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fontsXml}${fillsXml}${bordersXml}<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>${cellXfsXml}<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;const sst=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${this.sharedStrings.length}" uniqueCount="${this.sharedStrings.length}">${this.sharedStrings.map(s=>`<si><t xml:space="preserve">${esc(s)}</t></si>`).join("")}</sst>`;const worksheets=this.sheets.map((sheet)=>{const rowsMap={};for(const ref in sheet.cells){const m=ref.match(/^([A-Z]+)(\d+)$/);const rr=parseInt(m[2],10);if(!rowsMap[rr])rowsMap[rr]=[];rowsMap[rr].push({ref,col:m[1],...sheet.cells[ref]});}const colIndex=(colStr)=>{let n=0;for(let i=0;i<colStr.length;i++)n=n*26+(colStr.charCodeAt(i)-64);return n-1;};const maxRow=Math.max(0,...Object.keys(rowsMap).map(Number));let sheetData="";for(let rr=1;rr<=maxRow;rr++){const cells=(rowsMap[rr]||[]).sort((a,b)=>colIndex(a.col)-colIndex(b.col));if(!cells.length)continue;const rh=sheet.rowHeights[rr]?` ht="${sheet.rowHeights[rr]}" customHeight="1"`:"";let rowXml=`<row r="${rr}"${rh}>`;for(const c of cells){if("f"in c)rowXml+=`<c r="${c.ref}" s="${c.s}"><f>${esc(c.f)}</f></c>`;else if(c.t==="n")rowXml+=`<c r="${c.ref}" s="${c.s}"><v>${c.v}</v></c>`;else if(c.t==="s")rowXml+=`<c r="${c.ref}" s="${c.s}" t="s"><v>${c.v}</v></c>`;else rowXml+=`<c r="${c.ref}" s="${c.s}"/>`;}rowXml+="</row>";sheetData+=rowXml;}const colsXml=Object.keys(sheet.colWidths).length?`<cols>${Object.entries(sheet.colWidths).map(([col,width])=>{const idx=colIndex(col)+1;return`<col min="${idx}" max="${idx}" width="${width}" customWidth="1"/>`;}).join("")}</cols>`:"";const mergesXml=sheet.merges.length?`<mergeCells count="${sheet.merges.length}">${sheet.merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:"";const dvXml=sheet.dataValidations.length?`<dataValidations count="${sheet.dataValidations.length}">${sheet.dataValidations.map(dv=>`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${dv.sqref}"><formula1>${esc(dv.formula1)}</formula1></dataValidation>`).join("")}</dataValidations>`:"";return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews>${colsXml}<sheetData>${sheetData}</sheetData>${mergesXml}${dvXml}</worksheet>`;});const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${this.sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${this.sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${this.sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${this.sheets.length+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`;const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${this.sheets.map((s,i)=>`<sheet name="${esc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`;const files=[{name:"[Content_Types].xml",data:ct},{name:"_rels/.rels",data:rootRels},{name:"xl/_rels/workbook.xml.rels",data:wbRels},{name:"xl/workbook.xml",data:wb},{name:"xl/styles.xml",data:styles},{name:"xl/sharedStrings.xml",data:sst},...worksheets.map((xml,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:xml}))];return makeZip(files);}}
+  window.anExportXlsx=function(){const L=getFilteredLeads(anDateFrom,anDateTo,anDoctor,anAsesor,false);const today=new Date();const dateStr=today.toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});const prepBy=typeof usuario!=="undefined"?(usuario.nombre||usuario.name||"—"):"—";const getPipe=(l)=>String(l.pipeline||"").toLowerCase();const isEngInt=(l)=>{const p=getPipe(l);return p.includes("english")||(!p.includes("spanish")&&!p.includes("local"));};const isSpInt=(l)=>{const p=getPipe(l);return p.includes("spanish")&&!p.includes("local");};const isLocal=(l)=>{const p=getPipe(l);return p.includes("local");};const bucket3=(fn)=>{let e=0,s=0,lc=0;L.forEach(lead=>{if(!fn(lead))return;if(isEngInt(lead))e++;else if(isSpInt(lead))s++;else if(isLocal(lead))lc++;else e++;});return[e,s,lc];};const kpi={newLeads:bucket3(()=>true),scheduledAppts:bucket3(_isSched),attendedAppts:bucket3(_isAtt),cancelledAppts:bucket3(_isCan),pendingAppts:bucket3(l=>_isSched(l)&&!_isAtt(l)&&!_isCan(l)&&!_isNS(l)),noShows:bucket3(_isNS),proposalsSent:bucket3(_isProp),proposalsAccepted:bucket3(_isAcc),treatmentConfirmed:bucket3(l=>l.tratamiento_iniciado===true),treatmentsDone:bucket3(_isWon)};const SOURCE_ORDER=["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral","Other / Unknown"];const bySource={};SOURCE_ORDER.forEach(k=>{bySource[k]=[0,0,0];});L.forEach(l=>{const src=classifySource(l);if(!bySource[src])bySource[src]=[0,0,0];if(isEngInt(l))bySource[src][0]++;else if(isSpInt(l))bySource[src][1]++;else if(isLocal(l))bySource[src][2]++;else bySource[src][0]++;});function classifySource(lead){const canal=String(lead.canal||"").toLowerCase().trim();const pais=String(lead.pais||"").toLowerCase().trim();const pipe=String(lead.pipeline||"").toLowerCase().trim();if(/\bweb(site)?\b|sitio\s*web|organic/.test(canal))return"Website";if(/facebook|fb(?!\w)|instagram|ig(?!\w)|social/.test(canal))return"Social Media";if(/email|correo/.test(canal))return"Email";if(/whatsapp|llamada|call(?!\s*center)/.test(canal))return"Call / WhatsApp";if(/walk\s*[-–]?\s*in|presencial|en\s*cl[ií]nica/.test(canal))return"Walk-in Colombia";if(/refer(ral|ido|encia)/.test(canal))return"Referral";if(/estados\s*unidos|united\s*states|\bus(a)?\b/.test(pais))return"US Targeted Campaign";if(/canad[aá]/.test(pais))return"Canada Targeted Campaign";if(/colombia/.test(pais))return"Local Campaign";if(/\bus\b|united\s*states|english.*int/.test(pipe))return"US Targeted Campaign";if(/canada/.test(pipe))return"Canada Targeted Campaign";if(/local|colombia/.test(pipe))return"Local Campaign";return"Other / Unknown";}const patients=L.map(l=>{const pipe=String(l.pipeline||"");const lang=pipe.toLowerCase().includes("spanish")?"Spanish":"English";const market=pipe.toLowerCase().includes("local")?"Local Colombia":"International";return{A:l.nombre||l.name||"",B:lang,C:market,D:l.canal||"",E:"",F:l.asesor_nombre||"",G:l.doctor_nombre||"",H:"",I:"",J:_isProp(l)?"Sent":"Not Sent",K:_isAcc(l)?"Accepted":(_isProp(l)?"Sent":"Not Sent"),L:_isWon(l)?"Confirmed":"Not Confirmed",M:l.medical_status||"Not Required",N:(l.comentarios||l.notas||"").replace(/\n/g," ").substring(0,120),O:l.medilink_numero||String(l.id||"")};});const docNames=[...new Set(L.map(l=>l.doctor_nombre).filter(Boolean))];const docList=docNames.slice(0,3);while(docList.length<3)docList.push("");const doctors=docList.map(name=>{if(!name)return["",{}];const dl=L.filter(l=>l.doctor_nombre===name);return[name,{B:dl.filter(_isSched).length||"",C:dl.filter(_isAtt).length||"",D:"",E:"",F:dl.filter(_isProp).length||"",G:dl.filter(_isWon).length||""}];});const C={titleBg:"1F4E78",infoBg:"D9EAF7",sec1Bg:"5B9BD5",sec2Bg:"70AD47",sec3Bg:"4472C4",sec4Bg:"ED7D31",headerBg:"404040",white:"FFFFFF"};const thin="thin",allBorder={left:thin,right:thin,top:thin,bottom:thin};const xb=new XlsxBuilder();const numSources=SOURCE_ORDER.length,numLeads=patients.length,kpiCount=10;const kpiLastRow=6+kpiCount,sec2LastRow=6+numSources,sec2TotalRow=sec2LastRow+1;const dataStartRow=Math.max(kpiLastRow,sec2TotalRow)+3;const sec3End=dataStartRow+Math.max(numLeads,1)-1,sec4Start=sec3End+2;const sec4HeaderRow=sec4Start+1,sec4DataStart=sec4HeaderRow+1,sec4TotalRow=sec4DataStart+3;const sheet=xb.addSheet({name:"Daily Report",colWidths:{A:45,B:16,C:16,D:22,E:26,F:20,G:22,H:18,I:18,J:18,K:18,L:18,M:22,N:38,O:18,Q:22,R:18,S:22,T:24,U:22,V:24,W:22,X:18,Y:20},rowHeights:{1:22,2:20,5:20},merges:["A1:O1","A4:E4","G5:K5",`A${sec4Start}:H${sec4Start}`]});const set=(ref,val,style)=>xb.setCell(sheet,ref,val,style);const hdr={font:{bold:true,color:C.white},fill:C.headerBg,align:{horizontal:"center",vertical:"center",wrapText:true}};const ds={align:{wrapText:true}};set("A1","STEM CELL CLINIC COLOMBIA — DAILY ACTIVITY REPORT",{font:{bold:true,size:14,color:C.white},fill:C.titleBg,align:{horizontal:"center",vertical:"center",wrapText:true}});const inf={font:{bold:true},fill:C.infoBg};set("A2","Report Date:",inf);set("B2",dateStr,inf);set("C2","",inf);set("D2","Prepared By:",inf);set("E2",prepBy,inf);set("F2","",inf);set("G2","Department:",inf);set("H2","Stem Cell Clinic — Colombia",inf);set("I2","Period:",inf);set("J2",`${anDateFrom} → ${anDateTo}`,inf);set("A4","1. DAILY MANAGEMENT SUMMARY",{font:{bold:true,color:C.white},fill:C.sec1Bg,align:{horizontal:"left",wrapText:true}});["Activity / KPI","English Int.","Spanish Int.","Local","Total"].forEach((t,i)=>set(`${"ABCDE"[i]}5`,t,hdr));set("G5","2. LEAD SOURCE & CAMPAIGN SUMMARY",{font:{bold:true,color:C.white},fill:C.sec2Bg,align:{wrapText:true}});["Lead Source","English Int.","Spanish Int.","Local","Total"].forEach((t,i)=>set(`${"GHIJK"[i]}6`,t,hdr));const kpiRows=[["New Patients",kpi.newLeads],["Scheduled Appts",kpi.scheduledAppts],["Attended",kpi.attendedAppts],["Cancelled",kpi.cancelledAppts],["Pending",kpi.pendingAppts],["No Shows",kpi.noShows],["Proposals Sent",kpi.proposalsSent],["Proposals Accepted",kpi.proposalsAccepted],["Treatment Confirmed",kpi.treatmentConfirmed],["Treatments Done",kpi.treatmentsDone]];kpiRows.forEach(([label,vals],i)=>{const r=7+i;set(`A${r}`,label,{...ds,border:{right:thin,top:thin,bottom:thin}});set(`B${r}`,vals[0]||0,{...ds,border:allBorder});set(`C${r}`,vals[1]||0,{...ds,border:allBorder});set(`D${r}`,vals[2]||0,{...ds,border:allBorder});set(`E${r}`,{f:`SUM(B${r}:D${r})`},{...ds,border:allBorder});});SOURCE_ORDER.forEach((src,i)=>{const r=7+i;const v=bySource[src]||[0,0,0];set(`G${r}`,src,{...ds,border:{right:thin,top:thin,bottom:thin,left:thin}});set(`H${r}`,v[0]||0,{...ds,border:allBorder});set(`I${r}`,v[1]||0,{...ds,border:allBorder});set(`J${r}`,v[2]||0,{...ds,border:allBorder});set(`K${r}`,{f:`SUM(H${r}:J${r})`},{...ds,border:allBorder});});set(`G${sec2TotalRow}`,"Total",{font:{bold:true},border:allBorder});["H","I","J","K"].forEach(c=>set(`${c}${sec2TotalRow}`,{f:`SUM(${c}7:${c}${sec2LastRow})`},{font:{bold:true},border:allBorder}));set(`A${dataStartRow-2}`,"3. PATIENT DETAILS",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});["Name","Lang","Pipeline","Source","Campaign","Coordinator","Doctor","Online","In-Person","Proposal","Prop.Status","Treat.Status","Medical","Next Step","CRM ID"].forEach((h,i)=>set(`${XlsxBuilder.colName(i)}${dataStartRow-1}`,h,hdr));for(let rr=dataStartRow;rr<=sec3End;rr++){const p=patients[rr-dataStartRow];for(let ci=0;ci<15;ci++){const col=XlsxBuilder.colName(ci);const key="ABCDEFGHIJKLMNO"[ci];set(`${col}${rr}`,p?(p[key]??""):"",{...ds,border:allBorder});}}set(`A${sec4Start}`,"4. DOCTOR PERFORMANCE",{font:{bold:true,color:C.white},fill:C.sec4Bg,align:{wrapText:true}});["Doctor","Scheduled","Attended","Online","In-Person","Proposals","Treatments","Notes"].forEach((h,i)=>set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`,h,hdr));for(let i=0;i<3;i++){const rr=sec4DataStart+i;const doc=doctors[i]||["",{}];set(`A${rr}`,doc[0]||"",{border:allBorder});["B","C","D","E","F","G","H"].forEach(col=>{const val=(col!=="H"&&doc[1])?(doc[1][col]??""):"";set(`${col}${rr}`,val,{border:allBorder});});}set(`A${sec4TotalRow}`,"Total",{font:{bold:true},border:allBorder});["B","C","D","E","F","G"].forEach(col=>set(`${col}${sec4TotalRow}`,{f:`SUM(${col}${sec4DataStart}:${col}${sec4DataStart+2})`},{font:{bold:true},border:allBorder}));const wbBytes=xb.build();const b64=bytesToBase64(wbBytes);const a=document.createElement("a");a.href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+b64;a.download=`Stemwell_Report_${today.toISOString().slice(0,10)}.xlsx`;document.body.appendChild(a);a.click();document.body.removeChild(a);};
 
-  // ── XLSX EXPORT (same as v20) ─────────────────────────────────
-  window.anExportXlsx = function() {
-    const L = getFilteredLeads();
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const prepBy = typeof usuario !== "undefined" ? (usuario.nombre || usuario.name || "—") : "—";
-    let periodLabel = "All Time";
-    if (anYear !== "all" || anMonth !== "all") {
-      const parts = [];
-      if (anMonth !== "all") parts.push(MONTHS_LABEL[parseInt(anMonth)]);
-      if (anYear  !== "all") parts.push(anYear);
-      periodLabel = parts.join(" ");
-    }
-    const getPipe = (l) => String(l.pipeline || "").toLowerCase();
-    const isEngInt  = (l) => { const p = getPipe(l); return p.includes("english") || (!p.includes("spanish") && !p.includes("local")); };
-    const isSpInt   = (l) => { const p = getPipe(l); return p.includes("spanish") && !p.includes("local"); };
-    const isLocal   = (l) => { const p = getPipe(l); return p.includes("local"); };
-    const bucket3 = (fn) => { let e=0,s=0,lc=0; L.forEach(lead=>{if(!fn(lead))return;if(isEngInt(lead))e++;else if(isSpInt(lead))s++;else if(isLocal(lead))lc++;else e++;}); return[e,s,lc]; };
-    const isToday = (v) => { if(!v)return false; return String(v).slice(0,10)===today.toISOString().slice(0,10); };
-    const _isSched = l=>l.consulta_agendada===true;
-    const kpi = {
-      newLeads:bucket3(()=>true), scheduledAppts:bucket3(_isSched),
-      scheduledToday:bucket3(l=>_isSched(l)&&isToday(l.treatment_date)),
-      attendedAppts:bucket3(_isAtt), cancelledAppts:bucket3(_isCan),
-      pendingAppts:bucket3(l=>_isSched(l)&&!_isAtt(l)&&!_isCan(l)&&!_isNS(l)),
-      noShows:bucket3(_isNS), awaitingMedical:bucket3(l=>l.medical_status==="Awaiting Medical Report"),
-      proposalsSent:bucket3(_isProp), proposalsAccepted:bucket3(_isAcc),
-      treatmentConfirmed:bucket3(l=>l.tratamiento_iniciado===true), treatmentsDone:bucket3(_isWon),
-    };
-    const SOURCE_ORDER = ["Website","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral","Other / Unknown"];
-    const bySource = {}; SOURCE_ORDER.forEach(k=>{bySource[k]=[0,0,0];});
-    L.forEach(l=>{const src=classifySource(l);if(!bySource[src])bySource[src]=[0,0,0];if(isEngInt(l))bySource[src][0]++;else if(isSpInt(l))bySource[src][1]++;else if(isLocal(l))bySource[src][2]++;else bySource[src][0]++;});
-    const patients = L.map(l=>{const pipe=String(l.pipeline||"");const lang=pipe.toLowerCase().includes("spanish")?"Spanish":"English";const market=pipe.toLowerCase().includes("local")?"Local Colombia":"International";return{A:l.nombre||l.name||"",B:lang,C:market,D:l.canal||"",E:"",F:l.asesor_nombre||"",G:l.doctor_nombre||"",H:"",I:"",J:_isProp(l)?"Sent":"Not Sent",K:_isAcc(l)?"Accepted":(_isProp(l)?"Sent":"Not Sent"),L:_isWon(l)?"Confirmed":"Not Confirmed",M:l.medical_status||"Not Required",N:(l.comentarios||l.notas||"").replace(/\n/g," ").substring(0,120),O:l.medilink_numero||String(l.id||"")};});
-    const docNames=[...new Set(L.map(l=>l.doctor_nombre||l.consultation_with).filter(Boolean))];
-    const docList=docNames.slice(0,3);while(docList.length<3)docList.push("");
-    const doctors=docList.map(name=>{if(!name)return["",{}];const dl=L.filter(l=>(l.doctor_nombre||l.consultation_with)===name);return[name,{B:dl.filter(_isSched).length||"",C:dl.filter(_isAtt).length||"",D:"",E:"",F:dl.filter(_isProp).length||"",G:dl.filter(_isWon).length||""}];});
-    const wbBytes=generateXlsxBytes({reportDate:dateStr,preparedBy:prepBy,periodLabel,kpi,bySource,sourceOrder:SOURCE_ORDER,patients,doctors});
-    const b64=bytesToBase64(wbBytes);
-    const a=document.createElement("a");a.href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+b64;
-    a.download=`Stemwell_Daily_Report_${today.toISOString().slice(0,10)}.xlsx`;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-  };
-
-  function generateXlsxBytes(data){
-    const C={titleBg:"1F4E78",infoBg:"D9EAF7",sec1Bg:"5B9BD5",sec2Bg:"70AD47",sec3Bg:"4472C4",sec4Bg:"ED7D31",headerBg:"404040",white:"FFFFFF"};
-    const thin="thin",allBorder={left:thin,right:thin,top:thin,bottom:thin};
-    const xb=new XlsxBuilder();
-    const sourceOrder=data.sourceOrder||Object.keys(data.bySource);
-    const numSources=sourceOrder.length,numLeads=data.patients.length,kpiCount=12;
-    const kpiLastRow=6+kpiCount,sec2LastRow=6+numSources,sec2TotalRow=sec2LastRow+1;
-    const dataStartRow=Math.max(kpiLastRow,sec2TotalRow)+3;
-    const sec3End=dataStartRow+Math.max(numLeads,1)-1,sec4Start=sec3End+2;
-    const sec4HeaderRow=sec4Start+1,sec4DataStart=sec4HeaderRow+1,sec4TotalRow=sec4DataStart+3;
-    const sheet=xb.addSheet({name:"Daily Report",colWidths:{A:45,B:16,C:16,D:22,E:26,F:20,G:22,H:18,I:18,J:18,K:18,L:18,M:22,N:38,O:18,Q:22,R:18,S:22,T:24,U:22,V:24,W:22,X:18,Y:20},rowHeights:{1:22,2:20,5:20},merges:["A1:O1","A4:E4","G5:K5",`A${sec4Start}:H${sec4Start}`],dataValidations:[{sqref:`B${dataStartRow}:B${sec3End}`,formula1:"$Q$2:$Q$3"},{sqref:`C${dataStartRow}:C${sec3End}`,formula1:"$R$2:$R$3"},{sqref:`D${dataStartRow}:D${sec3End}`,formula1:"$S$2:$S$8"},{sqref:`E${dataStartRow}:E${sec3End}`,formula1:"$T$2:$T$5"},{sqref:`G${dataStartRow}:G${sec3End}`,formula1:"$U$2:$U$4"},{sqref:`H${dataStartRow}:I${sec3End}`,formula1:"$V$2:$V$8"},{sqref:`J${dataStartRow}:K${sec3End}`,formula1:"$W$2:$W$7"},{sqref:`L${dataStartRow}:L${sec3End}`,formula1:"$X$2:$X$6"},{sqref:`M${dataStartRow}:M${sec3End}`,formula1:"$Y$2:$Y$6"}]});
-    const set=(ref,val,style)=>xb.setCell(sheet,ref,val,style);
-    const hdr={font:{bold:true,color:C.white},fill:C.headerBg,align:{horizontal:"center",vertical:"center",wrapText:true}};
-    const ds={align:{wrapText:true}};
-    set("A1","STEM CELL CLINIC COLOMBIA — DAILY ACTIVITY REPORT",{font:{bold:true,size:14,color:C.white},fill:C.titleBg,align:{horizontal:"center",vertical:"center",wrapText:true}});
-    const inf={font:{bold:true},fill:C.infoBg};
-    set("A2","Report Date:",inf);set("B2",data.reportDate,inf);set("C2","",inf);set("D2","Prepared By:",inf);set("E2",data.preparedBy,inf);set("F2","",inf);set("G2","Department:",inf);set("H2","Stem Cell Clinic — Colombia",inf);set("I2","Period:",inf);set("J2",data.periodLabel,inf);
-    set("A4","1. DAILY MANAGEMENT SUMMARY",{font:{bold:true,color:C.white},fill:C.sec1Bg,align:{horizontal:"left",wrapText:true}});
-    ["Activity / KPI","English International","Spanish International","Local Colombia","Total"].forEach((t,i)=>set(`${"ABCDE"[i]}5`,t,hdr));
-    set("G5","2. LEAD SOURCE & CAMPAIGN SUMMARY",{font:{bold:true,color:C.white},fill:C.sec2Bg,align:{wrapText:true}});
-    ["Lead Source / Campaign","English Int.","Spanish Int.","Local Colombia","Total"].forEach((t,i)=>set(`${"GHIJK"[i]}6`,t,hdr));
-    const kpiRows=[["New Patients / Leads",data.kpi.newLeads],["Scheduled Appointments",data.kpi.scheduledAppts],["Scheduled Calls for Today",data.kpi.scheduledToday],["Attended Appointments",data.kpi.attendedAppts],["Cancelled Appointments",data.kpi.cancelledAppts],["Pending Appointments",data.kpi.pendingAppts],["No Shows",data.kpi.noShows],["Awaiting Medical Reports",data.kpi.awaitingMedical],["Treatment Proposals Sent",data.kpi.proposalsSent],["Proposals Accepted",data.kpi.proposalsAccepted],["Treatment Confirmed",data.kpi.treatmentConfirmed],["Treatments Done",data.kpi.treatmentsDone]];
-    kpiRows.forEach(([label,vals],i)=>{const r=7+i;set(`A${r}`,label,{...ds,border:{right:thin,top:thin,bottom:thin}});set(`B${r}`,vals[0]||0,{...ds,border:allBorder});set(`C${r}`,vals[1]||0,{...ds,border:allBorder});set(`D${r}`,vals[2]||0,{...ds,border:allBorder});set(`E${r}`,{f:`SUM(B${r}:D${r})`},{...ds,border:allBorder});});
-    sourceOrder.forEach((src,i)=>{const r=7+i;const v=data.bySource[src]||[0,0,0];set(`G${r}`,src,{...ds,border:{right:thin,top:thin,bottom:thin,left:thin}});set(`H${r}`,v[0]||0,{...ds,border:allBorder});set(`I${r}`,v[1]||0,{...ds,border:allBorder});set(`J${r}`,v[2]||0,{...ds,border:allBorder});set(`K${r}`,{f:`SUM(H${r}:J${r})`},{...ds,border:allBorder});});
-    set(`G${sec2TotalRow}`,"Total New Leads",{font:{bold:true},border:allBorder});set(`H${sec2TotalRow}`,{f:`SUM(H7:H${sec2LastRow})`},{font:{bold:true},border:allBorder});set(`I${sec2TotalRow}`,{f:`SUM(I7:I${sec2LastRow})`},{font:{bold:true},border:allBorder});set(`J${sec2TotalRow}`,{f:`SUM(J7:J${sec2LastRow})`},{font:{bold:true},border:allBorder});set(`K${sec2TotalRow}`,{f:`SUM(K7:K${sec2LastRow})`},{font:{bold:true},border:allBorder});
-    const sec3LabelRow=dataStartRow-2,sec3HeaderRow=dataStartRow-1;
-    set(`A${sec3LabelRow}`,"3. PATIENT ACTIVITY DETAILS (ENTER EACH PATIENT ON ONE ROW)",{font:{bold:true,color:C.white},fill:C.sec3Bg,align:{wrapText:true}});
-    const sec3H=["Patient Name","Language","Pipeline","Lead Source","Campaign","Coordinator / Staff","Doctor","Paid Online Consult","Paid In-Person Consult","Treatment Proposal","Proposal Status","Treatment Status","Medical Report Status","Next Step / Remarks","Contact / CRM ID"];
-    sec3H.forEach((h,i)=>set(`${XlsxBuilder.colName(i)}${sec3HeaderRow}`,h,hdr));
-    for(let rr=dataStartRow;rr<=sec3End;rr++){const p=data.patients[rr-dataStartRow];for(let ci=0;ci<15;ci++){const col=XlsxBuilder.colName(ci);const key="ABCDEFGHIJKLMNO"[ci];set(`${col}${rr}`,p?(p[key]??""):"",{...ds,border:allBorder});}}
-    set(`A${sec4Start}`,"4. DOCTOR-WISE DAILY PERFORMANCE",{font:{bold:true,color:C.white},fill:C.sec4Bg,align:{wrapText:true}});
-    ["Doctor","Scheduled Appts.","Attended Appts.","Online Consults","In-Person Consults","Proposals Sent","Treatments Done","Notes"].forEach((h,i)=>set(`${XlsxBuilder.colName(i)}${sec4HeaderRow}`,h,hdr));
-    for(let i=0;i<3;i++){const rr=sec4DataStart+i;const doc=data.doctors[i]||["",{}];set(`A${rr}`,doc[0]||"",{border:allBorder});["B","C","D","E","F","G","H"].forEach(col=>{const val=(col!=="H"&&doc[1])?(doc[1][col]??""):"";set(`${col}${rr}`,val,{border:allBorder});});}
-    set(`A${sec4TotalRow}`,"Total",{font:{bold:true},border:allBorder});["B","C","D","E","F","G"].forEach(col=>set(`${col}${sec4TotalRow}`,{f:`SUM(${col}${sec4DataStart}:${col}${sec4DataStart+2})`},{font:{bold:true},border:allBorder}));set(`H${sec4TotalRow}`,"",{border:allBorder});
-    const lists={Q:["Language","English","Spanish"],R:["Market","International","Local Colombia"],S:["Lead Source","Website","Campaign","Email","Call / WhatsApp","Social Media","Walk-in Colombia","Referral","Other / Unknown"],T:["Campaign","US Targeted Campaign","Canada Targeted Campaign","Local Campaign","Organic / Direct"],U:["Doctor","Dr. Camilo White","Dr. Sandra Fernandez","Dr. 3"],V:["Call Status","Booked","Completed","No Show","Rescheduled","Cancelled","Pending","Not Applicable"],W:["Proposal Status","Not Sent","Sent","Accepted","Rejected","Pending Decision","Follow-up Required"],X:["Treatment Status","Not Confirmed","Confirmed","Scheduled","Done","Cancelled"],Y:["Medical Report Status","Not Required","Awaiting Medical Report","Received","Reviewed","Incomplete"]};
-    const lhdr={font:{bold:true},fill:"D9EAD3"};
-    for(const col in lists){const items=lists[col];set(`${col}1`,items[0],lhdr);items.slice(1).forEach((v,i)=>set(`${col}${2+i}`,v));}
-    return xb.build();
-  }
-
-  // ── INIT ─────────────────────────────────────────────────────
   waitForApp(() => {
     const _origInit = window.iniciarApp;
-    window.iniciarApp = function() {
-      _origInit();
-      injectTab();
-      injectView();
-    };
-    if (document.getElementById("app") && document.getElementById("app").style.display !== "none") {
-      injectTab();
-      injectView();
-    }
+    window.iniciarApp = function() { _origInit(); injectTab(); injectView(); };
+    if (document.getElementById("app") && document.getElementById("app").style.display !== "none") { injectTab(); injectView(); }
   });
 
 })();
