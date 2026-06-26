@@ -73,7 +73,7 @@ def _parse_fecha(v):
     """
     Normaliza cualquier string de fecha/hora a formato 'YYYY-MM-DD HH:MM:SS'
     que PostgreSQL acepta con ::timestamp.
-    Preserva la hora si viene incluida.
+    Preserva la hora si viene incluida; si no, usa 08:00 como hora predeterminada.
     """
     if not v:
         return None
@@ -92,9 +92,9 @@ def _parse_fecha(v):
         elif hora.count(":") == 0:
             s = s + ":00:00"
     elif len(partes) == 1:
-        # Solo fecha sin hora → medianoche
+        # Solo fecha sin hora → hora predeterminada 08:00 AM
         if len(s) == 10 and s.count("-") == 2:
-            s = s + " 00:00:00"
+            s = s + " 08:00:00"  # ← CAMBIADO de 00:00:00 a 08:00:00
 
     return s
 
