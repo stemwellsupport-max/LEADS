@@ -4171,5 +4171,583 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 })();
 </script>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// 3D GLOBE MODULE — Hacker / Holograma estilo JARVIS, fronteras reales
+// ══════════════════════════════════════════════════════════════════
+(function () {
+
+  const COUNTRY_COORDS = {
+    "Afganistán":[33,66],"Albania":[41,20],"Alemania":[51,10],"Andorra":[42.5,1.5],
+    "Angola":[-11.2,17.9],"Antigua y Barbuda":[17.1,-61.8],"Arabia Saudita":[24,45],
+    "Argelia":[28,3],"Argentina":[-38.4,-63.6],"Armenia":[40.1,45],"Australia":[-25.3,133.8],
+    "Austria":[47.5,14.5],"Azerbaiyán":[40.1,47.6],"Bahamas":[24.25,-76.0],"Bangladés":[23.7,90.4],
+    "Barbados":[13.2,-59.5],"Baréin":[26.0,50.5],"Bélgica":[50.5,4.5],"Belice":[17.2,-88.5],
+    "Benín":[9.3,2.3],"Bielorrusia":[53.7,28.0],"Birmania":[21.9,95.9],"Bolivia":[-16.3,-63.6],
+    "Bosnia y Herzegovina":[43.9,17.7],"Botsuana":[-22.3,24.7],"Brasil":[-14.2,-51.9],
+    "Brunéi":[4.5,114.7],"Bulgaria":[42.7,25.5],"Burkina Faso":[12.2,-1.6],"Burundi":[-3.4,29.9],
+    "Bután":[27.5,90.4],"Cabo Verde":[16.0,-24.0],"Camboya":[12.6,104.9],"Camerún":[5.7,12.7],
+    "Canadá":[56.1,-106.3],"Catar":[25.3,51.2],"Chad":[15.5,18.7],"Chile":[-35.7,-71.5],
+    "China":[35.9,104.2],"Chipre":[35.1,33.4],"Colombia":[4.6,-74.1],"Comoras":[-11.6,43.3],
+    "Corea del Norte":[40.3,127.5],"Corea del Sur":[35.9,127.8],"Costa de Marfil":[7.5,-5.5],
+    "Costa Rica":[9.7,-83.8],"Croacia":[45.1,15.2],"Cuba":[21.5,-77.8],"Dinamarca":[56.3,9.5],
+    "Dominica":[15.4,-61.4],"Ecuador":[-1.8,-78.2],"Egipto":[26.8,30.8],"El Salvador":[13.8,-88.9],
+    "Emiratos Árabes Unidos":[23.4,53.8],"Eritrea":[15.2,39.8],"Eslovaquia":[48.7,19.7],
+    "Eslovenia":[46.1,14.8],"España":[40.0,-3.7],"Estados Unidos":[39.8,-98.6],"Estonia":[58.6,25.0],
+    "Etiopía":[9.1,40.5],"Filipinas":[12.9,121.8],"Finlandia":[61.9,25.7],"Fiyi":[-17.7,178.1],
+    "Francia":[46.6,2.2],"Gabón":[-0.8,11.6],"Gambia":[13.4,-15.3],"Georgia":[42.3,43.4],
+    "Ghana":[7.9,-1.0],"Granada":[12.1,-61.7],"Grecia":[39.1,21.8],"Guatemala":[15.8,-90.2],
+    "Guinea":[9.9,-9.7],"Guinea-Bisáu":[11.8,-15.2],"Guinea Ecuatorial":[1.6,10.3],
+    "Guyana":[4.9,-58.9],"Haití":[18.9,-72.3],"Honduras":[15.2,-86.2],"Hungría":[47.2,19.5],
+    "India":[20.6,79.0],"Indonesia":[-0.8,113.9],"Irak":[33.2,43.7],"Irán":[32.4,53.7],
+    "Irlanda":[53.4,-8.2],"Islandia":[64.9,-19.0],"Islas Marshall":[7.1,171.2],
+    "Islas Salomón":[-9.6,160.2],"Israel":[31.0,34.8],"Italia":[41.9,12.6],"Jamaica":[18.1,-77.3],
+    "Japón":[36.2,138.3],"Jordania":[31.2,36.5],"Kazajistán":[48.0,66.9],"Kenia":[0.0,37.9],
+    "Kirguistán":[41.2,74.8],"Kiribati":[1.9,-157.4],"Kuwait":[29.3,47.5],"Laos":[19.9,102.5],
+    "Lesoto":[-29.6,28.2],"Letonia":[56.9,24.6],"Líbano":[33.9,35.9],"Liberia":[6.4,-9.4],
+    "Libia":[26.3,17.2],"Liechtenstein":[47.2,9.5],"Lituania":[55.2,23.9],"Luxemburgo":[49.8,6.1],
+    "Macedonia del Norte":[41.6,21.7],"Madagascar":[-18.8,47.0],"Malasia":[4.2,102.0],
+    "Malaui":[-13.3,34.3],"Maldivas":[3.2,73.2],"Malí":[17.6,-4.0],"Malta":[35.9,14.4],
+    "Marruecos":[31.8,-7.1],"Mauricio":[-20.3,57.6],"Mauritania":[21.0,-10.9],"México":[23.6,-102.5],
+    "Micronesia":[6.9,158.2],"Moldavia":[47.4,28.4],"Mónaco":[43.7,7.4],"Mongolia":[46.9,103.8],
+    "Montenegro":[42.7,19.4],"Mozambique":[-18.7,35.5],"Namibia":[-22.9,18.5],"Nauru":[-0.5,166.9],
+    "Nepal":[28.4,84.1],"Nicaragua":[12.9,-85.2],"Níger":[17.6,8.1],"Nigeria":[9.1,8.7],
+    "Noruega":[60.5,8.5],"Nueva Zelanda":[-40.9,174.9],"Omán":[21.5,55.9],"Países Bajos":[52.1,5.3],
+    "Pakistán":[30.4,69.3],"Palaos":[7.5,134.6],"Palestina":[31.9,35.2],"Panamá":[8.5,-80.8],
+    "Papúa Nueva Guinea":[-6.3,143.9],"Paraguay":[-23.4,-58.4],"Perú":[-9.2,-75.0],
+    "Polonia":[51.9,19.1],"Portugal":[39.4,-8.2],"Reino Unido":[55.4,-3.4],
+    "República Centroafricana":[6.6,20.9],"República Checa":[49.8,15.5],
+    "República del Congo":[-0.2,15.8],"República Democrática del Congo":[-4.0,21.8],
+    "República Dominicana":[18.7,-70.2],"Ruanda":[-1.9,30.1],"Rumania":[45.9,25.0],
+    "Rusia":[61.5,105.3],"Samoa":[-13.8,-172.1],"San Cristóbal y Nieves":[17.4,-62.8],
+    "San Marino":[43.9,12.5],"San Vicente y las Granadinas":[13.2,-61.2],"Santa Lucía":[13.9,-61.0],
+    "Santo Tomé y Príncipe":[0.2,6.6],"Senegal":[14.5,-14.5],"Serbia":[44.0,21.0],
+    "Seychelles":[-4.7,55.5],"Sierra Leona":[8.5,-11.8],"Singapur":[1.35,103.8],"Siria":[34.8,39.0],
+    "Somalia":[5.2,46.2],"Sri Lanka":[7.9,80.8],"Suazilandia":[-26.5,31.5],"Sudáfrica":[-30.6,22.9],
+    "Sudán":[12.9,30.2],"Sudán del Sur":[7.3,30.0],"Suecia":[60.1,18.6],"Suiza":[46.8,8.2],
+    "Surinam":[3.9,-56.0],"Tailandia":[15.9,101.0],"Tanzania":[-6.4,34.9],"Tayikistán":[38.9,71.3],
+    "Timor Oriental":[-8.9,125.7],"Togo":[8.6,0.8],"Tonga":[-21.2,-175.2],
+    "Trinidad y Tobago":[10.7,-61.2],"Túnez":[33.9,9.5],"Turkmenistán":[39.0,59.6],
+    "Turquía":[39.0,35.2],"Tuvalu":[-7.1,177.65],"Ucrania":[48.4,31.2],"Uganda":[1.4,32.3],
+    "Uruguay":[-32.5,-55.8],"Uzbekistán":[41.4,64.6],"Vanuatu":[-15.4,167.0],
+    "Vaticano":[41.9,12.45],"Venezuela":[6.4,-66.6],"Vietnam":[14.1,108.3],"Yemen":[15.6,48.5],
+    "Yibuti":[11.8,42.6],"Zambia":[-13.13,27.85],"Zimbabue":[-19.0,29.15]
+  };
+
+  const RADIUS = 100;
+  const PAL_STOPS = [
+    {p:0,   c:[56,189,248]},
+    {p:0.5, c:[34,211,238]},
+    {p:1,   c:[245,158,11]}
+  ];
+  function lerpColor(t){
+    t = Math.max(0, Math.min(1, t));
+    let a = PAL_STOPS[0], b = PAL_STOPS[PAL_STOPS.length-1];
+    for (let i=0;i<PAL_STOPS.length-1;i++){
+      if (t >= PAL_STOPS[i].p && t <= PAL_STOPS[i+1].p){ a=PAL_STOPS[i]; b=PAL_STOPS[i+1]; break; }
+    }
+    const span = (b.p - a.p) || 1;
+    const lt = (t - a.p) / span;
+    const r = Math.round(a.c[0] + (b.c[0]-a.c[0])*lt);
+    const g = Math.round(a.c[1] + (b.c[1]-a.c[1])*lt);
+    const bl= Math.round(a.c[2] + (b.c[2]-a.c[2])*lt);
+    return (r<<16) + (g<<8) + bl;
+  }
+
+  function latLngToVec3(lat, lng, r){
+    const phi = (90 - lat) * (Math.PI/180);
+    const theta = (lng + 180) * (Math.PI/180);
+    return new THREE.Vector3(
+      -r * Math.sin(phi) * Math.cos(theta),
+       r * Math.cos(phi),
+       r * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+
+  // ── Fallback continentes (si no hay internet para el GeoJSON real) ──
+  const FALLBACK_CONTINENTS = [
+    [[71,-156],[70,-130],[60,-95],[49,-95],[49,-123],[32,-117],[14,-92],[10,-85],[25,-97],[30,-81],[45,-67],[60,-65],[71,-90]],
+    [[12,-72],[5,-77],[-4,-81],[-18,-70],[-33,-71],[-55,-68],[-52,-58],[-34,-58],[-23,-43],[-5,-35],[5,-52]],
+    [[37,10],[32,-10],[15,-17],[5,-10],[5,8],[-5,12],[-15,12],[-25,15],[-34,18],[-34,28],[-25,33],[-12,40],[5,42],[15,40],[30,32],[31,25]],
+    [[71,25],[60,30],[55,40],[45,38],[42,28],[40,20],[44,15],[45,10],[44,8],[48,-2],[58,5],[60,11]],
+    [[77,100],[70,170],[60,170],[50,140],[35,135],[25,122],[10,105],[5,98],[8,80],[20,72],[25,67],[35,60],[40,50],[45,40],[55,38],[65,40],[70,60]],
+    [[-12,142],[-18,146],[-25,153],[-34,151],[-38,145],[-35,138],[-32,128],[-20,114],[-14,126]],
+    [[83,-35],[76,-20],[70,-45],[76,-65]]
+  ];
+
+  // ── Carga de fronteras REALES de países (TopoJSON, vía CDN) ──────
+  let worldGeoCache = null;
+  function loadScript(src){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement("script");
+      s.src=src; s.onload=()=>resolve(); s.onerror=()=>reject(new Error("load fail: "+src));
+      document.head.appendChild(s);
+    });
+  }
+  async function loadWorldGeo(){
+    if (worldGeoCache) return worldGeoCache;
+    if (typeof topojson === "undefined") {
+      await loadScript("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js");
+    }
+    const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json");
+    const topo = await res.json();
+    const geo = topojson.feature(topo, topo.objects.countries);
+    worldGeoCache = geo;
+    return geo;
+  }
+
+  // ── Construye la textura del globo (hacker/holograma azul) ───────
+  async function buildEarthCanvasTexture(){
+    const W = 2048, H = 1024;
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+
+    const bg = ctx.createRadialGradient(W/2,H/2,0, W/2,H/2,W*0.6);
+    bg.addColorStop(0, "#051422");
+    bg.addColorStop(1, "#01060c");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.strokeStyle = "rgba(56,189,248,0.10)";
+    ctx.lineWidth = 1;
+    for (let lng=-180; lng<=180; lng+=10){
+      const x = (lng+180)/360*W;
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    }
+    for (let lat=-80; lat<=80; lat+=10){
+      const y = (90-lat)/180*H;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    }
+
+    const toXY = (lng,lat) => [ (lng+180)/360*W, (90-lat)/180*H ];
+    function strokePath(ringDraw){
+      ctx.beginPath();
+      ringDraw.forEach(([x,y],i)=> i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+      ctx.closePath();
+      ctx.stroke();
+    }
+    function fillPath(ringDraw){
+      ctx.beginPath();
+      ringDraw.forEach(([x,y],i)=> i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    let geo = null;
+    try { geo = await loadWorldGeo(); } catch(e){ console.warn("Globe: no se pudo cargar el mapa real, usando fallback", e); }
+
+    const ringsXY = [];
+    if (geo && geo.features && geo.features.length){
+      geo.features.forEach(f=>{
+        const geom = f.geometry; if (!geom) return;
+        const polys = geom.type==="Polygon" ? [geom.coordinates]
+                     : geom.type==="MultiPolygon" ? geom.coordinates : [];
+        polys.forEach(poly=>{
+          poly.forEach(ring=>{
+            ringsXY.push(ring.map(([lng,lat])=>toXY(lng,lat)));
+          });
+        });
+      });
+    } else {
+      FALLBACK_CONTINENTS.forEach(poly=>{
+        ringsXY.push(poly.map(([lat,lng])=>toXY(lng,lat)));
+      });
+    }
+
+    // relleno sutil azul-marino sobre tierra
+    ctx.fillStyle = "rgba(14,46,82,0.55)";
+    ringsXY.forEach(fillPath);
+
+    // halo de glow exterior (pasada ancha y difusa)
+    ctx.shadowColor = "rgba(56,189,248,0.95)";
+    ctx.shadowBlur = 14;
+    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = "rgba(56,189,248,0.5)";
+    ringsXY.forEach(strokePath);
+
+    // línea nítida encima (borde brillante tipo holograma)
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1.1;
+    ctx.strokeStyle = "rgba(200,240,255,0.95)";
+    ringsXY.forEach(strokePath);
+
+    const tex = new THREE.CanvasTexture(cv);
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  let scene, camera, renderer, controls, raycaster, mouse, clock;
+  let laserGroup, hitTargets = [];
+  let wrapEl, tooltipEl, canvasReady=false, scriptsReady=false, rotating=true;
+
+  async function ensureThree(){
+    if (scriptsReady) return true;
+    if (typeof THREE !== "undefined" && THREE.OrbitControls) { scriptsReady = true; return true; }
+    try {
+      if (typeof THREE === "undefined") {
+        await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js");
+      }
+      if (!THREE.OrbitControls) {
+        await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js");
+      }
+      scriptsReady = true;
+      return true;
+    } catch(e) {
+      console.error("Globe: failed to load three.js", e);
+      return false;
+    }
+  }
+
+  function injectStyles(){
+    if (document.getElementById("glb-styles")) return;
+    const st=document.createElement("style"); st.id="glb-styles";
+    st.textContent=`
+      #glb-card{background:linear-gradient(180deg,var(--bg2) 0%,#04090f 100%);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03);overflow:hidden;margin-bottom:1.5rem}
+      #glb-head{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.4rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.6rem}
+      #glb-head h4{margin:0;border:0;padding:0;font-size:.82rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text);font-weight:700;display:flex;align-items:center;gap:.6rem}
+      #glb-head .glb-hint{font-size:.64rem;color:var(--text2);font-weight:400;text-transform:none}
+      .glb-btn{padding:.3rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:500}
+      .glb-btn:hover{border-color:#38bdf8;color:#38bdf8}
+      #glb-canvas-wrap{position:relative;height:560px;background:radial-gradient(ellipse at 50% 40%,#061522 0%,#000509 75%);cursor:grab}
+      #glb-canvas-wrap canvas{display:block}
+      #glb-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#38bdf8;font-size:.85rem;flex-direction:column;gap:.6rem;text-align:center;font-family:'DM Mono',monospace;text-shadow:0 0 12px rgba(56,189,248,.7)}
+      #glb-tooltip{position:absolute;display:none;pointer-events:none;background:rgba(2,10,20,.96);border:1px solid #38bdf8;border-radius:10px;padding:.55rem .85rem;font-size:.78rem;color:white;z-index:20;box-shadow:0 0 24px rgba(56,189,248,.4);white-space:nowrap}
+      #glb-tooltip b{color:#38bdf8;font-size:.84rem}
+      #glb-legend{display:flex;gap:.5rem;flex-wrap:wrap;padding:.9rem 1.4rem;border-top:1px solid var(--border)}
+      .glb-leg-item{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:.25rem .7rem}
+      .glb-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+      .glb-leg-n{font-family:'DM Mono',monospace;font-weight:700;color:var(--text2)}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function injectSection(){
+    if (document.getElementById("glb-card")) return;
+    const anchor = document.getElementById("an-kpis-global");
+    if (!anchor) return;
+    injectStyles();
+    const html = `
+      <div class="an-section-label">🌍 Global Distribution</div>
+      <div id="glb-card">
+        <div id="glb-head">
+          <h4>🌐 World Map — Leads by Country <span class="glb-hint">drag to rotate · scroll to zoom</span></h4>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <span class="an-filter-badge" id="glb-badge">— countries</span>
+            <button class="glb-btn" id="glb-toggle-rotate">⏸ Pause</button>
+            <button class="glb-btn" id="glb-reset-view">↺ Reset View</button>
+          </div>
+        </div>
+        <div id="glb-canvas-wrap">
+          <div id="glb-loading">⟁ INITIALIZING GLOBAL MAP…</div>
+          <div id="glb-tooltip"></div>
+        </div>
+        <div id="glb-legend"></div>
+      </div>`;
+    anchor.insertAdjacentHTML("afterend", html);
+    wrapEl = document.getElementById("glb-canvas-wrap");
+    tooltipEl = document.getElementById("glb-tooltip");
+    document.getElementById("glb-toggle-rotate").onclick = function(){
+      rotating = !rotating;
+      this.textContent = rotating ? "⏸ Pause" : "▶ Resume";
+      if (controls) controls.autoRotate = rotating;
+    };
+    document.getElementById("glb-reset-view").onclick = resetView;
+  }
+
+  function resetView(){
+    if (!camera || !controls) return;
+    camera.position.set(0, 40, 260);
+    controls.target.set(0,0,0);
+    controls.update();
+  }
+
+  async function initScene(){
+    if (canvasReady) return true;
+    const ok = await ensureThree();
+    if (!ok) {
+      const loading = document.getElementById("glb-loading");
+      if (loading) loading.innerHTML = "⚠️ No se pudo cargar el módulo 3D.<br><span style='font-size:.7rem'>Verifica tu conexión a internet y recarga.</span>";
+      return false;
+    }
+    const W = wrapEl.clientWidth, H = wrapEl.clientHeight;
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, W/H, 1, 2000);
+    camera.position.set(0, 40, 260);
+
+    renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+    renderer.setSize(W, H);
+    wrapEl.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 140;
+    controls.maxDistance = 500;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.55;
+    controls.addEventListener("start", ()=>{ controls.autoRotate = false; });
+    controls.addEventListener("end", ()=>{ if(rotating) setTimeout(()=>{ if(rotating) controls.autoRotate = true; }, 2500); });
+
+    scene.add(new THREE.AmbientLight(0x335577, 1.3));
+    const dl = new THREE.DirectionalLight(0x8fd9ff, 0.5);
+    dl.position.set(200, 150, 200);
+    scene.add(dl);
+
+    // ── Esfera con textura del mapa (carga async) ──
+    const solidGeo = new THREE.SphereGeometry(RADIUS, 64, 64);
+    const placeholderMat = new THREE.MeshBasicMaterial({color:0x051422, transparent:true, opacity:0.9});
+    const earthMesh = new THREE.Mesh(solidGeo, placeholderMat);
+    scene.add(earthMesh);
+
+    buildEarthCanvasTexture().then(tex=>{
+      earthMesh.material.dispose();
+      earthMesh.material = new THREE.MeshBasicMaterial({map: tex, transparent:true, opacity:0.97});
+      const loading = document.getElementById("glb-loading");
+      if (loading) loading.style.display = "none";
+    });
+
+    const wireGeo = new THREE.SphereGeometry(RADIUS*1.003, 32, 22);
+    const wireMat = new THREE.MeshBasicMaterial({color:0x38bdf8, wireframe:true, transparent:true, opacity:0.05});
+    scene.add(new THREE.Mesh(wireGeo, wireMat));
+
+    const atmoGeo = new THREE.SphereGeometry(RADIUS*1.18, 64, 64);
+    const atmoMat = new THREE.ShaderMaterial({
+      uniforms:{},
+      vertexShader:`
+        varying vec3 vNormal;
+        void main(){
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+        }`,
+      fragmentShader:`
+        varying vec3 vNormal;
+        void main(){
+          float intensity = pow(0.7 - dot(vNormal, vec3(0.0,0.0,1.0)), 4.0);
+          gl_FragColor = vec4(0.12,0.65,1.0,1.0) * intensity;
+        }`,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+      transparent: true
+    });
+    scene.add(new THREE.Mesh(atmoGeo, atmoMat));
+
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 900;
+    const starPos = new Float32Array(starCount*3);
+    for (let i=0;i<starCount;i++){
+      const r = 700 + Math.random()*400;
+      const th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1);
+      starPos[i*3]   = r*Math.sin(ph)*Math.cos(th);
+      starPos[i*3+1] = r*Math.sin(ph)*Math.sin(th);
+      starPos[i*3+2] = r*Math.cos(ph);
+    }
+    starGeo.setAttribute("position", new THREE.BufferAttribute(starPos,3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0x9fd9ff,size:1.4,transparent:true,opacity:0.5})));
+
+    laserGroup = new THREE.Group();
+    scene.add(laserGroup);
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2(-99,-99);
+    clock = new THREE.Clock();
+
+    renderer.domElement.addEventListener("mousemove", onMouseMove);
+    renderer.domElement.addEventListener("mouseleave", ()=>{ tooltipEl.style.display="none"; });
+
+    new ResizeObserver(onResize).observe(wrapEl);
+
+    canvasReady = true;
+    animate();
+    return true;
+  }
+
+  function onResize(){
+    if (!renderer || !wrapEl) return;
+    const W = wrapEl.clientWidth, H = wrapEl.clientHeight;
+    if (W<10||H<10) return;
+    camera.aspect = W/H;
+    camera.updateProjectionMatrix();
+    renderer.setSize(W,H);
+  }
+
+  function onMouseMove(e){
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left)/rect.width)*2 - 1;
+    mouse.y = -((e.clientY - rect.top)/rect.height)*2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(hitTargets, false);
+    if (hits.length){
+      const d = hits[0].object.userData;
+      tooltipEl.innerHTML = `<b>${d.country}</b><br>${d.count} lead${d.count===1?"":"s"} · ${d.pct}%`;
+      tooltipEl.style.display = "block";
+      tooltipEl.style.left = (e.clientX - rect.left + 14) + "px";
+      tooltipEl.style.top  = (e.clientY - rect.top  + 10) + "px";
+      renderer.domElement.style.cursor = "pointer";
+    } else {
+      tooltipEl.style.display = "none";
+      renderer.domElement.style.cursor = "grab";
+    }
+  }
+
+  function buildLasers(data){
+    while (laserGroup.children.length) laserGroup.remove(laserGroup.children[0]);
+    hitTargets = [];
+    if (!data.length) return;
+    const maxCount = Math.max(...data.map(d=>d.count));
+    const total = data.reduce((s,d)=>s+d.count,0) || 1;
+    data.forEach((d,i)=>{
+      const coords = COUNTRY_COORDS[d.country];
+      if (!coords) return;
+      const t = maxCount>0 ? d.count/maxCount : 0;
+      const height = 6 + t*70;
+      const color = lerpColor(t);
+      const surfacePos = latLngToVec3(coords[0], coords[1], RADIUS);
+      const normal = surfacePos.clone().normalize();
+
+      const grp = new THREE.Group();
+      grp.position.copy(surfacePos);
+      grp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
+
+      const coreGeo = new THREE.CylinderGeometry(0.9, 0.9, height, 8, 1, true);
+      coreGeo.translate(0, height/2, 0);
+      const core = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.95}));
+      grp.add(core);
+
+      const haloGeo = new THREE.CylinderGeometry(2.6, 2.6, height, 8, 1, true);
+      haloGeo.translate(0, height/2, 0);
+      grp.add(new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.18, blending:THREE.AdditiveBlending, depthWrite:false})));
+
+      const tipMat = new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false});
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(2.4, 12, 12), tipMat);
+      tip.position.set(0, height, 0);
+      grp.add(tip);
+
+      const ringMat = new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.55, side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false});
+      const ring = new THREE.Mesh(new THREE.RingGeometry(2.2, 3.6, 24), ringMat);
+      ring.rotation.x = -Math.PI/2;
+      ring.position.set(0, 0.3, 0);
+      grp.add(ring);
+
+      const hitGeo = new THREE.CylinderGeometry(4, 4, height+5, 8, 1, true);
+      hitGeo.translate(0, (height+5)/2, 0);
+      const hit = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({visible:false}));
+      hit.userData = {country:d.country, count:d.count, pct:((d.count/total)*100).toFixed(1)};
+      grp.add(hit);
+      hitTargets.push(hit);
+
+      grp.userData.tip = tip;
+      grp.userData.ringMat = ringMat;
+      grp.userData.phase = i*0.55;
+      laserGroup.add(grp);
+    });
+  }
+
+  function animate(){
+    requestAnimationFrame(animate);
+    if (controls) controls.update();
+    const t = clock ? clock.getElapsedTime() : 0;
+    laserGroup.children.forEach(grp=>{
+      const tip = grp.userData.tip, ph = grp.userData.phase||0;
+      if (tip){
+        const s = 1 + 0.35*Math.sin(t*2.4 + ph);
+        tip.scale.set(s,s,s);
+      }
+      if (grp.userData.ringMat){
+        grp.userData.ringMat.opacity = 0.35 + 0.3*Math.sin(t*2 + ph);
+      }
+    });
+    renderer.render(scene, camera);
+  }
+
+  function getFilteredForGlobe(){
+    const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
+    const from = document.getElementById("an-date-from")?.value || "2025-01-01";
+    const to   = document.getElementById("an-date-to")?.value   || "2099-12-31";
+    const doc  = document.getElementById("an-doctor-sel")?.value || "all";
+    const ase  = document.getElementById("an-asesor-sel")?.value || "all";
+    return ALL.filter(l=>{
+      const field = l.admission_date || l.fecha_creacion;
+      if (!field) return false;
+      const d = String(field).slice(0,10);
+      if (d < from || d > to) return false;
+      if (doc !== "all" && String(l.doctor_id) !== String(doc)) return false;
+      if (ase !== "all" && String(l.asesor_id) !== String(ase)) return false;
+      return true;
+    });
+  }
+
+  function updateGlobeData(){
+    if (!document.getElementById("glb-card")) return;
+    const L = getFilteredForGlobe();
+    const counts = {};
+    let unmapped = 0;
+    L.forEach(l=>{
+      const pais = (l.pais||"").trim();
+      if (!pais) return;
+      if (!COUNTRY_COORDS[pais]) { unmapped++; return; }
+      counts[pais] = (counts[pais]||0) + 1;
+    });
+    const data = Object.entries(counts).map(([country,count])=>({country,count})).sort((a,b)=>b.count-a.count);
+
+    const badge = document.getElementById("glb-badge");
+    if (badge) badge.innerHTML = `<span style="color:#38bdf8">${data.length}</span> countries · ${L.length} leads`;
+
+    const total = data.reduce((s,d)=>s+d.count,0) || 1;
+    const legend = document.getElementById("glb-legend");
+    if (legend){
+      const top = data.slice(0,10);
+      if (!top.length){
+        legend.innerHTML = `<span style="color:var(--text2);font-size:.78rem">No country data for this period.</span>`;
+      } else {
+        const maxCount = top[0].count;
+        legend.innerHTML = top.map(d=>{
+          const tt = maxCount>0 ? d.count/maxCount : 0;
+          const hex = "#" + lerpColor(tt).toString(16).padStart(6,"0");
+          const pct = ((d.count/total)*100).toFixed(1);
+          return `<span class="glb-leg-item"><span class="glb-leg-dot" style="background:${hex}"></span>${d.country} <span class="glb-leg-n">${d.count}</span> <span style="color:var(--text2)">(${pct}%)</span></span>`;
+        }).join("") + (unmapped>0 ? `<span class="glb-leg-item" style="opacity:.6">❓ Unmapped <span class="glb-leg-n">${unmapped}</span></span>` : "");
+      }
+    }
+    if (canvasReady) buildLasers(data);
+  }
+
+  async function ensureGlobeReady(){
+    injectSection();
+    if (!document.getElementById("glb-card")) return;
+    if (!canvasReady) await initScene();
+    updateGlobeData();
+  }
+
+  function waitForApp(cb){
+    const id = setInterval(()=>{
+      if (typeof window.switchMainView === "function" && typeof todosLeads !== "undefined") {
+        clearInterval(id); cb();
+      }
+    }, 400);
+  }
+
+  waitForApp(() => {
+    const _prevSwitch = window.switchMainView;
+    window.switchMainView = function(view, btn){
+      _prevSwitch(view, btn);
+      if (view === "analytics") setTimeout(ensureGlobeReady, 60);
+    };
+    ["anGlobalDateChange","anGlobalFilterChange","anSetQuick","anRefresh"].forEach(fnName=>{
+      const prev = window[fnName];
+      if (typeof prev === "function"){
+        window[fnName] = function(...args){
+          const r = prev.apply(this, args);
+          setTimeout(updateGlobeData, 50);
+          return r;
+        };
+      }
+    });
+  });
+
+})();
+</script>
 </body>
 </html>
