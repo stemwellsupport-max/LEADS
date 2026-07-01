@@ -4171,90 +4171,90 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
 })();
 </script>
+
+
 <script>
 // ══════════════════════════════════════════════════════════════════
-// 3D GLOBE MODULE — Hacker / Holograma estilo JARVIS, fronteras reales
+// MÓDULO UNIFICADO: GLOBO 3D + HOLOGRAMA JARVIS (v2 — animaciones completas)
 // ══════════════════════════════════════════════════════════════════
 (function () {
 
   const COUNTRY_COORDS = {
-    "Afganistán":[33,66],"Albania":[41,20],"Alemania":[51,10],"Andorra":[42.5,1.5],
-    "Angola":[-11.2,17.9],"Antigua y Barbuda":[17.1,-61.8],"Arabia Saudita":[24,45],
-    "Argelia":[28,3],"Argentina":[-38.4,-63.6],"Armenia":[40.1,45],"Australia":[-25.3,133.8],
-    "Austria":[47.5,14.5],"Azerbaiyán":[40.1,47.6],"Bahamas":[24.25,-76.0],"Bangladés":[23.7,90.4],
-    "Barbados":[13.2,-59.5],"Baréin":[26.0,50.5],"Bélgica":[50.5,4.5],"Belice":[17.2,-88.5],
-    "Benín":[9.3,2.3],"Bielorrusia":[53.7,28.0],"Birmania":[21.9,95.9],"Bolivia":[-16.3,-63.6],
-    "Bosnia y Herzegovina":[43.9,17.7],"Botsuana":[-22.3,24.7],"Brasil":[-14.2,-51.9],
-    "Brunéi":[4.5,114.7],"Bulgaria":[42.7,25.5],"Burkina Faso":[12.2,-1.6],"Burundi":[-3.4,29.9],
-    "Bután":[27.5,90.4],"Cabo Verde":[16.0,-24.0],"Camboya":[12.6,104.9],"Camerún":[5.7,12.7],
-    "Canadá":[56.1,-106.3],"Catar":[25.3,51.2],"Chad":[15.5,18.7],"Chile":[-35.7,-71.5],
-    "China":[35.9,104.2],"Chipre":[35.1,33.4],"Colombia":[4.6,-74.1],"Comoras":[-11.6,43.3],
-    "Corea del Norte":[40.3,127.5],"Corea del Sur":[35.9,127.8],"Costa de Marfil":[7.5,-5.5],
-    "Costa Rica":[9.7,-83.8],"Croacia":[45.1,15.2],"Cuba":[21.5,-77.8],"Dinamarca":[56.3,9.5],
-    "Dominica":[15.4,-61.4],"Ecuador":[-1.8,-78.2],"Egipto":[26.8,30.8],"El Salvador":[13.8,-88.9],
-    "Emiratos Árabes Unidos":[23.4,53.8],"Eritrea":[15.2,39.8],"Eslovaquia":[48.7,19.7],
-    "Eslovenia":[46.1,14.8],"España":[40.0,-3.7],"Estados Unidos":[39.8,-98.6],"Estonia":[58.6,25.0],
-    "Etiopía":[9.1,40.5],"Filipinas":[12.9,121.8],"Finlandia":[61.9,25.7],"Fiyi":[-17.7,178.1],
-    "Francia":[46.6,2.2],"Gabón":[-0.8,11.6],"Gambia":[13.4,-15.3],"Georgia":[42.3,43.4],
-    "Ghana":[7.9,-1.0],"Granada":[12.1,-61.7],"Grecia":[39.1,21.8],"Guatemala":[15.8,-90.2],
-    "Guinea":[9.9,-9.7],"Guinea-Bisáu":[11.8,-15.2],"Guinea Ecuatorial":[1.6,10.3],
-    "Guyana":[4.9,-58.9],"Haití":[18.9,-72.3],"Honduras":[15.2,-86.2],"Hungría":[47.2,19.5],
-    "India":[20.6,79.0],"Indonesia":[-0.8,113.9],"Irak":[33.2,43.7],"Irán":[32.4,53.7],
-    "Irlanda":[53.4,-8.2],"Islandia":[64.9,-19.0],"Islas Marshall":[7.1,171.2],
-    "Islas Salomón":[-9.6,160.2],"Israel":[31.0,34.8],"Italia":[41.9,12.6],"Jamaica":[18.1,-77.3],
-    "Japón":[36.2,138.3],"Jordania":[31.2,36.5],"Kazajistán":[48.0,66.9],"Kenia":[0.0,37.9],
-    "Kirguistán":[41.2,74.8],"Kiribati":[1.9,-157.4],"Kuwait":[29.3,47.5],"Laos":[19.9,102.5],
-    "Lesoto":[-29.6,28.2],"Letonia":[56.9,24.6],"Líbano":[33.9,35.9],"Liberia":[6.4,-9.4],
-    "Libia":[26.3,17.2],"Liechtenstein":[47.2,9.5],"Lituania":[55.2,23.9],"Luxemburgo":[49.8,6.1],
-    "Macedonia del Norte":[41.6,21.7],"Madagascar":[-18.8,47.0],"Malasia":[4.2,102.0],
-    "Malaui":[-13.3,34.3],"Maldivas":[3.2,73.2],"Malí":[17.6,-4.0],"Malta":[35.9,14.4],
-    "Marruecos":[31.8,-7.1],"Mauricio":[-20.3,57.6],"Mauritania":[21.0,-10.9],"México":[23.6,-102.5],
-    "Micronesia":[6.9,158.2],"Moldavia":[47.4,28.4],"Mónaco":[43.7,7.4],"Mongolia":[46.9,103.8],
-    "Montenegro":[42.7,19.4],"Mozambique":[-18.7,35.5],"Namibia":[-22.9,18.5],"Nauru":[-0.5,166.9],
-    "Nepal":[28.4,84.1],"Nicaragua":[12.9,-85.2],"Níger":[17.6,8.1],"Nigeria":[9.1,8.7],
-    "Noruega":[60.5,8.5],"Nueva Zelanda":[-40.9,174.9],"Omán":[21.5,55.9],"Países Bajos":[52.1,5.3],
-    "Pakistán":[30.4,69.3],"Palaos":[7.5,134.6],"Palestina":[31.9,35.2],"Panamá":[8.5,-80.8],
-    "Papúa Nueva Guinea":[-6.3,143.9],"Paraguay":[-23.4,-58.4],"Perú":[-9.2,-75.0],
-    "Polonia":[51.9,19.1],"Portugal":[39.4,-8.2],"Reino Unido":[55.4,-3.4],
-    "República Centroafricana":[6.6,20.9],"República Checa":[49.8,15.5],
-    "República del Congo":[-0.2,15.8],"República Democrática del Congo":[-4.0,21.8],
-    "República Dominicana":[18.7,-70.2],"Ruanda":[-1.9,30.1],"Rumania":[45.9,25.0],
-    "Rusia":[61.5,105.3],"Samoa":[-13.8,-172.1],"San Cristóbal y Nieves":[17.4,-62.8],
-    "San Marino":[43.9,12.5],"San Vicente y las Granadinas":[13.2,-61.2],"Santa Lucía":[13.9,-61.0],
-    "Santo Tomé y Príncipe":[0.2,6.6],"Senegal":[14.5,-14.5],"Serbia":[44.0,21.0],
-    "Seychelles":[-4.7,55.5],"Sierra Leona":[8.5,-11.8],"Singapur":[1.35,103.8],"Siria":[34.8,39.0],
-    "Somalia":[5.2,46.2],"Sri Lanka":[7.9,80.8],"Suazilandia":[-26.5,31.5],"Sudáfrica":[-30.6,22.9],
-    "Sudán":[12.9,30.2],"Sudán del Sur":[7.3,30.0],"Suecia":[60.1,18.6],"Suiza":[46.8,8.2],
-    "Surinam":[3.9,-56.0],"Tailandia":[15.9,101.0],"Tanzania":[-6.4,34.9],"Tayikistán":[38.9,71.3],
-    "Timor Oriental":[-8.9,125.7],"Togo":[8.6,0.8],"Tonga":[-21.2,-175.2],
-    "Trinidad y Tobago":[10.7,-61.2],"Túnez":[33.9,9.5],"Turkmenistán":[39.0,59.6],
-    "Turquía":[39.0,35.2],"Tuvalu":[-7.1,177.65],"Ucrania":[48.4,31.2],"Uganda":[1.4,32.3],
-    "Uruguay":[-32.5,-55.8],"Uzbekistán":[41.4,64.6],"Vanuatu":[-15.4,167.0],
-    "Vaticano":[41.9,12.45],"Venezuela":[6.4,-66.6],"Vietnam":[14.1,108.3],"Yemen":[15.6,48.5],
-    "Yibuti":[11.8,42.6],"Zambia":[-13.13,27.85],"Zimbabue":[-19.0,29.15]
+    "Colombia":[4.6,-74.1],"Panamá":[8.5,-80.8],"Costa Rica":[9.7,-83.8],
+    "México":[23.6,-102.5],"Estados Unidos":[39.8,-98.6],"Canadá":[56.1,-106.3],
+    "Brasil":[-14.2,-51.9],"Argentina":[-38.4,-63.6],"Chile":[-35.7,-71.5],
+    "Perú":[-9.2,-75.0],"Ecuador":[-1.8,-78.2],"Venezuela":[6.4,-66.6],
+    "España":[40.0,-3.7],"Francia":[46.6,2.2],"Alemania":[51,10],
+    "Italia":[41.9,12.6],"Reino Unido":[55.4,-3.4],"Rusia":[61.5,105.3],
+    "China":[35.9,104.2],"India":[20.6,79.0],"Japón":[36.2,138.3]
   };
 
+  const CITY_COORDS_REGISTRY = {
+    "Colombia": {
+      "bogota":[4.711,-74.072],"medellin":[6.244,-75.581],"cali":[3.452,-76.532],
+      "barranquilla":[10.968,-74.781],"cartagena":[10.391,-75.479],"bucaramanga":[7.119,-73.122],
+      "pereira":[4.815,-75.694],"santa marta":[11.240,-74.199],"manizales":[5.068,-75.517],
+      "cucuta":[7.894,-72.507],"ibague":[4.438,-75.232],"pasto":[1.213,-77.281],
+      "villavicencio":[4.142,-73.626],"armenia":[4.535,-75.681],"monteria":[8.748,-75.878],
+      "neiva":[2.935,-75.281],"popayan":[2.445,-76.607],"valledupar":[10.464,-73.253]
+    },
+    "Estados Unidos": {
+      "miami":[25.762,-80.192],"orlando":[28.538,-81.379],"new york":[40.713,-74.006],
+      "los angeles":[34.052,-118.244],"houston":[29.760,-95.370],"tampa":[27.951,-82.457]
+    },
+    "México": {
+      "ciudad de méxico":[19.433,-99.133],"guadalajara":[20.667,-103.350],
+      "monterrey":[25.667,-100.317],"tijuana":[32.533,-117.017],"cancún":[21.117,-86.833]
+    },
+    "Brasil": {
+      "são paulo":[-23.550,-46.633],"rio de janeiro":[-22.906,-43.172],
+      "brasilia":[-15.793,-47.882],"salvador":[-12.971,-38.501]
+    },
+    "Argentina": {
+      "buenos aires":[-34.603,-58.381],"córdoba":[-31.417,-64.183],
+      "rosario":[-32.950,-60.666],"mendoza":[-32.890,-68.827]
+    },
+    "España": {
+      "madrid":[40.416,-3.703],"barcelona":[41.385,2.173],"valencia":[39.470,-0.376],
+      "sevilla":[37.389,-5.984],"zaragoza":[41.648,-0.889]
+    }
+  };
+
+  const ISO_NUMERIC = {
+    "Colombia":"170","Estados Unidos":"840","México":"484","Panamá":"591",
+    "República Dominicana":"214","Canadá":"124","Costa Rica":"188","Venezuela":"862",
+    "Ecuador":"218","Perú":"604","Chile":"152","Argentina":"032","Brasil":"076",
+    "Bolivia":"068","Paraguay":"600","Uruguay":"858","Cuba":"192","Guatemala":"320",
+    "Honduras":"340","El Salvador":"222","Nicaragua":"558","Puerto Rico":"630",
+    "España":"724","Reino Unido":"826","Francia":"250","Alemania":"276","Italia":"380"
+  };
+
+  const JUNK_VALUES = new Set(["celular","fijo","sin telefono","sin ciudad","ninguna","n a","na",""]);
   const RADIUS = 100;
   const PAL_STOPS = [
-    {p:0,   c:[56,189,248]},
-    {p:0.5, c:[34,211,238]},
-    {p:1,   c:[245,158,11]}
+    {p:0, c:[0,255,65]},
+    {p:0.5, c:[0,230,118]},
+    {p:1, c:[180,255,50]}
   ];
+  const GOLD = 0xd4ff3d;     // color del haz láser (coincide con la referencia)
+  const CYAN = 0x38bdf8;     // color base del holograma / planeta
+
   function lerpColor(t){
     t = Math.max(0, Math.min(1, t));
     let a = PAL_STOPS[0], b = PAL_STOPS[PAL_STOPS.length-1];
-    for (let i=0;i<PAL_STOPS.length-1;i++){
+    for (let i=0; i<PAL_STOPS.length-1; i++){
       if (t >= PAL_STOPS[i].p && t <= PAL_STOPS[i+1].p){ a=PAL_STOPS[i]; b=PAL_STOPS[i+1]; break; }
     }
     const span = (b.p - a.p) || 1;
     const lt = (t - a.p) / span;
     const r = Math.round(a.c[0] + (b.c[0]-a.c[0])*lt);
     const g = Math.round(a.c[1] + (b.c[1]-a.c[1])*lt);
-    const bl= Math.round(a.c[2] + (b.c[2]-a.c[2])*lt);
+    const bl = Math.round(a.c[2] + (b.c[2]-a.c[2])*lt);
     return (r<<16) + (g<<8) + bl;
   }
+  function hex(n){ return "#" + n.toString(16).padStart(6,"0"); }
 
-  function latLngToVec3(lat, lng, r){
+  function latLngToVec3(lat, lng, r = RADIUS){
     const phi = (90 - lat) * (Math.PI/180);
     const theta = (lng + 180) * (Math.PI/180);
     return new THREE.Vector3(
@@ -4264,51 +4264,80 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     );
   }
 
-  // ── Fallback continentes (si no hay internet para el GeoJSON real) ──
-  const FALLBACK_CONTINENTS = [
-    [[71,-156],[70,-130],[60,-95],[49,-95],[49,-123],[32,-117],[14,-92],[10,-85],[25,-97],[30,-81],[45,-67],[60,-65],[71,-90]],
-    [[12,-72],[5,-77],[-4,-81],[-18,-70],[-33,-71],[-55,-68],[-52,-58],[-34,-58],[-23,-43],[-5,-35],[5,-52]],
-    [[37,10],[32,-10],[15,-17],[5,-10],[5,8],[-5,12],[-15,12],[-25,15],[-34,18],[-34,28],[-25,33],[-12,40],[5,42],[15,40],[30,32],[31,25]],
-    [[71,25],[60,30],[55,40],[45,38],[42,28],[40,20],[44,15],[45,10],[44,8],[48,-2],[58,5],[60,11]],
-    [[77,100],[70,170],[60,170],[50,140],[35,135],[25,122],[10,105],[5,98],[8,80],[20,72],[25,67],[35,60],[40,50],[45,40],[55,38],[65,40],[70,60]],
-    [[-12,142],[-18,146],[-25,153],[-34,151],[-38,145],[-35,138],[-32,128],[-20,114],[-14,126]],
-    [[83,-35],[76,-20],[70,-45],[76,-65]]
-  ];
+  function normalize(raw) {
+    if (raw == null) return "";
+    let t = String(raw);
+    t = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    t = t.toLowerCase().trim();
+    t = t.replace(/\bd\.?\s?c\.?\b/g, "").trim();
+    t = t.replace(/\s+/g, " ");
+    return t;
+  }
+  function normalizeCity(raw) {
+    if (!raw) return null;
+    const first = String(raw).split(",")[0];
+    return normalize(first);
+  }
+  function titleCase(s) {
+    return String(s).replace(/\b\w/g, ch => ch.toUpperCase());
+  }
 
-  // ── Carga de fronteras REALES de países (TopoJSON, vía CDN) ──────
-  let worldGeoCache = null;
-  function loadScript(src){
-    return new Promise((resolve,reject)=>{
-      const s=document.createElement("script");
-      s.src=src; s.onload=()=>resolve(); s.onerror=()=>reject(new Error("load fail: "+src));
+  let scene, camera, renderer, controls, raycaster, mouse, clock;
+  let laserGroup, hitTargets = [];
+  let wrapEl, tooltipEl;
+  let canvasReady=false, scriptsReady=false, rotating=true;
+  let hoveredCountry = null, selectedCountry = null, hologramVisible = false;
+  let hologramPanel, containerEl, worldMapEl, laserSvg, nodesActiveEl;
+
+  let worldGeoCache = null, worldGeoPromise = null;
+
+  function loadScript(url) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = url;
+      s.onload = resolve;
+      s.onerror = reject;
       document.head.appendChild(s);
     });
   }
+
   async function loadWorldGeo(){
     if (worldGeoCache) return worldGeoCache;
-    if (typeof topojson === "undefined") {
-      await loadScript("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js");
-    }
-    const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json");
-    const topo = await res.json();
-    const geo = topojson.feature(topo, topo.objects.countries);
-    worldGeoCache = geo;
-    return geo;
+    if (worldGeoPromise) return worldGeoPromise;
+    worldGeoPromise = (async () => {
+      if (typeof topojson === "undefined") {
+        await loadScript("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js");
+      }
+      const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json");
+      const topo = await res.json();
+      worldGeoCache = topojson.feature(topo, topo.objects.countries);
+      return worldGeoCache;
+    })();
+    return worldGeoPromise;
   }
 
-  // ── Construye la textura del globo (hacker/holograma azul) ───────
+  async function ensureThree(){
+    if (scriptsReady) return true;
+    if (typeof THREE === "undefined") {
+      await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js");
+    }
+    if (!THREE.OrbitControls) {
+      await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js");
+    }
+    scriptsReady = true;
+    return true;
+  }
+
   async function buildEarthCanvasTexture(){
     const W = 2048, H = 1024;
     const cv = document.createElement("canvas");
     cv.width = W; cv.height = H;
     const ctx = cv.getContext("2d");
-
     const bg = ctx.createRadialGradient(W/2,H/2,0, W/2,H/2,W*0.6);
     bg.addColorStop(0, "#051422");
     bg.addColorStop(1, "#01060c");
     ctx.fillStyle = bg;
     ctx.fillRect(0,0,W,H);
-
     ctx.strokeStyle = "rgba(56,189,248,0.10)";
     ctx.lineWidth = 1;
     for (let lng=-180; lng<=180; lng+=10){
@@ -4319,7 +4348,6 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       const y = (90-lat)/180*H;
       ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
     }
-
     const toXY = (lng,lat) => [ (lng+180)/360*W, (90-lat)/180*H ];
     function strokePath(ringDraw){
       ctx.beginPath();
@@ -4333,141 +4361,318 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       ctx.closePath();
       ctx.fill();
     }
-
     let geo = null;
-    try { geo = await loadWorldGeo(); } catch(e){ console.warn("Globe: no se pudo cargar el mapa real, usando fallback", e); }
-
+    try { geo = await loadWorldGeo(); } catch(e){ console.warn("Globe texture: using fallback", e); }
     const ringsXY = [];
-    if (geo && geo.features && geo.features.length){
+    if (geo && geo.features){
       geo.features.forEach(f=>{
         const geom = f.geometry; if (!geom) return;
         const polys = geom.type==="Polygon" ? [geom.coordinates]
                      : geom.type==="MultiPolygon" ? geom.coordinates : [];
         polys.forEach(poly=>{
-          poly.forEach(ring=>{
-            ringsXY.push(ring.map(([lng,lat])=>toXY(lng,lat)));
-          });
+          poly.forEach(ring=> ringsXY.push(ring.map(([lng,lat])=>toXY(lng,lat))) );
         });
       });
     } else {
-      FALLBACK_CONTINENTS.forEach(poly=>{
-        ringsXY.push(poly.map(([lat,lng])=>toXY(lng,lat)));
-      });
+      const FALLBACK_CONTINENTS = [
+        [[71,-156],[70,-130],[60,-95],[49,-95],[49,-123],[32,-117],[14,-92],[10,-85],[25,-97],[30,-81],[45,-67],[60,-65],[71,-90]],
+        [[12,-72],[5,-77],[-4,-81],[-18,-70],[-33,-71],[-55,-68],[-52,-58],[-34,-58],[-23,-43],[-5,-35],[5,-52]],
+        [[37,10],[32,-10],[15,-17],[5,-10],[5,8],[-5,12],[-15,12],[-25,15],[-34,18],[-34,28],[-25,33],[-12,40],[5,42],[15,40],[30,32],[31,25]],
+        [[71,25],[60,30],[55,40],[45,38],[42,28],[40,20],[44,15],[45,10],[44,8],[48,-2],[58,5],[60,11]],
+        [[77,100],[70,170],[60,170],[50,140],[35,135],[25,122],[10,105],[5,98],[8,80],[20,72],[25,67],[35,60],[40,50],[45,40],[55,38],[65,40],[70,60]],
+        [[-12,142],[-18,146],[-25,153],[-34,151],[-38,145],[-35,138],[-32,128],[-20,114],[-14,126]],
+        [[83,-35],[76,-20],[70,-45],[76,-65]]
+      ];
+      FALLBACK_CONTINENTS.forEach(poly=> ringsXY.push(poly.map(([lat,lng])=>toXY(lng,lat))) );
     }
-
-    // relleno sutil azul-marino sobre tierra
     ctx.fillStyle = "rgba(14,46,82,0.55)";
     ringsXY.forEach(fillPath);
-
-    // halo de glow exterior (pasada ancha y difusa)
     ctx.shadowColor = "rgba(56,189,248,0.95)";
     ctx.shadowBlur = 14;
     ctx.lineWidth = 3.2;
     ctx.strokeStyle = "rgba(56,189,248,0.5)";
     ringsXY.forEach(strokePath);
-
-    // línea nítida encima (borde brillante tipo holograma)
     ctx.shadowBlur = 0;
     ctx.lineWidth = 1.1;
     ctx.strokeStyle = "rgba(200,240,255,0.95)";
     ringsXY.forEach(strokePath);
-
     const tex = new THREE.CanvasTexture(cv);
     tex.needsUpdate = true;
     return tex;
   }
 
-  let scene, camera, renderer, controls, raycaster, mouse, clock;
-  let laserGroup, hitTargets = [];
-  let wrapEl, tooltipEl, canvasReady=false, scriptsReady=false, rotating=true;
-
-  async function ensureThree(){
-    if (scriptsReady) return true;
-    if (typeof THREE !== "undefined" && THREE.OrbitControls) { scriptsReady = true; return true; }
-    try {
-      if (typeof THREE === "undefined") {
-        await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js");
-      }
-      if (!THREE.OrbitControls) {
-        await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js");
-      }
-      scriptsReady = true;
-      return true;
-    } catch(e) {
-      console.error("Globe: failed to load three.js", e);
-      return false;
-    }
-  }
-
+  // ─── ESTILOS ──────────────────────────────────────────────────
   function injectStyles(){
     if (document.getElementById("glb-styles")) return;
     const st=document.createElement("style"); st.id="glb-styles";
     st.textContent=`
-      #glb-card{background:linear-gradient(180deg,var(--bg2) 0%,#04090f 100%);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03);overflow:hidden;margin-bottom:1.5rem}
-      #glb-head{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.4rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.6rem}
-      #glb-head h4{margin:0;border:0;padding:0;font-size:.82rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text);font-weight:700;display:flex;align-items:center;gap:.6rem}
-      #glb-head .glb-hint{font-size:.64rem;color:var(--text2);font-weight:400;text-transform:none}
-      .glb-btn{padding:.3rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:500}
-      .glb-btn:hover{border-color:#38bdf8;color:#38bdf8}
-      #glb-canvas-wrap{position:relative;height:560px;background:radial-gradient(ellipse at 50% 40%,#061522 0%,#000509 75%);cursor:grab}
-      #glb-canvas-wrap canvas{display:block}
-      #glb-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#38bdf8;font-size:.85rem;flex-direction:column;gap:.6rem;text-align:center;font-family:'DM Mono',monospace;text-shadow:0 0 12px rgba(56,189,248,.7)}
-      #glb-tooltip{position:absolute;display:none;pointer-events:none;background:rgba(2,10,20,.96);border:1px solid #38bdf8;border-radius:10px;padding:.55rem .85rem;font-size:.78rem;color:white;z-index:20;box-shadow:0 0 24px rgba(56,189,248,.4);white-space:nowrap}
-      #glb-tooltip b{color:#38bdf8;font-size:.84rem}
-      #glb-legend{display:flex;gap:.5rem;flex-wrap:wrap;padding:.9rem 1.4rem;border-top:1px solid var(--border)}
-      .glb-leg-item{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:.25rem .7rem}
-      .glb-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-      .glb-leg-n{font-family:'DM Mono',monospace;font-weight:700;color:var(--text2)}
+      #glb-card { --gc:#38bdf8; --gold:#d4ff3d; font-family:'DM Mono', ui-monospace, monospace; }
+      #glb-container {
+        display: flex; gap: 0;
+        background: radial-gradient(ellipse at 50% 40%, #061522 0%, #000509 75%);
+        border: 1px solid rgba(56,189,248,0.15);
+        border-radius: 14px; overflow: hidden;
+        position: relative; height: 640px;
+        transition: all 0.5s;
+        box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(0,10,20,0.4);
+      }
+      /* Rejilla de fondo tipo HUD */
+      #glb-container::before {
+        content:""; position:absolute; inset:0; pointer-events:none; z-index:1;
+        background-image:
+          linear-gradient(rgba(56,189,248,0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(56,189,248,0.05) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 85%);
+      }
+
+      #glb-world-map {
+        flex: 1; min-width: 0; position: relative; overflow: hidden;
+        background: transparent;
+        transition: flex 0.7s cubic-bezier(0.22,1,0.36,1);
+      }
+      #glb-canvas-wrap { width:100%; height:100%; position:relative; cursor:grab; }
+      #glb-canvas-wrap canvas { display:block; width:100%!important; height:100%!important; }
+
+      #glb-hud-top {
+        position:absolute; top:14px; left:18px; z-index:6; pointer-events:none;
+        color:#7dd3fc; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase;
+        text-shadow:0 0 8px rgba(56,189,248,.8); line-height:1.6; opacity:.85;
+      }
+      #glb-hud-top .dot { display:inline-block; width:6px; height:6px; border-radius:50%;
+        background:#00e676; margin-right:6px; box-shadow:0 0 8px #00e676;
+        animation: glbBlink 1.6s ease-in-out infinite; }
+      #glb-hud-topright {
+        position:absolute; top:14px; right:18px; z-index:6; pointer-events:none;
+        color:rgba(125,211,252,.55); font-size:.6rem; letter-spacing:.16em; text-transform:uppercase;
+        text-align:right;
+      }
+      @keyframes glbBlink { 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+      #glb-tooltip {
+        position:absolute; display:none; pointer-events:none;
+        background:rgba(2,10,20,0.94); border:1px solid var(--gc); border-radius:6px;
+        padding:8px 14px; font-size:.68rem; color:#e8fbff; z-index:20;
+        box-shadow:0 0 24px rgba(56,189,248,0.25); white-space:nowrap;
+        font-family:'DM Mono',monospace; letter-spacing:.02em;
+      }
+      #glb-tooltip b { color:#7dd3fc; font-size:.74rem; }
+      #glb-tooltip .hover-hint { color: var(--gold); font-size:.58rem; margin-top:4px; letter-spacing:.08em; text-transform:uppercase; opacity:.85; }
+
+      #glb-loading {
+        position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+        color:#38bdf8; font-size:.85rem; flex-direction:column; gap:.6rem; text-align:center;
+        text-shadow:0 0 12px rgba(56,189,248,0.7); background:rgba(5,10,20,0.8);
+        z-index:5; transition:opacity .5s; font-family:'DM Mono',monospace;
+      }
+      #glb-loading.hidden { opacity:0; pointer-events:none; }
+
+      .glb-hover-glow {
+        position:absolute; pointer-events:none; border-radius:50%;
+        background:radial-gradient(circle,rgba(56,189,248,0.28),rgba(56,189,248,0.06) 55%,transparent 78%);
+        border:1px solid rgba(56,189,248,0.35);
+        transition:left .08s linear, top .08s linear, opacity .2s;
+        display:none; z-index:3; width:0; height:0;
+        transform:translate(-50%,-50%);
+      }
+      .glb-hover-glow.active { display:block; animation: glbPulseRing 1.4s ease-in-out infinite; }
+      @keyframes glbPulseRing {
+        0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,0.35); }
+        50% { box-shadow: 0 0 0 10px rgba(56,189,248,0); }
+      }
+
+      .glb-scanline {
+        position:absolute; left:0; right:0; top:0; height:2px; z-index:4; pointer-events:none;
+        background:linear-gradient(90deg, transparent, rgba(56,189,248,.55), transparent);
+        animation: glbScan 5s linear infinite; opacity:.6;
+      }
+      @keyframes glbScan { 0%{ top:0%; } 100%{ top:100%; } }
+
+      /* Esquinas HUD reutilizables */
+      .glb-corner { position:absolute; width:20px; height:20px; z-index:6; pointer-events:none; opacity:.6; }
+      .glb-corner.tl{top:10px;left:10px;border-top:2px solid var(--gc);border-left:2px solid var(--gc);}
+      .glb-corner.tr{top:10px;right:10px;border-top:2px solid var(--gc);border-right:2px solid var(--gc);}
+      .glb-corner.bl{bottom:10px;left:10px;border-bottom:2px solid var(--gc);border-left:2px solid var(--gc);}
+      .glb-corner.br{bottom:10px;right:10px;border-bottom:2px solid var(--gc);border-right:2px solid var(--gc);}
+
+      #glb-laser-svg { position:absolute; inset:0; z-index:9; pointer-events:none; }
+
+      /* Panel lateral del holograma */
+      #glb-hologram {
+        flex: 0 0 0px; min-width: 0; overflow: hidden;
+        background: transparent;
+        transition: flex 0.7s cubic-bezier(0.22,1,0.36,1), opacity .5s;
+        opacity: 0; position: relative; z-index: 10;
+        border-left: 1px solid rgba(56,189,248,0);
+      }
+      #glb-hologram.open {
+        flex: 0 0 56%; min-width: 480px; opacity: 1;
+        border-left: 1px solid rgba(56,189,248,0.18);
+        background: linear-gradient(to right, rgba(56,189,248,0.05) 0%, transparent 12%);
+      }
+      #glb-hologram .holo-close {
+        position: absolute; top: 14px; right: 16px; z-index: 15;
+        background: rgba(2,10,20,0.7); border: 1px solid rgba(56,189,248,0.3);
+        border-radius: 4px; width: 30px; height: 30px; color: #9ff5ff;
+        font-size: .85rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .25s;
+      }
+      #glb-hologram .holo-close:hover { background: rgba(56,189,248,0.15); border-color: #38bdf8; }
+
+      #holo-content {
+        width: 100%; height: 100%;
+        display: grid;
+        grid-template-columns: 96px 1fr 200px;
+        grid-template-rows: auto 1fr auto;
+        gap: 6px 14px;
+        padding: 16px 50px 12px 18px;
+        position: relative;
+      }
+      #holo-header {
+        grid-column: 1 / 4; grid-row: 1;
+        color:#7dd3fc; font-size:.68rem; letter-spacing:.06em;
+        text-shadow:0 0 8px rgba(56,189,248,.7);
+        border-bottom: 1px solid rgba(56,189,248,.18); padding-bottom:8px;
+        display:flex; align-items:center; gap:8px; text-transform:uppercase;
+      }
+      #holo-header .dot { width:6px; height:6px; border-radius:50%; background:var(--gold);
+        box-shadow:0 0 8px var(--gold); animation: glbBlink 1.4s ease-in-out infinite; }
+
+      #holo-stats-left {
+        grid-column: 1; grid-row: 2; display:flex; flex-direction:column; gap:14px;
+        font-size:.56rem; color:rgba(125,211,252,.75); letter-spacing:.03em;
+      }
+      #holo-stats-left .stat { display:flex; flex-direction:column; gap:4px; }
+      #holo-stats-left .stat .lbl { text-transform:uppercase; opacity:.7; }
+      #holo-stats-left .stat .val { color:#00e676; font-size:.7rem; text-shadow:0 0 6px rgba(0,230,118,.6); }
+
+      #holo-map-wrap {
+        grid-column: 2; grid-row: 2; border-radius: 10px;
+        background: radial-gradient(ellipse at 50% 50%, rgba(56,189,248,0.05), transparent 70%);
+        border: 1px solid rgba(56,189,248,0.08);
+        overflow: hidden; position: relative;
+      }
+      #holo-map-wrap svg { width: 100%; height: 100%; display: block; position:relative; z-index:2; }
+      .holo-radar {
+        position:absolute; inset:10%; border-radius:50%; z-index:1; pointer-events:none;
+        background: conic-gradient(from 0deg, rgba(56,189,248,0.16), transparent 32%);
+        animation: glbRadar 4.5s linear infinite;
+      }
+      @keyframes glbRadar { to { transform: rotate(360deg); } }
+
+      #holo-list-right {
+        grid-column: 3; grid-row: 1 / 3; overflow-y:auto;
+        display:flex; flex-direction:column; gap:2px; padding-top: 2px;
+      }
+      #holo-list-right::-webkit-scrollbar { width:4px; }
+      #holo-list-right::-webkit-scrollbar-thumb { background:rgba(56,189,248,.3); border-radius:4px; }
+      #holo-list-right .list-title {
+        font-size:.56rem; letter-spacing:.1em; text-transform:uppercase; color:rgba(125,211,252,.6);
+        margin-bottom:6px;
+      }
+      .holo-city-row {
+        display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px;
+        border:1px solid rgba(56,189,248,0.08); background:rgba(56,189,248,0.03);
+        animation: glbRowIn .35s ease both;
+      }
+      .holo-city-row .num {
+        width:18px; height:18px; flex:0 0 18px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+        font-size:.6rem; font-weight:600; background:rgba(56,189,248,0.12); color:#7dd3fc;
+        border:1px solid rgba(56,189,248,0.3);
+      }
+      .holo-city-row.top .num { background:var(--gold); color:#031015; border-color:var(--gold); box-shadow:0 0 8px var(--gold); }
+      .holo-city-row .info { display:flex; flex-direction:column; min-width:0; }
+      .holo-city-row .name { font-size:.66rem; color:#e8fbff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .holo-city-row .count { font-size:.56rem; color:#00e676; }
+      @keyframes glbRowIn { from{ opacity:0; transform:translateX(8px); } to{ opacity:1; transform:translateX(0); } }
+
+      #holo-footer {
+        grid-column: 1 / 4; grid-row: 3;
+        display:flex; justify-content:space-between; align-items:center;
+        font-size:.56rem; color:rgba(125,211,252,.5); letter-spacing:.06em;
+        border-top: 1px solid rgba(56,189,248,.12); padding-top:8px; text-transform:uppercase;
+      }
+      #holo-footer .ok { color:#00e676; }
+
+      .holo-placeholder {
+        display:flex; align-items:center; justify-content:center; height:100%;
+        color:rgba(125,211,252,.55); font-size:.7rem; letter-spacing:.04em; text-align:center; padding:0 20px;
+      }
+
+      @media (max-width: 900px) {
+        #glb-container { height: auto; min-height: 560px; flex-direction: column; }
+        #glb-world-map { height: 300px; }
+        #glb-hologram.open { flex: 1; min-width: unset; }
+        #holo-content { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; padding:14px; }
+        #holo-stats-left { grid-column:1; grid-row:2; flex-direction:row; flex-wrap:wrap; gap:10px; }
+        #holo-map-wrap { grid-column:1; grid-row:3; min-height:220px; }
+        #holo-list-right { grid-column:1; grid-row:4; max-height:180px; }
+      }
     `;
     document.head.appendChild(st);
   }
 
-  function injectSection(){
+  function cornersHTML(){
+    return `<div class="glb-corner tl"></div><div class="glb-corner tr"></div><div class="glb-corner bl"></div><div class="glb-corner br"></div>`;
+  }
+
+  function injectSection() {
     if (document.getElementById("glb-card")) return;
     const anchor = document.getElementById("an-kpis-global");
     if (!anchor) return;
     injectStyles();
     const html = `
-      <div class="an-section-label">🌍 Global Distribution</div>
       <div id="glb-card">
-        <div id="glb-head">
-          <h4>🌐 World Map — Leads by Country <span class="glb-hint">drag to rotate · scroll to zoom</span></h4>
-          <div style="display:flex;gap:.5rem;align-items:center">
-            <span class="an-filter-badge" id="glb-badge">— countries</span>
-            <button class="glb-btn" id="glb-toggle-rotate">⏸ Pause</button>
-            <button class="glb-btn" id="glb-reset-view">↺ Reset View</button>
+        <div id="glb-container">
+          <svg id="glb-laser-svg"></svg>
+          <div id="glb-world-map">
+            <div id="glb-canvas-wrap">
+              <div id="glb-loading">⟁ INITIALIZING GLOBAL MAP…</div>
+              <div id="glb-tooltip"></div>
+              <div class="glb-hover-glow" id="glb-hover-glow"></div>
+              <div class="glb-scanline"></div>
+              <div id="glb-hud-top">
+                <div><span class="dot"></span>STATUS: ONLINE</div>
+                <div id="glb-hud-nodes">NODES ACTIVE: 0</div>
+              </div>
+              <div id="glb-hud-topright">Global Leads Network<br>Jarvis Data Hub · v9.1</div>
+              ${cornersHTML()}
+            </div>
+          </div>
+          <div id="glb-hologram">
+            <button class="holo-close" id="holo-close">✕</button>
+            <div id="holo-content">
+              <div id="holo-header"><span class="dot"></span><span id="holo-title">—</span></div>
+              <div id="holo-stats-left"></div>
+              <div id="holo-map-wrap"><div class="holo-placeholder">Selecciona un país en el globo</div></div>
+              <div id="holo-list-right"></div>
+              <div id="holo-footer">
+                <span>System Check: [Leads / Ciudades]: <span class="ok">Operational</span></span>
+                <span id="holo-footer-time">—</span>
+              </div>
+              ${cornersHTML()}
+            </div>
           </div>
         </div>
-        <div id="glb-canvas-wrap">
-          <div id="glb-loading">⟁ INITIALIZING GLOBAL MAP…</div>
-          <div id="glb-tooltip"></div>
-        </div>
-        <div id="glb-legend"></div>
       </div>`;
     anchor.insertAdjacentHTML("afterend", html);
     wrapEl = document.getElementById("glb-canvas-wrap");
     tooltipEl = document.getElementById("glb-tooltip");
-    document.getElementById("glb-toggle-rotate").onclick = function(){
-      rotating = !rotating;
-      this.textContent = rotating ? "⏸ Pause" : "▶ Resume";
-      if (controls) controls.autoRotate = rotating;
-    };
-    document.getElementById("glb-reset-view").onclick = resetView;
+    hologramPanel = document.getElementById("glb-hologram");
+    containerEl = document.getElementById("glb-container");
+    worldMapEl = document.getElementById("glb-world-map");
+    laserSvg = document.getElementById("glb-laser-svg");
+    nodesActiveEl = document.getElementById("glb-hud-nodes");
+    document.getElementById("holo-close").onclick = closeHologram;
   }
 
-  function resetView(){
-    if (!camera || !controls) return;
-    camera.position.set(0, 40, 260);
-    controls.target.set(0,0,0);
-    controls.update();
-  }
-
+  // ─── INICIALIZACIÓN DE ESCENA THREE.JS ──────────────────────────
   async function initScene(){
     if (canvasReady) return true;
     const ok = await ensureThree();
     if (!ok) {
-      const loading = document.getElementById("glb-loading");
-      if (loading) loading.innerHTML = "⚠️ No se pudo cargar el módulo 3D.<br><span style='font-size:.7rem'>Verifica tu conexión a internet y recarga.</span>";
+      document.getElementById("glb-loading").innerHTML = "⚠️ No se pudo cargar el módulo 3D.";
       return false;
     }
     const W = wrapEl.clientWidth, H = wrapEl.clientHeight;
@@ -4479,7 +4684,7 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
     renderer.setSize(W, H);
-    wrapEl.appendChild(renderer.domElement);
+    wrapEl.insertBefore(renderer.domElement, wrapEl.firstChild);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -4489,24 +4694,23 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.55;
     controls.addEventListener("start", ()=>{ controls.autoRotate = false; });
-    controls.addEventListener("end", ()=>{ if(rotating) setTimeout(()=>{ if(rotating) controls.autoRotate = true; }, 2500); });
+    controls.addEventListener("end", ()=>{ if(rotating && !hologramVisible) setTimeout(()=>{ if(rotating && !hologramVisible) controls.autoRotate = true; }, 2500); });
+    window._globeControls = controls;
 
     scene.add(new THREE.AmbientLight(0x335577, 1.3));
     const dl = new THREE.DirectionalLight(0x8fd9ff, 0.5);
     dl.position.set(200, 150, 200);
     scene.add(dl);
 
-    // ── Esfera con textura del mapa (carga async) ──
-    const solidGeo = new THREE.SphereGeometry(RADIUS, 64, 64);
-    const placeholderMat = new THREE.MeshBasicMaterial({color:0x051422, transparent:true, opacity:0.9});
-    const earthMesh = new THREE.Mesh(solidGeo, placeholderMat);
-    scene.add(earthMesh);
-
-    buildEarthCanvasTexture().then(tex=>{
-      earthMesh.material.dispose();
-      earthMesh.material = new THREE.MeshBasicMaterial({map: tex, transparent:true, opacity:0.97});
-      const loading = document.getElementById("glb-loading");
-      if (loading) loading.style.display = "none";
+    const earthGeo = new THREE.SphereGeometry(RADIUS, 64, 64);
+    const earthMat = new THREE.MeshBasicMaterial({color:0x051422, transparent:true, opacity:0.9});
+    const earth = new THREE.Mesh(earthGeo, earthMat);
+    earth.name = 'earth';
+    scene.add(earth);
+    buildEarthCanvasTexture().then(tex => {
+      earth.material.dispose();
+      earth.material = new THREE.MeshBasicMaterial({map: tex, transparent:true, opacity:0.97});
+      document.getElementById("glb-loading").classList.add('hidden');
     });
 
     const wireGeo = new THREE.SphereGeometry(RADIUS*1.003, 32, 22);
@@ -4516,21 +4720,9 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     const atmoGeo = new THREE.SphereGeometry(RADIUS*1.18, 64, 64);
     const atmoMat = new THREE.ShaderMaterial({
       uniforms:{},
-      vertexShader:`
-        varying vec3 vNormal;
-        void main(){
-          vNormal = normalize(normalMatrix * normal);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-        }`,
-      fragmentShader:`
-        varying vec3 vNormal;
-        void main(){
-          float intensity = pow(0.7 - dot(vNormal, vec3(0.0,0.0,1.0)), 4.0);
-          gl_FragColor = vec4(0.12,0.65,1.0,1.0) * intensity;
-        }`,
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending,
-      transparent: true
+      vertexShader:`varying vec3 vNormal; void main(){ vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader:`varying vec3 vNormal; void main(){ float intensity = pow(0.7 - dot(vNormal, vec3(0.0,0.0,1.0)), 4.0); gl_FragColor = vec4(0.12,0.65,1.0,1.0) * intensity; }`,
+      side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true
     });
     scene.add(new THREE.Mesh(atmoGeo, atmoMat));
 
@@ -4555,9 +4747,15 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     clock = new THREE.Clock();
 
     renderer.domElement.addEventListener("mousemove", onMouseMove);
-    renderer.domElement.addEventListener("mouseleave", ()=>{ tooltipEl.style.display="none"; });
-
+    renderer.domElement.addEventListener("mouseleave", ()=>{
+      tooltipEl.style.display="none";
+      hoveredCountry = null;
+      updateHoverGlow(null);
+    });
+    renderer.domElement.addEventListener("click", onCanvasClick);
     new ResizeObserver(onResize).observe(wrapEl);
+
+    loadWorldGeo().catch(e => console.warn("TopoJSON preload error:", e));
 
     canvasReady = true;
     animate();
@@ -4573,32 +4771,74 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     renderer.setSize(W,H);
   }
 
+  function updateHoverGlow(countryName) {
+    const glow = document.getElementById("glb-hover-glow");
+    if (!glow) return;
+    if (countryName && !selectedCountry) {
+      const coords = COUNTRY_COORDS[countryName];
+      if (coords) {
+        const pos = latLngToVec3(coords[0], coords[1], RADIUS);
+        const vector = pos.clone().project(camera);
+        const x = (vector.x * 0.5 + 0.5) * wrapEl.clientWidth;
+        const y = (-vector.y * 0.5 + 0.5) * wrapEl.clientHeight;
+        glow.style.left = x + 'px';
+        glow.style.top = y + 'px';
+        glow.style.width = '120px';
+        glow.style.height = '120px';
+        glow.classList.add('active');
+      }
+      renderer.domElement.style.cursor = 'pointer';
+    } else {
+      glow.classList.remove('active');
+      if (!selectedCountry) renderer.domElement.style.cursor = 'grab';
+      else renderer.domElement.style.cursor = 'default';
+    }
+  }
+
   function onMouseMove(e){
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((e.clientX - rect.left)/rect.width)*2 - 1;
     mouse.y = -((e.clientY - rect.top)/rect.height)*2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObjects(hitTargets, false);
-    if (hits.length){
+    if (hits.length && !selectedCountry) {
       const d = hits[0].object.userData;
-      tooltipEl.innerHTML = `<b>${d.country}</b><br>${d.count} lead${d.count===1?"":"s"} · ${d.pct}%`;
+      tooltipEl.innerHTML = `<b>${d.country}</b><br>${d.count} leads · ${d.pct}%<div class="hover-hint">⟡ Click para ver holograma</div>`;
       tooltipEl.style.display = "block";
-      tooltipEl.style.left = (e.clientX - rect.left + 14) + "px";
+      tooltipEl.style.left = (e.clientX - rect.left + 16) + "px";
       tooltipEl.style.top  = (e.clientY - rect.top  + 10) + "px";
-      renderer.domElement.style.cursor = "pointer";
+      if (hoveredCountry !== d.country) hoveredCountry = d.country;
+      updateHoverGlow(d.country);
     } else {
-      tooltipEl.style.display = "none";
-      renderer.domElement.style.cursor = "grab";
+      if (!selectedCountry) {
+        tooltipEl.style.display = "none";
+        hoveredCountry = null;
+        updateHoverGlow(null);
+      }
+    }
+  }
+
+  function onCanvasClick(){
+    if (selectedCountry) {
+      closeHologram();
+      return;
+    }
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(hitTargets, false);
+    if (hits.length) {
+      const country = hits[0].object.userData.country;
+      openHologram(country);
     }
   }
 
   function buildLasers(data){
     while (laserGroup.children.length) laserGroup.remove(laserGroup.children[0]);
     hitTargets = [];
+    if (nodesActiveEl) nodesActiveEl.textContent = `NODES ACTIVE: ${data.length}`;
     if (!data.length) return;
     const maxCount = Math.max(...data.map(d=>d.count));
     const total = data.reduce((s,d)=>s+d.count,0) || 1;
-    data.forEach((d,i)=>{
+    data.forEach((d)=>{
       const coords = COUNTRY_COORDS[d.country];
       if (!coords) return;
       const t = maxCount>0 ? d.count/maxCount : 0;
@@ -4606,7 +4846,6 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       const color = lerpColor(t);
       const surfacePos = latLngToVec3(coords[0], coords[1], RADIUS);
       const normal = surfacePos.clone().normalize();
-
       const grp = new THREE.Group();
       grp.position.copy(surfacePos);
       grp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
@@ -4618,10 +4857,10 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
 
       const haloGeo = new THREE.CylinderGeometry(2.6, 2.6, height, 8, 1, true);
       haloGeo.translate(0, height/2, 0);
-      grp.add(new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.18, blending:THREE.AdditiveBlending, depthWrite:false})));
+      const halo = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.18, blending:THREE.AdditiveBlending, depthWrite:false}));
+      grp.add(halo);
 
-      const tipMat = new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false});
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(2.4, 12, 12), tipMat);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(2.4, 12, 12), new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false}));
       tip.position.set(0, height, 0);
       grp.add(tip);
 
@@ -4631,44 +4870,30 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
       ring.position.set(0, 0.3, 0);
       grp.add(ring);
 
-      const hitGeo = new THREE.CylinderGeometry(4, 4, height+5, 8, 1, true);
-      hitGeo.translate(0, (height+5)/2, 0);
-      const hit = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({visible:false}));
+      const hitGeo = new THREE.CylinderGeometry(12, 12, height+20, 8, 1, true);
+      hitGeo.translate(0, (height+20)/2, 0);
+      const hit = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({visible:false, depthTest:false}));
       hit.userData = {country:d.country, count:d.count, pct:((d.count/total)*100).toFixed(1)};
       grp.add(hit);
       hitTargets.push(hit);
 
-      grp.userData.tip = tip;
-      grp.userData.ringMat = ringMat;
-      grp.userData.phase = i*0.55;
+      grp.userData = {
+        country: d.country, tip, core, halo, ring, height, baseColor: color,
+        baseOpacityCore: 0.95, baseOpacityHalo: 0.18,
+        phase: Math.random()*Math.PI*2,
+        curScale: 1, curCoreOp: 0.95, curHaloOp: 0.18
+      };
       laserGroup.add(grp);
     });
   }
 
-  function animate(){
-    requestAnimationFrame(animate);
-    if (controls) controls.update();
-    const t = clock ? clock.getElapsedTime() : 0;
-    laserGroup.children.forEach(grp=>{
-      const tip = grp.userData.tip, ph = grp.userData.phase||0;
-      if (tip){
-        const s = 1 + 0.35*Math.sin(t*2.4 + ph);
-        tip.scale.set(s,s,s);
-      }
-      if (grp.userData.ringMat){
-        grp.userData.ringMat.opacity = 0.35 + 0.3*Math.sin(t*2 + ph);
-      }
-    });
-    renderer.render(scene, camera);
-  }
-
-  function getFilteredForGlobe(){
+  function getFilteredLeads() {
     const ALL = typeof todosLeads !== "undefined" ? todosLeads : [];
     const from = document.getElementById("an-date-from")?.value || "2025-01-01";
     const to   = document.getElementById("an-date-to")?.value   || "2099-12-31";
     const doc  = document.getElementById("an-doctor-sel")?.value || "all";
     const ase  = document.getElementById("an-asesor-sel")?.value || "all";
-    return ALL.filter(l=>{
+    return ALL.filter(l => {
       const field = l.admission_date || l.fecha_creacion;
       if (!field) return false;
       const d = String(field).slice(0,10);
@@ -4679,72 +4904,367 @@ if(b&&d&&!b.contains(e.target)&&!d.contains(e.target)){d.style.display="none";}
     });
   }
 
-  function updateGlobeData(){
+  function updateGlobeData() {
     if (!document.getElementById("glb-card")) return;
-    const L = getFilteredForGlobe();
+    const L = getFilteredLeads();
     const counts = {};
-    let unmapped = 0;
-    L.forEach(l=>{
+    L.forEach(l => {
       const pais = (l.pais||"").trim();
-      if (!pais) return;
-      if (!COUNTRY_COORDS[pais]) { unmapped++; return; }
+      if (!pais || !COUNTRY_COORDS[pais]) return;
       counts[pais] = (counts[pais]||0) + 1;
     });
-    const data = Object.entries(counts).map(([country,count])=>({country,count})).sort((a,b)=>b.count-a.count);
-
-    const badge = document.getElementById("glb-badge");
-    if (badge) badge.innerHTML = `<span style="color:#38bdf8">${data.length}</span> countries · ${L.length} leads`;
-
-    const total = data.reduce((s,d)=>s+d.count,0) || 1;
-    const legend = document.getElementById("glb-legend");
-    if (legend){
-      const top = data.slice(0,10);
-      if (!top.length){
-        legend.innerHTML = `<span style="color:var(--text2);font-size:.78rem">No country data for this period.</span>`;
-      } else {
-        const maxCount = top[0].count;
-        legend.innerHTML = top.map(d=>{
-          const tt = maxCount>0 ? d.count/maxCount : 0;
-          const hex = "#" + lerpColor(tt).toString(16).padStart(6,"0");
-          const pct = ((d.count/total)*100).toFixed(1);
-          return `<span class="glb-leg-item"><span class="glb-leg-dot" style="background:${hex}"></span>${d.country} <span class="glb-leg-n">${d.count}</span> <span style="color:var(--text2)">(${pct}%)</span></span>`;
-        }).join("") + (unmapped>0 ? `<span class="glb-leg-item" style="opacity:.6">❓ Unmapped <span class="glb-leg-n">${unmapped}</span></span>` : "");
-      }
-    }
+    const data = Object.entries(counts).map(([country,count]) => ({country,count})).sort((a,b) => b.count - a.count);
     if (canvasReady) buildLasers(data);
+    if (selectedCountry) renderHologramSVG(selectedCountry);
   }
 
-  async function ensureGlobeReady(){
-    injectSection();
-    if (!document.getElementById("glb-card")) return;
-    if (!canvasReady) await initScene();
-    updateGlobeData();
+  // ─── HOLOGRAMA SVG (PANEL LATERAL) ────────────────────────────
+  async function getCountryRings(countryLabel) {
+    const isoId = ISO_NUMERIC[countryLabel];
+    if (!isoId) return null;
+    try {
+      const geo = await loadWorldGeo();
+      const feature = geo.features.find(f => Number(f.id) === Number(isoId));
+      if (!feature || !feature.geometry) return null;
+      const polys = feature.geometry.type === "Polygon" ? [feature.geometry.coordinates]
+                    : feature.geometry.type === "MultiPolygon" ? feature.geometry.coordinates : [];
+      return polys.map(poly => poly[0].map(([lng, lat]) => [lat, lng]));
+    } catch(e) { return null; }
   }
 
-  function waitForApp(cb){
-    const id = setInterval(()=>{
-      if (typeof window.switchMainView === "function" && typeof todosLeads !== "undefined") {
-        clearInterval(id); cb();
+  function bboxFromRings(rings) {
+    let minLat=90, maxLat=-90, minLng=180, maxLng=-180;
+    rings.forEach(ring => ring.forEach(([lat,lng]) => {
+      if (lat<minLat) minLat=lat; if (lat>maxLat) maxLat=lat;
+      if (lng<minLng) minLng=lng; if (lng>maxLng) maxLng=lng;
+    }));
+    const padLat=(maxLat-minLat)*0.12||1, padLng=(maxLng-minLng)*0.12||1;
+    return { minLat:minLat-padLat, maxLat:maxLat+padLat, minLng:minLng-padLng, maxLng:maxLng+padLng };
+  }
+
+  function project(lat, lng, bbox, W, H, offX, offY) {
+    const x = offX + ((lng - bbox.minLng) / (bbox.maxLng - bbox.minLng)) * W;
+    const y = offY + ((bbox.maxLat - lat) / (bbox.maxLat - bbox.minLat)) * H;
+    return [x, y];
+  }
+
+  function computeCityRanking(leads, countryLabel) {
+    const countryNorm = normalize(countryLabel);
+    const groups = {};
+    let sinDato = 0;
+    leads.forEach(l => {
+      const raw = (l.ciudad || "").trim();
+      if (!raw) { sinDato++; return; }
+      const norm = normalizeCity(raw);
+      if (!norm || norm === countryNorm || JUNK_VALUES.has(norm)) { sinDato++; return; }
+      const label = titleCase(raw.split(",")[0].trim());
+      if (!groups[norm]) groups[norm] = { key: norm, label, count: 0 };
+      groups[norm].count++;
+    });
+    return { ranked: Object.values(groups).sort((a,b) => b.count - a.count), sinDato };
+  }
+
+  // Conecta cada nodo a su vecino más cercano para dar aspecto de red (como la referencia)
+  function buildMeshEdges(points) {
+    const edges = [];
+    const seen = new Set();
+    points.forEach((p, i) => {
+      let best = -1, bestD = Infinity, best2 = -1, bestD2 = Infinity;
+      points.forEach((q, j) => {
+        if (i===j) return;
+        const d = (p.x-q.x)**2 + (p.y-q.y)**2;
+        if (d < bestD) { best2=best; bestD2=bestD; best=j; bestD=d; }
+        else if (d < bestD2) { best2=j; bestD2=d; }
+      });
+      [best, best2].forEach(j => {
+        if (j < 0) return;
+        const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+        if (!seen.has(key)) { seen.add(key); edges.push([i,j]); }
+      });
+    });
+    return edges;
+  }
+
+  async function renderHologramSVG(countryName) {
+    const mapWrap = document.getElementById("holo-map-wrap");
+    if (!mapWrap) return;
+    mapWrap.innerHTML = `<div class="holo-placeholder">Cargando holograma…</div>`;
+
+    const allLeads = getFilteredLeads().filter(l => (l.pais||"").trim() === countryName);
+    const { ranked, sinDato } = computeCityRanking(allLeads, countryName);
+    const cityDict = CITY_COORDS_REGISTRY[countryName] || {};
+    const cityPins = ranked
+      .filter(c => cityDict[c.key])
+      .map(c => ({ label: c.label, count: c.count, lat: cityDict[c.key][0], lng: cityDict[c.key][1] }));
+
+    const rings = await getCountryRings(countryName);
+    let bbox;
+    if (rings && rings.length) {
+      bbox = bboxFromRings(rings);
+    } else if (cityPins.length) {
+      let minLat=90,maxLat=-90,minLng=180,maxLng=-180;
+      cityPins.forEach(c=>{
+        if(c.lat<minLat)minLat=c.lat; if(c.lat>maxLat)maxLat=c.lat;
+        if(c.lng<minLng)minLng=c.lng; if(c.lng>maxLng)maxLng=c.lng;
+      });
+      bbox={minLat:minLat-2,maxLat:maxLat+2,minLng:minLng-2,maxLng:maxLng+2};
+    } else {
+      mapWrap.innerHTML = `<div class="holo-placeholder">Sin datos geográficos suficientes para ${countryName}</div>`;
+      return;
+    }
+
+    const W=800, H=560, pad=24;
+    const boxW=W-2*pad, boxH=H-2*pad;
+    const offX=pad, offY=pad;
+
+    let borderPath="";
+    if(rings){
+      borderPath = rings.map(ring => {
+        const pts = ring.map(([lat,lng]) => project(lat,lng,bbox,boxW,boxH,offX,offY));
+        return "M" + pts.map(p=>p.join(",")).join(" L") + " Z";
+      }).join(" ");
+    }
+
+    const maxCount = Math.max(1, ...cityPins.map(c=>c.count));
+    const projected = cityPins.map(city => {
+      const [x,y] = project(city.lat, city.lng, bbox, boxW, boxH, offX, offY);
+      return { ...city, x, y };
+    });
+    const edges = projected.length > 1 ? buildMeshEdges(projected) : [];
+    const topIdx = projected.length
+      ? projected.reduce((best,c,i,arr)=> c.count>arr[best].count?i:best, 0)
+      : -1;
+
+    let lines = "";
+    edges.forEach(([i,j]) => {
+      const a = projected[i], b = projected[j];
+      lines += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#38bdf8" stroke-width="0.8" opacity="0.28" stroke-dasharray="4 3">
+        <animate attributeName="stroke-dashoffset" values="14;0" dur="1.2s" repeatCount="indefinite"/>
+      </line>`;
+    });
+
+    let markers = "";
+    projected.forEach((city, i) => {
+      const t = city.count / maxCount;
+      const isTop = i === topIdx;
+      const r = 4 + t*13;
+      const color = hex(lerpColor(t));
+      markers += `
+        <circle cx="${city.x}" cy="${city.y}" r="${r+4}" fill="none" stroke="${isTop ? '#d4ff3d' : color}" stroke-width="1" opacity="0.4">
+          <animate attributeName="r" values="${r+2};${r+9};${r+2}" dur="2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.45;0.05;0.45" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="${city.x}" cy="${city.y}" r="${r}" fill="${isTop ? '#d4ff3d' : color}" opacity="0.95"/>
+        <text x="${city.x}" y="${city.y - r - 6}" text-anchor="middle" fill="${isTop ? '#d4ff3d' : '#bff2ff'}" font-size="9" font-family="'DM Mono',monospace">${city.label}</text>
+      `;
+    });
+
+    const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="holoGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      ${borderPath ? `<path d="${borderPath}" fill="rgba(56,189,248,0.06)" stroke="#38bdf8" stroke-width="2.4" fill-rule="evenodd" filter="url(#holoGlow)" opacity="0.9">
+        <animate attributeName="opacity" values="0.65;0.95;0.65" dur="3s" repeatCount="indefinite"/>
+      </path>
+      <path d="${borderPath}" fill="none" stroke="#dff7ff" stroke-width="0.9" fill-rule="evenodd" opacity="0.8"/>` : ''}
+      ${lines}
+      ${markers}
+    </svg>`;
+    mapWrap.innerHTML = `<div class="holo-radar"></div>` + svg;
+
+    // Panel de estadísticas izquierdo
+    const statsEl = document.getElementById("holo-stats-left");
+    if (statsEl) {
+      statsEl.innerHTML = `
+        <div class="stat"><span class="lbl">Total Leads</span><span class="val">${allLeads.length}</span></div>
+        <div class="stat"><span class="lbl">Ciudades ID.</span><span class="val">${ranked.length}</span></div>
+        <div class="stat"><span class="lbl">Con coords.</span><span class="val">${cityPins.length}</span></div>
+        <div class="stat"><span class="lbl">Sin ciudad</span><span class="val" style="color:#f59e0b;">${sinDato}</span></div>
+      `;
+    }
+
+    // Lista lateral derecha (ranking real de ciudades)
+    const listEl = document.getElementById("holo-list-right");
+    if (listEl) {
+      const total = ranked.reduce((s,c)=>s+c.count,0) || 1;
+      const top10 = ranked.slice(0, 10);
+      listEl.innerHTML = `<div class="list-title">Top Ciudades — Datos</div>` +
+        (top10.length
+          ? top10.map((c,i) => `
+            <div class="holo-city-row ${i===0?'top':''}" style="animation-delay:${i*0.04}s">
+              <div class="num">${i+1}</div>
+              <div class="info">
+                <div class="name">${c.label}</div>
+                <div class="count">${c.count} leads · ${((c.count/total)*100).toFixed(1)}%</div>
+              </div>
+            </div>`).join("")
+          : `<div class="holo-placeholder" style="height:auto;padding:20px 4px;">Sin ciudades registradas para este país todavía</div>`);
+    }
+
+    // Header y footer
+    const titleEl = document.getElementById("holo-title");
+    if (titleEl) titleEl.textContent = `JARVIS DATA HUB — ${countryName.toUpperCase()} NETWORK`;
+    const footTime = document.getElementById("holo-footer-time");
+    if (footTime) footTime.textContent = new Date().toLocaleTimeString();
+  }
+
+  // ─── ABRIR / CERRAR PANEL LATERAL ─────────────────────────────
+  async function openHologram(countryName) {
+    if (!countryName || selectedCountry === countryName) return;
+    selectedCountry = countryName;
+    hologramVisible = true;
+    tooltipEl.style.display = "none";
+    updateHoverGlow(null);
+    hologramPanel.classList.add("open");
+    await renderHologramSVG(countryName);
+    controls.autoRotate = false;
+  }
+
+  function closeHologram() {
+    if (!selectedCountry) return;
+    selectedCountry = null;
+    hologramVisible = false;
+    hologramPanel.classList.remove("open");
+    document.getElementById("holo-map-wrap").innerHTML = `<div class="holo-placeholder">Selecciona un país en el globo</div>`;
+    document.getElementById("holo-stats-left").innerHTML = "";
+    document.getElementById("holo-list-right").innerHTML = "";
+    document.getElementById("holo-title").textContent = "—";
+    laserSvg.innerHTML = "";
+    controls.autoRotate = true;
+  }
+
+  window._globeOpenHologram = openHologram;
+  window._globeCloseHologram = closeHologram;
+
+  // ─── LÁSER DE CONEXIÓN GLOBO → PANEL ──────────────────────────
+  function updateLaser() {
+    if (!laserSvg) return;
+    if (!hologramVisible || !selectedCountry) { laserSvg.innerHTML = ""; return; }
+    const coords = COUNTRY_COORDS[selectedCountry];
+    if (!coords) { laserSvg.innerHTML = ""; return; }
+
+    const containerRect = containerEl.getBoundingClientRect();
+    laserSvg.setAttribute("width", containerRect.width);
+    laserSvg.setAttribute("height", containerRect.height);
+    laserSvg.setAttribute("viewBox", `0 0 ${containerRect.width} ${containerRect.height}`);
+
+    // Punto de origen: la punta de la barra seleccionada, proyectada a 2D
+    const grp = laserGroup.children.find(g => g.userData.country === selectedCountry);
+    if (!grp) { laserSvg.innerHTML = ""; return; }
+    const worldTip = grp.userData.tip.getWorldPosition(new THREE.Vector3());
+    const normal = grp.position.clone().normalize();
+    const camDir = camera.position.clone().sub(worldTip).normalize();
+    const facing = normal.dot(camDir);
+    if (facing < 0.05) { laserSvg.innerHTML = ""; return; } // país en la cara oculta del globo
+
+    const vec = worldTip.clone().project(camera);
+    const wrapRect = wrapEl.getBoundingClientRect();
+    const srcX = wrapRect.left - containerRect.left + (vec.x*0.5+0.5)*wrapRect.width;
+    const srcY = wrapRect.top  - containerRect.top  + (-vec.y*0.5+0.5)*wrapRect.height;
+
+    const holoRect = hologramPanel.getBoundingClientRect();
+    const dstX = holoRect.left - containerRect.left + 4;
+    const dstY = holoRect.top  - containerRect.top  + holoRect.height*0.14;
+
+    const midX = (srcX + dstX) / 2;
+    const opacity = Math.min(1, (facing - 0.05) / 0.25);
+
+    laserSvg.innerHTML = `
+      <defs>
+        <filter id="laserGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="3.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path d="M ${srcX} ${srcY} C ${midX} ${srcY}, ${midX} ${dstY}, ${dstX} ${dstY}"
+        fill="none" stroke="#d4ff3d" stroke-width="2.4" opacity="${opacity*0.9}" filter="url(#laserGlow)" stroke-linecap="round"/>
+      <path d="M ${srcX} ${srcY} C ${midX} ${srcY}, ${midX} ${dstY}, ${dstX} ${dstY}"
+        fill="none" stroke="#d4ff3d" stroke-width="7" opacity="${opacity*0.12}" stroke-linecap="round"/>
+      <circle cx="${srcX}" cy="${srcY}" r="4.5" fill="#d4ff3d" opacity="${opacity}">
+        <animate attributeName="r" values="4;7;4" dur="1s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="${dstX}" cy="${dstY}" r="4.5" fill="#d4ff3d" opacity="${opacity}">
+        <animate attributeName="r" values="4;7;4" dur="1s" repeatCount="indefinite"/>
+      </circle>
+    `;
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (controls) controls.update();
+    const t = clock ? clock.getElapsedTime() : 0;
+
+    laserGroup.children.forEach(grp => {
+      const ud = grp.userData;
+      const isSelected = ud.country === selectedCountry;
+      const isHovered = !selectedCountry && ud.country === hoveredCountry;
+
+      let targetScale = 1, targetCoreOp = ud.baseOpacityCore, targetHaloOp = ud.baseOpacityHalo;
+      if (selectedCountry) {
+        if (isSelected) { targetScale = 1.18 + 0.06*Math.sin(t*3); targetCoreOp = 1; targetHaloOp = 0.4; }
+        else { targetScale = 1; targetCoreOp = 0.10; targetHaloOp = 0.02; }
+      } else if (isHovered) {
+        targetScale = 1.12 + 0.05*Math.sin(t*4);
+        targetCoreOp = 1; targetHaloOp = 0.32;
+      } else {
+        targetScale = 1 + 0.04*Math.sin(t*1.6 + ud.phase);
       }
-    }, 400);
+
+      ud.curScale += (targetScale - ud.curScale) * 0.12;
+      ud.curCoreOp += (targetCoreOp - ud.curCoreOp) * 0.12;
+      ud.curHaloOp += (targetHaloOp - ud.curHaloOp) * 0.12;
+
+      grp.scale.setScalar(ud.curScale);
+      if (ud.core) ud.core.material.opacity = ud.curCoreOp;
+      if (ud.halo) ud.halo.material.opacity = ud.curHaloOp;
+      if (ud.tip) ud.tip.scale.setScalar(1 + 0.3*Math.sin(t*2.4 + ud.phase));
+      if (ud.core) ud.core.material.color.setHex(isSelected ? GOLD : ud.baseColor);
+      if (ud.halo) ud.halo.material.color.setHex(isSelected ? GOLD : ud.baseColor);
+    });
+
+    updateLaser();
+    renderer.render(scene, camera);
   }
 
-  waitForApp(() => {
-    const _prevSwitch = window.switchMainView;
-    window.switchMainView = function(view, btn){
-      _prevSwitch(view, btn);
-      if (view === "analytics") setTimeout(ensureGlobeReady, 60);
-    };
-    ["anGlobalDateChange","anGlobalFilterChange","anSetQuick","anRefresh"].forEach(fnName=>{
+  function hookRefresh() {
+    ["anGlobalDateChange","anGlobalFilterChange","anSetQuick","anRefresh"].forEach(fnName => {
       const prev = window[fnName];
-      if (typeof prev === "function"){
-        window[fnName] = function(...args){
+      if (typeof prev === "function") {
+        window[fnName] = function(...args) {
           const r = prev.apply(this, args);
           setTimeout(updateGlobeData, 50);
           return r;
         };
       }
     });
+  }
+
+  async function ensureGlobeReady() {
+    injectSection();
+    if (!document.getElementById("glb-card")) return;
+    if (!canvasReady) await initScene();
+    updateGlobeData();
+  }
+
+  function waitForApp(cb) {
+    const id = setInterval(() => {
+      if (typeof window.switchMainView === "function" && typeof todosLeads !== "undefined") {
+        clearInterval(id);
+        cb();
+      }
+    }, 400);
+  }
+
+  waitForApp(() => {
+    const _prevSwitch = window.switchMainView;
+    window.switchMainView = function(view, btn) {
+      _prevSwitch(view, btn);
+      if (view === "analytics") setTimeout(ensureGlobeReady, 60);
+    };
+    hookRefresh();
   });
 
 })();
